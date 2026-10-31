@@ -1,3 +1,4 @@
+import { isMe } from "./core.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 import { makeSet, evaluate, oneMoves, SEG_BITS, OP_BITS } from "./gugurt-engine.js";
@@ -128,7 +129,7 @@ function gugWaiting(room, matching) {
 function gugGame(opt) {
   let room = opt.room || null;
   let st = room ? room.state : opt.state;
-  const meKey = room ? (room.p1 === me().id ? "p1" : "p2") : "p1";
+  const meKey = room ? (isMe(room.p1) ? "p1" : "p2") : "p1";
   const themKey = meKey === "p1" ? "p2" : "p1";
   let idx = 0, work = null, picked = null, locked = false, poll = null, tick = null, finishing = false, alive = true, local = 0;
   let shownAt = Date.now(), wrongs = 0, saidStart = false;
@@ -232,7 +233,7 @@ function gugGame(opt) {
     }
     const res = room.result || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
-    const offer = room.state?.rematch && room.state.rematch_by !== me().id;
+    const offer = room.state?.rematch && !isMe(room.state.rematch_by);
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
       <p class="muted" style="margin:0">Yechildi: <b>${st.score?.[meKey] || 0}</b> : ${theirScore()}</p>${ratingLine(room)}
       ${answerHtml(st.puzzles[idx % st.puzzles.length], res.winner && res.winner !== meKey ? "Mana bu topshiriq javobi edi 👇" : "Oxirgi topshiriq javobi:")}

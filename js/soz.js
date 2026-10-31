@@ -1,4 +1,5 @@
 import { quip, watcher } from "./quip.js";
+import { isMe } from "./core.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 
@@ -22,6 +23,8 @@ async function dict() {
 }
 // keng tarqalgan, hamma biladigan so'zlar — taxtaga shulardan ko'proq joylanadi (topish oson bo'lsin)
 const COMMON = ['OSH', 'NON', 'SUV', 'GUL', "KO'Z", "QO'L", 'BOSH', 'UY', "YO'L", 'TOSH', 'OY', 'KUN', 'YIL', 'OTA', 'ONA', 'AKA', 'UKA', 'OPA', 'BOLA', 'QIZ', "O'G'IL", 'ER', "DO'ST", 'ISH', 'PUL', 'VAQT', 'SOAT', 'DARS', 'KITOB', 'DALA', "TOG'", 'DARYO', "KO'L", "BOG'", 'OLMA', 'NOK', 'UZUM', 'ANOR', 'QOVUN', 'PIYOZ', 'SABZI', 'TUZ', 'SUT', 'QATIQ', 'CHOY', 'ASAL', 'MOY', 'TUXUM', 'BALIQ', 'OT', 'IT', 'MUSHUK', 'SIGIR', "QO'Y", 'ECHKI', 'TOVUQ', 'QUSH', 'ARI', 'ILON', 'SHER', "BO'RI", 'TULKI', 'AYIQ', 'FIL', 'TUYA', 'ESHAK', 'QUYOSH', 'OSMON', 'BULUT', 'QOR', 'SHAMOL', 'MUZ', 'OLOV', 'YER', 'QUM', 'TEMIR', 'OLTIN', 'MIS', 'ESHIK', 'DEVOR', 'TOM', 'STOL', 'STUL', 'GILAM', 'KIYIM', "TO'N", 'SHIM', 'ETIK', 'SOCH', 'BURUN', 'QULOQ', "OG'IZ", 'TISH', 'TIL', 'YUZ', 'YELKA', 'QORIN', 'OYOQ', 'BARMOQ', 'YURAK', 'QON', 'TER', 'MEHR', 'TINCH', 'BAXT', 'KULGI', 'ORZU', 'UMID', 'GAP', "SO'Z", 'SAVOL', 'JAVOB', 'ERTAK', 'KUY', 'RAQS', "O'YIN", "TO'P", 'KEMA', "KO'CHA", 'BOZOR', 'NARX', 'MEHMON', "TO'Y", 'BAYRAM', 'HAFTA', 'KECHA', 'TONG', 'KUZ', 'QISH', 'BAHOR', 'YOZ', 'ISSIQ', 'SOVUQ', 'KATTA', 'YAXSHI', 'YOMON', 'TEZ', 'SEKIN', 'OQ', 'QORA', 'QIZIL', 'SARIQ', "KO'K", 'OCH', 'YANGI', 'ESKI', 'UZUN', 'QISQA', 'PAST', 'KENG', 'TOR', 'SHIRIN', 'BIR', 'IKKI', 'UCH', "TO'RT", 'BESH', 'OLTI', 'YETTI', "O'N", 'MING', 'BOR', "YO'Q", 'HA', 'ROST', 'AQL', 'BILIM', 'ILM', 'FAN', 'DUNYO', 'XALQ', 'EL', 'VATAN', 'YURT', 'HARF', 'RAQAM', 'SON', 'HISOB', 'USTOZ', 'USTA', 'ARAVA', 'TAYOQ', 'ARQON', 'IGNA', 'PICHOQ', 'KOSA', 'LAGAN', 'QOZON', 'XONA', 'HOVLI', 'EKIN', 'ARPA', 'PAXTA', 'SHOLI', 'BEHI', 'LIMON', 'BODOM', 'PISTA', 'MAYIZ', 'HOLVA', 'SOMSA', 'MANTI', 'KABOB', 'PALOV', 'ON', 'UN', 'IZ', 'OL', 'AY', 'OR'];
+// uzunroq (6–8 harfli) tanish so'zlar — har taxtaga bir nechtasi albatta joylanadi
+const LONG = ["TARVUZ", "SHAHAR", "YULDUZ", "YASHIL", "KONFET", "OSHPAZ", "HIKOYA", "BAYROQ", "QALPOQ", "KICHIK", "TIMSOH", "ALIFBO", "POYEZD", "ERTAGA", "QUVNOQ", "DEHQON", "RAHBAR", "JIRAFA", "DARAXT", "TUPROQ", "GAZETA", "SAKKIZ", "BURGUT", "NEVARA", "MEHNAT", "KUMUSH", "ISHCHI", "SANDIQ", "JURNAL", "MAKTAB", "DAFTAR", "BAXTLI", "QAYMOQ", "QAYCHI", "NORDON", "PIYOLA", "MAYMUN", "NONVOY", "TANDIR", "KURASH", "DERAZA", "KUCHUK", "DENGIZ", "FUTBOL", "BALAND", "YENGIL", "SHAKAR", "DOKTOR", "KAPTAR", "ARSLON", "TIRNOQ", "LAYLAK", "TALABA", "RASSOM", "YONG'OQ", "KAMALAK", "CHUMOLI", "CHOYNAK", "BULUTLI", "TOMORQA", "BOSHLIQ", "NAVRO'Z", "CHO'PON", "QO'SHIQ", "SHODLIK", "SAYYORA", "SOG'LOM", "SHOGIRD", "ACHCHIQ", "KO'NGIL", "KAPALAK", "QUVONCH", "YOMG'IR", "MASHINA", "TO'QQIZ", "SHO'RVA", "BUG'DOY", "KARAVOT", "QISHLOQ", "OSHXONA", "ERTALAB", "QO'SHNI", "TELEFON", "KO'YLAK", "SICHQON", "BOG'BON", "CHAQMOQ", "BALIQCHI", "SPORTCHI", "SOTUVCHI", "HAMSHIRA", "SHIFOKOR", "TEMIRCHI", "O'QUVCHI", "CHIROYLI", "YOZUVCHI", "MEHRIBON", "SHOKOLAD", "SHAFTOLI", "TOSHBAQA", "MUHANDIS", "CHOYXONA", "QULUPNAY", "POYABZAL", "YO'LBARS", "DORIXONA", "SAMOLYOT", "GULDASTA"];
 const isWord = w => DICT && (DICT.has(w) || (w.endsWith("LAR") && w.length >= 5 && DICT.has(w.slice(0, -3))));
 const adj = (a, b) => Math.max(Math.abs(((a / N) | 0) - ((b / N) | 0)), Math.abs((a % N) - (b % N))) === 1;
 
@@ -31,8 +34,13 @@ export async function generate() {
   const grid = Array(N * N).fill(null);
   const seeds = [], used = new Set();
   // ~30 ta oddiy so'zni ilon-izi bo'ylab joylaymiz; bir-birini buzmaydi (katak bo'sh yoki xuddi shu harf bo'lsa)
-  for (let t = 0; t < 3000 && seeds.length < 30; t++) {
-    const w = pool[(Math.random() * pool.length) | 0];
+  const longPool = LONG.filter(w => D.has(w));
+  let longs = 0;
+  for (let t = 0; t < 4000 && seeds.length < 32; t++) {
+    // avval 7 ta uzun so'z (bo'sh taxtaga oson sig'adi), keyin qisqalar
+    const wantLong = longs < 7 && t < 1500;
+    const src = wantLong ? longPool : pool;
+    const w = src[(Math.random() * src.length) | 0];
     if (used.has(w)) continue;
     const tk = tokens(w);
     const fits = (i, k) => grid[i] === null || grid[i] === tk[k];
@@ -55,6 +63,7 @@ export async function generate() {
     if (path.length !== tk.length) continue;
     path.forEach((i, k) => grid[i] = tk[k]);
     used.add(w); seeds.push({ w, path });
+    if (wantLong) longs++;
   }
   for (let i = 0; i < grid.length; i++) if (grid[i] === null) grid[i] = randLetter();
   return { grid, claimed: {}, seeds, seconds: SECONDS };
@@ -71,7 +80,7 @@ export function sozMenu() {
           <b>Qanday o'ynaladi:</b> harflar ichidan istalgan o'zbekcha so'zni toping — barmoqni harfdan qo'shni harfga
           (yonga, tepaga, diagonalga) yurgizib chizing. So'zlar oldindan aytilmaydi. Har harf — 1 ochko.
           Raqib topgan so'z sizga qolmaydi. Vaqt — <b>1 daqiqa</b>.
-          <br>Taxtada <b>oddiy so'zlar</b> ko'p: OSH, NON, GUL, KO'Z… Qiynalsangiz — <b>💡 Yordam</b> tugmasi (3 marta).
+          <br>Taxtada <b>oddiy so'zlar</b> ko'p: OSH, NON, GUL… va har safar <b>7 ta uzun so'z</b> yashiringan (MAKTAB, KAPALAK, SAMOLYOT kabi) — ular ko'p ochko beradi! Qiynalsangiz — <b>💡 Yordam</b> (3 marta).
         </div>
         <div class="stack" style="margin-top:12px">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reyting uchun</small></span></button>
@@ -135,7 +144,7 @@ function sozWaiting(room, matching) {
 function sozGame(opt) {
   let room = opt.room || null;
   let st = room ? room.state : opt.state;
-  const meKey = room ? (room.p1 === me().id ? "p1" : "p2") : "p1";
+  const meKey = room ? (isMe(room.p1) ? "p1" : "p2") : "p1";
   const themKey = meKey === "p1" ? "p2" : "p1";
   let path = [], dragging = false, poll = null, tick = null, finishing = false, alive = true, pending = 0;
   let hints = 3, streak = 0, lastFound = 0, bads = 0, saidStart = false;
@@ -180,7 +189,7 @@ function sozGame(opt) {
     if (!hints || done() || !started()) return;
     const free = (st.seeds || []).filter(x => !claimedBy(x.w) && x.path.every((i, k) => st.grid[i] === tokens(x.w)[k]));
     if (!free.length) return toast("Yordam uchun so'z qolmadi 🙂");
-    const x = free.sort((a, b) => a.path.length - b.path.length)[(Math.random() * Math.min(5, free.length)) | 0];
+    const x = free.sort((a, b) => b.path.length - a.path.length)[(Math.random() * Math.min(4, free.length)) | 0];
     hints--; W.act(); haptic("light");
     const cells = x.path.slice(0, x.path.length <= 3 ? 1 : 2);
     cells.forEach((i, k) => document.querySelector(`.lt[data-i="${i}"]`)?.classList.add("hl", "h" + k));
@@ -241,7 +250,7 @@ function sozGame(opt) {
     }
     const res = room.result || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
-    const offer = room.state?.rematch && room.state.rematch_by !== me().id;
+    const offer = room.state?.rematch && !isMe(room.state.rematch_by);
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
       <p class="muted" style="margin:0">Ochko: <b>${a}</b> : ${b}</p>${ratingLine(room)}
       <button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>

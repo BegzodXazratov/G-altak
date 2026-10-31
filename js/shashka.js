@@ -1,3 +1,4 @@
+import { isMe } from "./core.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy, sleep,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 import { quip } from "./quip.js";
@@ -55,7 +56,7 @@ async function startOnline(kind) {
   let room;
   try { room = await api(kind, { game: "shashka", state: freshState() }); }
   catch (e) { return toast(e.message); }
-  if (room.status === "playing") return show(gameScreen({ mode: "online", room, mySide: room.p1 === me().id ? 1 : -1 }));
+  if (room.status === "playing") return show(gameScreen({ mode: "online", room, mySide: isMe(room.p1) ? 1 : -1 }));
   show(waitingScreen(room, kind === "match"));
 }
 
@@ -109,8 +110,8 @@ export async function joinRoom(code) {
   if (r.error === "full") return toast("Bu xonada allaqachon ikki kishi o'ynayapti");
   if (r.game === "soz") { const m = await import("./soz.js"); return m.openSozRoom(r); }
   if (r.game === "gugurt") { const m = await import("./gugurt.js"); return m.openGugRoom(r); }
-  if (r.p1 === me().id && r.status === "waiting") return show(waitingScreen(r, false));
-  show(gameScreen({ mode: "online", room: r, mySide: r.p1 === me().id ? 1 : -1 }));
+  if (isMe(r.p1) && r.status === "waiting") return show(waitingScreen(r, false));
+  show(gameScreen({ mode: "online", room: r, mySide: isMe(r.p1) ? 1 : -1 }));
 }
 
 // ---------------- o'yin ----------------
@@ -280,9 +281,9 @@ function gameScreen(opt) {
     if (winSide === 0) title = "Durang 🤝";
     else if (meSide === null) title = (winSide === 1 ? "Oq" : "Qora") + " yutdi! 🏆";
     else if (meSide === winSide) { title = "Siz yutdingiz! 🏆"; haptic("ok"); }
-    else { title = "Bu safar yutqazdingiz"; sub = room?.state?.resigned === me().id ? "Siz taslim bo'ldingiz" : "Revansh olasizmi?"; }
-    if (room?.state?.resigned && room.state.resigned !== me().id) sub = "Raqib taslim bo'ldi";
-    const rematchOffer = room?.state?.rematch && room.state.rematch_by !== me().id;
+    else { title = "Bu safar yutqazdingiz"; sub = isMe(room?.state?.resigned) ? "Siz taslim bo'ldingiz" : "Revansh olasizmi?"; }
+    if (room?.state?.resigned && !isMe(room.state.resigned)) sub = "Raqib taslim bo'ldi";
+    const rematchOffer = room?.state?.rematch && !isMe(room.state.rematch_by);
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>${sub ? `<p class="muted" style="margin:0">${sub}</p>` : ""}
       ${opt.mode === "online" ? ratingLine(room) : ""}
       ${opt.mode === "online" ? `<button class="btn green" data-end="rematch">${rematchOffer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>`
@@ -299,7 +300,7 @@ function gameScreen(opt) {
       try {
         const r = await api("rematch", { id: room.id, state: freshState() });
         if (r.error) return toast("Revansh ochilmadi");
-        if (r.status === "playing") show(gameScreen({ mode: "online", room: r, mySide: r.p1 === me().id ? 1 : -1 }), false);
+        if (r.status === "playing") show(gameScreen({ mode: "online", room: r, mySide: isMe(r.p1) ? 1 : -1 }), false);
         else show(waitingScreen(r, false), false);
       } catch (e) { toast(e.message); }
     }

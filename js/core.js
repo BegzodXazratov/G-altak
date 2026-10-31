@@ -24,6 +24,8 @@ export function setProfile(p) { profile = p; }
 export function me() {
   return { id: profile?.id || "", h: profile?.h || "", name: profile?.name || "" };
 }
+// xonada o'yinchi Telegram ID o'rniga yashirin belgi (h) bilan saqlanadi; eski ko'rinish ham tushuniladi
+export const isMe = x => !!x && (x === profile?.id || x === profile?.h);
 export const score = () => profile?.stats?.all?.rating ?? 0;
 export const rating = () => score();
 // darajalar (0–100 ball)
@@ -149,7 +151,7 @@ export const sleep = ms => new Promise(r => setTimeout(r, ms));
 export function ratingLine(room) {
   const res = room?.result;
   if (!res || res.cancelled) return "";
-  const mine = room.p1 === me().id ? "p1" : "p2";
+  const mine = isMe(room.p1) ? "p1" : "p2";
   const d = res[mine + "_delta"], r = res[mine + "_rating"];
   if (d === undefined) return "";
   if (profile?.stats?.all) profile.stats.all.rating = r;
