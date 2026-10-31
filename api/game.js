@@ -1,5 +1,6 @@
 // Barcha yozish amallari shu yerdan: Telegram imzosi tekshiriladi, keyin Supabase'ga server kaliti bilan boriladi.
 import { verifyInitData, rpc, fullName } from "./_lib.js";
+import { isWord, pathWord } from "./_soz.js";
 
 const GAMES = ["shashka", "soz"];
 
@@ -41,9 +42,14 @@ export default async function handler(req, res) {
       case "resign":
         out = await rpc("g_room_resign", { p_id: b.id, p_player: id });
         break;
-      case "claim":
-        out = await rpc("g_soz_claim", { p_id: b.id, p_player: id, p_word: String(b.word || "") });
+      case "claim": {
+        const room = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
+        if (!room || room.error || room.game !== "soz") return res.status(200).json({ error: "not_found" });
+        const word = pathWord(room.state?.grid || [], b.path);
+        if (!word || !isWord(word)) return res.status(200).json({ error: "no_word" });
+        out = await rpc("g_soz_claim", { p_id: room.id, p_player: id, p_word: word });
         break;
+      }
       case "finish":
         out = await rpc("g_soz_finish", { p_id: b.id });
         break;

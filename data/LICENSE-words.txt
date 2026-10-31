@@ -1,0 +1,2 @@
+data/words.json va api/_words.json — "uzbek-words" ro'yxatidan (https://github.com/kodchi/uzbek-words, GNU GPL v2)
+lotin yozuviga o'girilgan va filtrlangan. Bu fayllar o'sha litsenziya (GPL v2) shartlari asosida tarqatiladi.

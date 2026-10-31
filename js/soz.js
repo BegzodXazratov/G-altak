@@ -1,77 +1,74 @@
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
   rating, ratingLine, refreshProfile, nav } from "./core.js";
 
+// So'z jangi: 10×10 harflar. So'zlar oldindan aytilmaydi — har qanday o'zbekcha so'zni
+// qo'shni harflar bo'ylab (diagonal ham, istalgan tomonga burilib) chizasiz. 1 daqiqa. Kim ko'p ochko yig'sa — g'olib.
 const N = 10;
-const SECONDS = 180;
-const WORD_COUNT = 10;
+const SECONDS = 60;
+// harflar chastotasi (lug'atdan hisoblangan)
+const FREQ = [["A", 19], ["I", 14], ["O", 13], ["R", 9], ["L", 8], ["S", 7], ["T", 7], ["M", 7], ["N", 6.5], ["H", 6], ["Q", 6],
+  ["K", 5.7], ["U", 5], ["Y", 4], ["B", 3.8], ["D", 3.8], ["E", 3.4], ["Z", 3], ["V", 2.4], ["G", 2], ["O'", 2], ["P", 2],
+  ["X", 1.4], ["G'", 1.3], ["F", 1.2], ["J", 1.2], ["C", 0.6]];
+const FTOTAL = FREQ.reduce((s, [, w]) => s + w, 0);
+const randLetter = () => { let x = Math.random() * FTOTAL; for (const [l, w] of FREQ) { x -= w; if (x <= 0) return l; } return "A"; };
+const tokens = w => w.match(/[OG]'|[A-Z]/g) || [];
+const pts = w => tokens(w).length;
 
-// Tutuq belgisisiz (o', g') o'zbekcha so'zlar — 3–8 harf
-const WORDS = (`KITOB MAKTAB DAFTAR QALAM USTOZ BILIM DARS SAVOL JAVOB OTA ONA AKA UKA OPA SINGIL BOBO BUVI OILA ESHIK DERAZA
-STOL STUL XONA OSHXONA NON SUV CHOY OSH SOMSA MANTI OLMA NOK UZUM ANOR BEHI QOVUN TARVUZ SHAFTOLI GILOS BODOM YONGOQ PISTA
-SABZI PIYOZ POMIDOR BODRING SHAHAR QISHLOQ BOZOR MAYDON DARYO DENGIZ OSMON YULDUZ QUYOSH BULUT QOR SHAMOL BAHOR KUZ QISH
-KUN TUN ERTA KECHA SOAT VAQT YIL HAFTA MASHINA POYEZD SAMOLYOT AVTOBUS MUSHUK SIGIR ECHKI TUYA ARSLON BURGUT QUSH BALIQ
-ILON AYIQ TULKI QUYON KAPALAK CHUMOLI GUL LOLA RAYHON DARAXT CHINOR TERAK BARG ILDIZ MEVA SEVGI BAXT QUVONCH TINCHLIK
-VATAN XALQ TIL MUSIQA RASM KINO TEATR SPORT FUTBOL KURASH SHASHKA SHAXMAT BAYRAM ERTAK QAHRAMON SHER KUCH AQL YURAK BOSH
-QULOQ BURUN TISH SOCH OYOQ BARMOQ TIRNOQ KIYIM SHIM DOPPI CHOPON ETIK TELEFON RADIO GAZETA XABAR XAT POCHTA PUL NARX SAVDO
-ISH MEHNAT DEHQON USTA SHIFOKOR DORI BOLA QIZ ODAM INSON DUNYO OLAM HAYOT OLTIN KUMUSH TEMIR TOSH QUM TUPROQ OLOV ISSIQ
-SOVUQ YASHIL QIZIL SARIQ QORA PUSHTI KULRANG LIMON ASAL SHAKAR TUZ GURUCH SUT QAYMOQ PISHLOQ TUXUM KABOB PALOV TANDIR
-QOZON PICHOQ KALIT SOAT RUCHKA KITOBXONA SAYOHAT POYTAXT TOSHKENT SAMARQAND BUXORO XIVA ANDIJON
-NAMANGAN NUKUS TERMIZ QARSHI JIZZAX NAVOIY GULISTON`)
-  .split(/\s+/).filter(w => w.length >= 3 && w.length <= 8);
-const UNIQUE = [...new Set(WORDS)];
-const FILL = "AAAAAAIIIIIOOOOOUUUEEELLLRRRNNNSSSTTTKKKMMMDDBBYYQQHHZZGGVXJPF";
-const DIRS = [[0, 1], [1, 0], [1, 1], [-1, 1]];
+let DICT = null;
+async function dict() {
+  if (!DICT) DICT = new Set(await (await fetch("data/words.json")).json());
+  return DICT;
+}
+const isWord = w => DICT && (DICT.has(w) || (w.endsWith("LAR") && w.length >= 5 && DICT.has(w.slice(0, -3))));
+const adj = (a, b) => Math.max(Math.abs(((a / N) | 0) - ((b / N) | 0)), Math.abs((a % N) - (b % N))) === 1;
 
-export function generate() {
-  for (let attempt = 0; attempt < 50; attempt++) {
-    const grid = new Array(N * N).fill("");
-    const words = [];
-    const pool = UNIQUE.slice().sort(() => Math.random() - 0.5);
-    for (const w of pool) {
-      if (words.length >= WORD_COUNT) break;
-      let placed = false;
-      for (let t = 0; t < 80 && !placed; t++) {
-        const [dr, dc] = DIRS[(Math.random() * DIRS.length) | 0];
-        const r0 = (Math.random() * N) | 0, c0 = (Math.random() * N) | 0;
-        const cells = [];
-        let ok = true;
-        for (let k = 0; k < w.length; k++) {
-          const r = r0 + dr * k, c = c0 + dc * k;
-          if (r < 0 || r >= N || c < 0 || c >= N) { ok = false; break; }
-          const i = r * N + c;
-          if (grid[i] && grid[i] !== w[k]) { ok = false; break; }
-          cells.push(i);
-        }
-        if (!ok) continue;
-        cells.forEach((i, k) => grid[i] = w[k]);
-        words.push({ w, cells });
-        placed = true;
+export async function generate() {
+  const d = [...(await dict())];
+  const grid = Array.from({ length: N * N }, randLetter);
+  // ichiga 22 ta haqiqiy so'zni ilon-izi bo'ylab joylaymiz — topiladigan so'z ko'p bo'lsin
+  let placed = 0;
+  for (let t = 0; t < 400 && placed < 22; t++) {
+    const w = d[(Math.random() * d.length) | 0];
+    const tk = tokens(w);
+    if (tk.length < 3 || tk.length > 7) continue;
+    let cur = (Math.random() * N * N) | 0;
+    const path = [cur];
+    for (let k = 1; k < tk.length; k++) {
+      const nb = [];
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const r = ((cur / N) | 0) + dr, c = (cur % N) + dc;
+        if ((dr || dc) && r >= 0 && r < N && c >= 0 && c < N && !path.includes(r * N + c)) nb.push(r * N + c);
       }
+      if (!nb.length) break;
+      cur = nb[(Math.random() * nb.length) | 0];
+      path.push(cur);
     }
-    if (words.length < WORD_COUNT) continue;
-    for (let i = 0; i < grid.length; i++) if (!grid[i]) grid[i] = FILL[(Math.random() * FILL.length) | 0];
-    return { grid, words, claimed: {}, seconds: SECONDS };
+    if (path.length !== tk.length) continue;
+    path.forEach((i, k) => grid[i] = tk[k]);
+    placed++;
   }
-  throw new Error("generate failed");
+  return { grid, claimed: {}, seconds: SECONDS };
 }
 
 // ---------------- lobby ----------------
 export function sozMenu() {
+  dict().catch(() => {});
   return {
     render() {
       app().innerHTML = header("So'z jangi") + `
         <div class="lobby-top"><span>Reytingingiz</span><b>${rating("soz")}</b></div>
         <div class="card soz-intro">
-          <b>Qoidasi oddiy:</b> 10×10 harflar ichida ${WORD_COUNT} ta o'zbekcha so'z yashiringan. So'zni topsangiz — barmoq bilan
-          birinchi harfdan oxirgisigacha chizing. Kim 3 daqiqada ko'proq so'z topsa, o'sha yutadi. Raqib topgan so'z sizga qolmaydi!
+          <b>Qanday o'ynaladi:</b> harflar ichidan istalgan o'zbekcha so'zni toping — barmoqni harfdan qo'shni harfga
+          (yonga, tepaga, diagonalga) yurgizib chizing. So'zlar oldindan aytilmaydi. Har harf — 1 ochko.
+          Raqib topgan so'z sizga qolmaydi. Vaqt — <b>1 daqiqa</b>.
         </div>
         <div class="stack" style="margin-top:12px">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reyting uchun</small></span></button>
           <button class="bigbtn b-friend" data-act="create"><span class="ic">🔗</span><span><b>Do'stni chaqirish</b><small>Havola yuboring</small></span></button>
-          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>3 daqiqada nechta topasiz? Rekord: ${load("soz-best") || 0}</small></span></button>
+          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>1 daqiqada necha ochko? Rekord: ${load("soz-best2") || 0}</small></span></button>
         </div>`;
       bindBack();
-      app().querySelector('[data-act="solo"]').onclick = () => show(sozGame({ mode: "solo" }));
+      app().querySelector('[data-act="solo"]').onclick = async () => show(sozGame({ room: null, state: { ...(await generate()), ends_at: Date.now() + 3000 + SECONDS * 1000 } }));
       app().querySelector('[data-act="create"]').onclick = () => startOnline("create");
       app().querySelector('[data-act="match"]').onclick = () => startOnline("match");
     },
@@ -80,12 +77,13 @@ export function sozMenu() {
 
 async function startOnline(kind) {
   let room;
-  try { room = await api(kind, { game: "soz", state: generate() }); } catch (e) { return toast(e.message); }
+  try { room = await api(kind, { game: "soz", state: await generate() }); } catch (e) { return toast(e.message); }
   openSozRoom(room, kind === "match");
 }
 
-export function openSozRoom(room, matching = false) {
-  if (room.status === "playing" || room.status === "done") return show(sozGame({ mode: "online", room }));
+export async function openSozRoom(room, matching = false) {
+  await dict().catch(() => {});
+  if (room.status === "playing" || room.status === "done") return show(sozGame({ room }));
   show(sozWaiting(room, matching));
 }
 
@@ -97,7 +95,7 @@ function sozWaiting(room, matching) {
         <div class="card stack center">
           ${matching ? `<div class="radar"><span></span><span></span><span></span><b>🔤</b></div><p class="muted" style="margin:0">Raqib qidiryapmiz…</p>`
             : `<p class="muted" style="margin:0">Xona kodi</p><div class="code">${room.id}</div>
-               <p class="small muted" style="margin:0">Do'stingiz kirishi bilan 3 daqiqalik jang boshlanadi.</p>`}
+               <p class="small muted" style="margin:0">Do'stingiz kirishi bilan 1 daqiqalik jang boshlanadi.</p>`}
           <button class="btn" data-share>📨 Do'stga yuborish</button>
           ${matching ? "" : `<button class="btn alt" data-copy>Kodni nusxalash</button>`}
         </div>`;
@@ -107,7 +105,7 @@ function sozWaiting(room, matching) {
       timer = setInterval(async () => {
         try {
           const r = await read("g_room_get", { p_id: room.id });
-          if (r.status === "playing") { clearInterval(timer); haptic("ok"); show(sozGame({ mode: "online", room: r }), false); }
+          if (r.status === "playing") { clearInterval(timer); haptic("ok"); show(sozGame({ room: r }), false); }
         } catch (e) {}
       }, 1200);
     },
@@ -118,99 +116,90 @@ function sozWaiting(room, matching) {
 // ---------------- o'yin ----------------
 function sozGame(opt) {
   let room = opt.room || null;
-  let st = room ? room.state : { ...generate(), ends_at: Date.now() + 3000 + SECONDS * 1000 };
+  let st = room ? room.state : opt.state;
   const meKey = room ? (room.p1 === me().id ? "p1" : "p2") : "p1";
-  let sel = [], startCell = null, poll = null, tick = null, finishing = false, alive = true, pending = new Set();
+  const themKey = meKey === "p1" ? "p2" : "p1";
+  let path = [], dragging = false, poll = null, tick = null, finishing = false, alive = true, pending = 0;
 
   const claimedBy = w => st.claimed?.[w];
-  const score = who => Object.values(st.claimed || {}).filter(x => x === who).length;
+  const wordsOf = who => Object.entries(st.claimed || {}).filter(([, v]) => v === who).map(([w]) => w);
+  const score = who => wordsOf(who).reduce((s, w) => s + pts(w), 0);
   const left = () => Math.max(0, Math.ceil(((st.ends_at || 0) - Date.now()) / 1000));
   const started = () => Date.now() >= (st.ends_at || 0) - (st.seconds || SECONDS) * 1000;
-  const done = () => room ? room.status === "done" : (left() === 0 || Object.keys(st.claimed).length >= st.words.length);
+  const done = () => room ? room.status === "done" : left() === 0;
 
-  function lineCells(a, b) {
-    const [r1, c1] = [(a / N) | 0, a % N], [r2, c2] = [(b / N) | 0, b % N];
-    const dr = Math.sign(r2 - r1), dc = Math.sign(c2 - c1);
-    const len = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1));
-    if (!(r1 === r2 || c1 === c2 || Math.abs(r2 - r1) === Math.abs(c2 - c1))) return [a];
-    return Array.from({ length: len + 1 }, (_, k) => (r1 + dr * k) * N + (c1 + dc * k));
-  }
-
-  async function tryWord(cells) {
-    const s = cells.map(i => st.grid[i]).join("");
-    const rev = s.split("").reverse().join("");
-    const hit = st.words.find(x => (x.w === s || x.w === rev) && x.cells.length === cells.length);
-    if (!hit) { if (cells.length > 2) { haptic("error"); flash("bad"); } return; }
-    if (claimedBy(hit.w)) { toast(claimedBy(hit.w) === meKey ? "Bu so'zni allaqachon topgansiz" : "Raqib oldinroq topdi 😅"); return; }
-    haptic("ok");
-    if (!room) { st.claimed[hit.w] = "p1"; draw(); if (done()) finishSolo(); return; }
-    pending.add(hit.w); st.claimed = { ...st.claimed, [hit.w]: meKey }; draw();
+  async function submit(cells) {
+    if (cells.length < 2) return;
+    const w = cells.map(i => st.grid[i]).join("");
+    if (!isWord(w)) { haptic("error"); flash("bad"); return; }
+    const by = claimedBy(w);
+    if (by) { toast(by === meKey ? "Bu so'zni topgansiz" : "Raqib oldinroq topdi 😅"); flash("bad"); return; }
+    haptic("ok"); flash("good", `+${pts(w)}`);
+    if (!room) { st.claimed[w] = "p1"; draw(); return; }
+    pending++; st.claimed = { ...st.claimed, [w]: meKey }; draw();
     try {
-      const r = await api("claim", { id: room.id, word: hit.w });
-      pending.delete(hit.w);
+      const r = await api("claim", { id: room.id, path: cells });
       if (r.error === "taken") { room = r; st = r.state; toast("Raqib bir lahza oldin topdi 😅"); }
-      else if (!r.error) { room = r; st = r.state; }
-      else if (r.error === "time_up") { room = r; st = r.state; }
-    } catch (e) { pending.delete(hit.w); toast("Internet bilan muammo"); }
+      else if (r.error === "no_word") { const c = { ...st.claimed }; delete c[w]; st.claimed = c; toast("Bu so'z lug'atda yo'q"); }
+      else if (r.id) { room = r; st = r.state; }
+    } catch (e) { toast("Internet bilan muammo"); }
+    pending--;
     draw();
   }
 
-  function flash(kind) {
+  function flash(kind, text) {
     const g = document.querySelector(".wgrid"); if (!g) return;
-    g.classList.add(kind); setTimeout(() => g.classList.remove(kind), 300);
-  }
-
-  function finishSolo() {
-    const n = score("p1");
-    if (n > +(load("soz-best") || 0)) save("soz-best", n);
-  }
-
-  function cellColor(i) {
-    for (const w of st.words) {
-      const who = claimedBy(w.w);
-      if (who && w.cells.includes(i)) return who === meKey ? "mine" : "theirs";
+    g.classList.add(kind); setTimeout(() => g.classList.remove(kind), 320);
+    if (text) {
+      const f = document.createElement("div"); f.className = "plus"; f.textContent = text;
+      document.querySelector(".wwrap")?.appendChild(f); setTimeout(() => f.remove(), 800);
     }
-    return "";
   }
 
   function draw() {
-    if (!alive) return;
-    const grid = document.querySelector(".wgrid");
-    if (!grid) return;
-    const selSet = new Set(sel);
-    grid.querySelectorAll(".lt").forEach(el => {
+    if (!alive || !document.querySelector(".wgrid")) return;
+    const sel = new Set(path);
+    document.querySelectorAll(".lt").forEach(el => {
       const i = +el.dataset.i;
-      el.className = `lt ${cellColor(i)} ${selSet.has(i) ? "sel" : ""}`;
+      el.className = `lt ${sel.has(i) ? "sel" : ""} ${path[path.length - 1] === i ? "head" : ""}`;
     });
-    document.querySelector(".wlist").innerHTML = st.words.map(x => {
-      const who = claimedBy(x.w);
-      return `<span class="wchip ${who ? (who === meKey ? "mine" : "theirs") : ""}">${x.w}</span>`;
-    }).join("");
+    const cur = path.map(i => st.grid[i]).join("");
+    const pv = document.querySelector(".preview");
+    pv.textContent = cur || (started() ? "Harfdan harfga chizing" : "Tayyorlaning…");
+    pv.className = `preview ${cur ? (cur.length > 1 && isWord(cur) ? "ok" : "typing") : ""}`;
     const t = left();
-    const sc1 = score(meKey), sc2 = score(meKey === "p1" ? "p2" : "p1");
+    const clock = started() ? `${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}` : "…";
     document.querySelector(".sbar").innerHTML = room ? `
-      <div class="side mine"><b>${sc1}</b><span>Siz</span></div>
-      <div class="timer ${t <= 20 ? "low" : ""}">${started() ? `${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}` : "Tayyor…"}</div>
-      <div class="side theirs"><b>${sc2}</b><span>${esc(meKey === "p1" ? room.p2_name || "Raqib" : room.p1_name || "Raqib")}</span></div>` : `
-      <div class="side mine"><b>${sc1}</b><span>Topildi</span></div>
-      <div class="timer ${t <= 20 ? "low" : ""}">${started() ? `${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}` : "Tayyor…"}</div>
-      <div class="side"><b>${st.words.length - sc1}</b><span>Qoldi</span></div>`;
+      <div class="side mine"><b>${score(meKey)}</b><span>Siz</span></div>
+      <div class="timer ${t <= 10 && started() ? "low" : ""}">${clock}</div>
+      <div class="side theirs"><b>${score(themKey)}</b><span>${esc(meKey === "p1" ? room.p2_name || "Raqib" : room.p1_name || "Raqib")}</span></div>` : `
+      <div class="side mine"><b>${score("p1")}</b><span>Ochko</span></div>
+      <div class="timer ${t <= 10 && started() ? "low" : ""}">${clock}</div>
+      <div class="side"><b>${wordsOf("p1").length}</b><span>So'z</span></div>`;
+    const mine = wordsOf(meKey), theirs = room ? wordsOf(themKey) : [];
+    document.querySelector(".found").innerHTML = `
+      <div><span class="flabel">Siz topgan</span>${mine.map(w => `<span class="wchip mine">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>
+      ${room ? `<div><span class="flabel">Raqib</span>${theirs.map(w => `<span class="wchip theirs">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>` : ""}`;
     const cd = document.getElementById("cd");
-    if (cd) cd.innerHTML = !started() && !done() ? `<div class="countdown">${Math.max(1, Math.ceil(((st.ends_at - st.seconds * 1000) - Date.now()) / 1000))}</div>` : "";
-    document.getElementById("ov").innerHTML = done() ? endOverlay() : "";
-    document.querySelectorAll("#ov [data-end]").forEach(b => b.onclick = () => endAction(b.dataset.end));
+    if (cd) cd.innerHTML = !started() && !done() ? `<div class="countdown">${Math.max(1, Math.ceil(((st.ends_at - (st.seconds || SECONDS) * 1000) - Date.now()) / 1000))}</div>` : "";
+    const ov = document.getElementById("ov");
+    const want = done() ? endOverlay() : "";
+    if (ov.dataset.html !== want) { ov.innerHTML = want; ov.dataset.html = want; ov.querySelectorAll("[data-end]").forEach(b => b.onclick = () => endAction(b.dataset.end)); }
   }
 
   function endOverlay() {
-    const a = score(meKey), b = score(meKey === "p1" ? "p2" : "p1");
-    if (!room) return `<div class="overlay"><div class="card stack center"><h2>${a >= st.words.length ? "Hammasini topdingiz! 🎉" : "Vaqt tugadi"}</h2>
-      <p class="muted" style="margin:0">${a} ta so'z topdingiz · rekord ${load("soz-best") || a}</p>
-      <button class="btn green" data-end="again">Yana o'ynash</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
+    const a = score(meKey), b = score(themKey);
+    if (!room) {
+      const best = Math.max(a, +(load("soz-best2") || 0)); save("soz-best2", best);
+      return `<div class="overlay"><div class="card stack center"><h2>Vaqt tugadi ⏱</h2>
+        <p class="muted" style="margin:0"><b>${a}</b> ochko · ${wordsOf("p1").length} ta so'z · rekord ${best}</p>
+        <button class="btn green" data-end="again">Yana o'ynash</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
+    }
     const res = room.result || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
     const offer = room.state?.rematch && room.state.rematch_by !== me().id;
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
-      <p class="muted" style="margin:0">Hisob: ${a} : ${b}</p>${ratingLine(room, "soz")}
+      <p class="muted" style="margin:0">Ochko: <b>${a}</b> : ${b}</p>${ratingLine(room, "soz")}
       <button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>
       <button class="btn alt" data-end="lb">🏆 Reyting</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
   }
@@ -218,12 +207,12 @@ function sozGame(opt) {
   async function endAction(a) {
     if (a === "menu") return home();
     if (a === "lb") return show(nav.leaderboard("soz"));
-    if (a === "again") return show(sozGame({ mode: "solo" }), false);
+    if (a === "again") return show(sozGame({ room: null, state: { ...(await generate()), ends_at: Date.now() + 3000 + SECONDS * 1000 } }), false);
     if (a === "rematch") {
       try {
-        const r = await api("rematch", { id: room.id, state: generate() });
+        const r = await api("rematch", { id: room.id, state: await generate() });
         if (r.error) return toast("Revansh ochilmadi");
-        if (r.status === "playing") show(sozGame({ mode: "online", room: r }), false);
+        if (r.status === "playing") show(sozGame({ room: r }), false);
         else show(sozWaiting(r, false), false);
       } catch (e) { toast(e.message); }
     }
@@ -232,54 +221,63 @@ function sozGame(opt) {
   function render() {
     app().innerHTML = header("So'z jangi") + `
       <div class="sbar"></div>
-      <div class="wwrap"><div class="wgrid">${st.grid.map((ch, i) => `<div class="lt" data-i="${i}">${ch}</div>`).join("")}</div><div id="cd"></div></div>
-      <div class="wlist"></div>
+      <div class="preview"></div>
+      <div class="wwrap"><div class="wgrid">${st.grid.map((ch, i) => `<div class="lt" data-i="${i}"><b>${ch}</b></div>`).join("")}</div><div id="cd"></div></div>
+      <div class="found"></div>
       <div id="ov"></div>`;
     bindBack();
     const grid = document.querySelector(".wgrid");
-    const cellAt = (x, y) => { const el = document.elementFromPoint(x, y)?.closest?.(".lt"); return el ? +el.dataset.i : null; };
+    // barmoq katak markaziga yaqin bo'lsagina qo'shiladi — diagonal yurish oson bo'lsin
+    const cellAt = (x, y) => {
+      const el = document.elementFromPoint(x, y)?.closest?.(".lt");
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const dx = (x - (r.left + r.width / 2)) / r.width, dy = (y - (r.top + r.height / 2)) / r.height;
+      return dx * dx + dy * dy < 0.16 ? +el.dataset.i : null;
+    };
     grid.addEventListener("pointerdown", e => {
       if (done() || !started()) return;
-      const i = cellAt(e.clientX, e.clientY); if (i === null) return;
-      startCell = i; sel = [i]; grid.setPointerCapture(e.pointerId); draw();
+      const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".lt"); if (!el) return;
+      dragging = true; path = [+el.dataset.i]; grid.setPointerCapture(e.pointerId); haptic("light"); draw();
     });
     grid.addEventListener("pointermove", e => {
-      if (startCell === null) return;
-      const i = cellAt(e.clientX, e.clientY); if (i === null) return;
-      const nl = lineCells(startCell, i);
-      if (nl.length !== sel.length || nl[nl.length - 1] !== sel[sel.length - 1]) { sel = nl; haptic("light"); draw(); }
+      if (!dragging) return;
+      const i = cellAt(e.clientX, e.clientY);
+      if (i === null || i === path[path.length - 1]) return;
+      if (path.length > 1 && i === path[path.length - 2]) { path.pop(); draw(); return; } // orqaga qaytish
+      if (path.includes(i) || !adj(i, path[path.length - 1])) return;
+      path.push(i); haptic("light"); draw();
     });
-    const end = () => { if (startCell === null) return; const cells = sel; startCell = null; sel = []; draw(); tryWord(cells); };
+    const end = () => { if (!dragging) return; dragging = false; const cells = path; path = []; draw(); submit(cells); };
     grid.addEventListener("pointerup", end);
-    grid.addEventListener("pointercancel", () => { startCell = null; sel = []; draw(); });
+    grid.addEventListener("pointercancel", () => { dragging = false; path = []; draw(); });
     grid.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
     draw();
   }
 
   return {
-    render() {
+    async render() {
       alive = true;
+      await dict().catch(() => {});
       render();
       tick = setInterval(async () => {
         draw();
         if (room && room.status === "playing" && left() === 0 && !finishing) {
           finishing = true;
-          try { const r = await api("finish", { id: room.id }); if (!r.error) { room = r; st = r.state; } } catch (e) {}
-          finishing = false;
-          if (room.status === "done") refreshProfile();
+          try { const r = await api("finish", { id: room.id }); if (r.id) { room = r; st = r.state; } } catch (e) {}
+          if (room.status === "done") refreshProfile(); else finishing = false;
           draw();
         }
-        if (!room && left() === 0) finishSolo();
-      }, 500);
+      }, 400);
       if (room && !poll) {
         poll = setInterval(async () => {
-          if (pending.size) return;
+          if (pending) return;
           try {
             const r = await read("g_room_get", { p_id: room.id });
             if (!r.error && r.version > room.version) {
-              const before = Object.keys(st.claimed || {}).length;
+              const before = wordsOf(themKey).length;
               room = r; st = r.state;
-              if (Object.keys(st.claimed || {}).length > before) haptic("medium");
+              if (wordsOf(themKey).length > before) haptic("medium");
               if (r.status === "done") refreshProfile();
               draw();
             }

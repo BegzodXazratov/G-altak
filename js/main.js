@@ -92,8 +92,8 @@ const menu = {
           <span class="art" aria-hidden="true">⚫</span>
         </button>
         <button class="game g-soz" data-go="soz">
-          <span class="tag">1 vs 1 · 3 daqiqa</span>
-          <h2>So'z jangi</h2><p>10×10 harflar ichidan o'zbekcha so'zlarni raqibdan oldin toping</p>
+          <span class="tag">1 vs 1 · 1 daqiqa</span>
+          <h2>So'z jangi</h2><p>Harflardan istalgan o'zbekcha so'zni chizing — kim ko'p topadi?</p>
           <span class="art" aria-hidden="true">🔤</span>
         </button>
         <button class="game g-2048" data-go="2048">
