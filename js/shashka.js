@@ -1,4 +1,4 @@
-import { isMe, waitScreen } from "./core.js";
+import { isMe, waitScreen, markJoining } from "./core.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy, sleep,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 import { quip } from "./quip.js";
@@ -66,6 +66,7 @@ function waitingScreen(room, matching, invited = "") {
 }
 
 export async function joinRoom(code) {
+  markJoining();
   let r;
   try { r = await api("join", { id: code }); } catch (e) { return toast(e.message); }
   if (r.error === "not_found" || r.error === "gone") return toast("Bu o'yin endi mavjud emas — do'stingiz chiqib ketgan");

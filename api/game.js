@@ -2,6 +2,7 @@
 import { verifyInitData, rpc, fullName } from "./_lib.js";
 import { isWord, pathWord } from "./_soz.js";
 import { checkSolution } from "../js/gugurt-engine.js";
+import { APP_VERSION } from "../js/version.js";
 
 const GAMES = ["shashka", "soz", "gugurt"];
 
@@ -11,6 +12,9 @@ export default async function handler(req, res) {
   const user = verifyInitData(b.initData, process.env.BOT_TOKEN);
   if (!user) return res.status(401).json({ error: "auth" });
   const id = String(user.id);
+  // eski versiya: yangi mijozga "yangilandi" signali; versiyasiz (juda eski) mijoz — ishlamaydi, qayta ochishi kerak
+  if (!b.ver) return res.status(426).json({ error: "update" });
+  if (b.ver !== APP_VERSION) return res.status(200).json({ update: true });
   try {
     // xonalarda faqat o'yinchi o'zi kiritgan ism ishlatiladi
     let name = "";

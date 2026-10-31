@@ -1,3 +1,4 @@
+import { APP_VERSION } from "./version.js";
 // Telegram Mini App yordamchilari, ekranlar, akkaunt va server
 export const tg = window.Telegram?.WebApp;
 export const app = () => document.getElementById("app");
@@ -39,7 +40,7 @@ export function level(b = score()) {
 export function scoreCard(b = score()) {
   const lv = level(b);
   const msg = b >= 100 ? "Siz chempionsiz! Har g'alaba toj'ni himoya qiladi 👑"
-    : b === 0 ? "G'alaba — 3 ball, durang — 1 ball, mag'lubiyat ballni kamaytirmaydi. Boshladik 💪"
+    : b === 0 ? "G'alaba +3, durang +1, mag'lubiyat −1. Boshladik 💪"
     : `${lv.next.name} darajasigacha ${lv.next.need} ball — taxminan ${Math.ceil(lv.next.need / 3)} ta g'alaba 🔥`;
   return `<div class="scorecard"><div class="sc-top"><span class="lv">${lv.icon} ${lv.name}</span><b>${b}<small>/100</small></b></div>
     <div class="bar"><i style="width:${b}%"></i></div><p>${msg}</p></div>`;
@@ -49,11 +50,12 @@ export async function api(action, payload = {}) {
   const r = await fetch("/api/game", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, v: 2, initData: tg?.initData || "", ...payload }),
+    body: JSON.stringify({ action, v: 2, ver: APP_VERSION, initData: tg?.initData || "", ...payload }),
   });
   if (r.status === 401) throw new Error("Telegram orqali kiring");
   if (!r.ok) throw new Error("Server xatosi");
   const j = await r.json();
+  if (j?.update) { updateKick(); throw new Error("O'yin yangilandi"); }
   if (j?.error === "need_name") { nav.askName?.(); throw new Error("Avval ismingizni kiriting"); }
   return j;
 }
@@ -157,13 +159,16 @@ export function ratingLine(room) {
   if (d === undefined) return "";
   if (profile?.stats?.all) profile.stats.all.rating = r;
   if (res[mine + "_champion"]) return `<div class="champ">👑<b>Siz chempionsiz!</b><span>100 ball — eng yuqori cho'qqi</span></div>`;
-  const txt = d >= 3 ? `+${d} ball 🔥` : d > 0 ? `+${d} ball` : d < 0 ? `${d} ball` : "Ball saqlanib qoldi — keyingisida yutasiz!";
+  const txt = d >= 3 ? `+${d} ball 🔥` : d > 0 ? `+${d} ball` : d < 0 ? `${d} ball — keyingisida qaytarib olasiz!` : "Ball o'zgarmadi";
   return `<div class="delta ${d > 0 ? "up" : d < 0 ? "down" : ""}">${txt} · ${r}/100</div>`;
 }
 
 // Umumiy kutish ekrani: xona kodi ko'rsatilmaydi. Chiqib ketilsa — xona yopiladi (eski taklifga hech kim tushib qolmaydi).
+// taklifni qabul qilib boshqa xonaga o'tayotganda kutish ekrani "xona yopildi" deb menyuga otib yubormasin
+let joiningUntil = 0;
+export const markJoining = () => { joiningUntil = Date.now() + 10000; };
 export function waitScreen(room, { matching = false, icon = "🎮", invited = "", shareText = "", onStart }) {
-  let timer, started = false, dots = 0;
+  let timer, started = false, dots = 0, alive = true;
   return {
     render() {
       app().innerHTML = header(matching ? "Raqib qidirilmoqda" : invited ? "Javob kutilmoqda" : "Do'stni kutyapmiz") + `
@@ -183,12 +188,14 @@ export function waitScreen(room, { matching = false, icon = "🎮", invited = ""
         if (matching) { dots = (dots + 1) % 4; const wt = document.getElementById("wt"); if (wt) wt.textContent = "Sizga mos raqib qidiryapmiz" + ".".repeat(dots); }
         try {
           const r = await read("g_room_get", { p_id: room.id });
+          if (!alive) return; // ekran allaqachon almashgan — eski javobni e'tiborsiz qoldiramiz
           if (r.status === "playing") { started = true; clearInterval(timer); haptic("ok"); onStart(r); }
-          else if (r.status === "done") { started = true; clearInterval(timer); home(); }
+          else if (r.status === "done" && Date.now() > joiningUntil) { started = true; clearInterval(timer); home(); }
         } catch (e) {}
       }, 1200);
     },
     leave() {
+      alive = false;
       clearInterval(timer);
       if (!started) { started = true; api("cancel", { id: room.id }).catch(() => {}); }
     },
@@ -203,4 +210,19 @@ export const timePicker = game => `<div class="seg tpick" data-tp="${game}">${TI
   `<button data-secs="${s}" aria-pressed="${gameSeconds(game) === s}">⏱ ${s / 60} daqiqa</button>`).join("")}</div>`;
 export function bindTimePicker(root, game, rerender) {
   root.querySelectorAll(`[data-tp="${game}"] [data-secs]`).forEach(b => b.onclick = () => { setGameSeconds(game, +b.dataset.secs); haptic("light"); rerender(); });
+}
+
+// Yangi versiya chiqdi — o'yinchini ilovadan chiqaramiz (qayta ochganda yangi versiya yuklanadi)
+let kicked = false;
+export function updateKick() {
+  if (kicked) return; kicked = true;
+  const el = document.createElement("div");
+  el.className = "overlay"; el.style.zIndex = 99;
+  el.innerHTML = `<div class="card stack center"><div style="font-size:44px">🎮</div><h2 style="margin:0">O'yin yangilandi!</h2>
+    <p class="muted" style="margin:0">Yangi imkoniyatlar qo'shildi. Ilova qayta ochiladi…</p>
+    <button class="btn green" data-re>🔄 Hozir qayta ochish</button></div>`;
+  document.body.appendChild(el);
+  el.querySelector("[data-re]").onclick = () => location.reload();
+  haptic("ok");
+  setTimeout(() => { if (tg?.close) tg.close(); else location.reload(); }, 4000);
 }

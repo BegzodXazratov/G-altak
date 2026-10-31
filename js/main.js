@@ -204,20 +204,16 @@ const menu = {
     let top = null, online = null;
     const draw = () => {
       app().innerHTML = `
-        <section class="hero">
-          <div class="who"><span class="avatar">${esc((me().name || "?")[0])}</span>
-            <div><b>${esc(me().name)}</b><span class="small muted">${level().icon} ${level().name}</span></div>
-            <button class="pill" data-lb>🏆 Reyting</button></div>
-          ${scoreCard()}
+        <section class="mini">
+          <span class="avatar">${esc((me().name || "?")[0])}</span>
+          <div class="mi"><b>${esc(me().name)}</b><span>${level().icon} ${level().name}</span>
+            <div class="mbar"><i style="width:${Math.min(100, profile?.stats?.all?.rating ?? 0)}%"></i></div></div>
+          <div class="mscore"><b>${profile?.stats?.all?.rating ?? 0}</b><small>/100</small></div>
         </section>
-        <div class="topstrip" data-lb>
-          <div class="ts-head"><b>Top o'yinchilar</b><span>hammasi →</span></div>
-          ${top === null ? `<p class="small muted" style="margin:6px 0 0">Yuklanmoqda…</p>` : top.length ? `<div class="ts-list">${top.slice(0, 5).map((p, i) => `
-            <div class="ts ${p.h === me().h ? "me" : ""}"><span>${["🥇", "🥈", "🥉", "4", "5"][i]}</span><b>${esc(p.name)}</b><i>${p.rating}</i></div>`).join("")}</div>`
-            : `<p class="small muted" style="margin:6px 0 0">Hali hech kim yo'q — birinchi bo'ling!</p>`}
+        <div class="qrow">
+          <button class="qbtn" data-lb><span>🏆</span><b>Reyting</b><i>${profile?.stats?.all?.rank && profile.stats.all.wins + profile.stats.all.losses + profile.stats.all.draws > 0 ? profile.stats.all.rank + "-o'rin" : top?.length ? "top " + Math.min(top.length, 30) : ""}</i></button>
+          <button class="qbtn" data-online><span class="dot"></span><b>Onlayn</b><i>${online === null ? "…" : online.length}</i></button>
         </div>
-        <button class="onbar" data-online><span class="dot"></span><span><b>${online === null ? "Onlayn o'yinchilar" : online.length ? `${online.length} ta o'yinchi onlayn` : "Hozir hech kim onlayn emas"}</b>
-          <small>${online?.length ? online.slice(0, 3).map(p => esc(p.name)).join(", ") + (online.length > 3 ? "…" : "") + " · chaqiring" : "Sherik topib, o'yinga chaqiring"}</small></span><i>→</i></button>
         <h2 class="sect">O'yinlar · hammasi 1 vs 1</h2>
         <div class="games">
           <button class="game g-shashka" data-go="shashka">
@@ -226,12 +222,12 @@ const menu = {
             <span class="art" aria-hidden="true">⚫</span>
           </button>
           <button class="game g-soz" data-go="soz">
-            <span class="tag">So'z · 1 daqiqa</span>
+            <span class="tag">So'z · 1–3 daqiqa</span>
             <h2>Topqir</h2><p>Harflardan o'zbekcha so'zlarni raqibdan tezroq toping</p>
             <span class="art" aria-hidden="true">🔤</span>
           </button>
           <button class="game g-gug" data-go="gugurt">
-            <span class="tag">Mantiq · 1 daqiqa</span>
+            <span class="tag">Mantiq · 1–3 daqiqa</span>
             <h2>Gugurt</h2><p>Bitta cho'pni ko'chirib, tenglamani to'g'rilang</p>
             <span class="art" aria-hidden="true">🔥</span>
           </button>
@@ -252,7 +248,7 @@ const menu = {
     const [a, b] = await Promise.allSettled([read("g_leaderboard", { p_game: "all" }), api("online"), refreshProfile()]);
     top = a.status === "fulfilled" && Array.isArray(a.value) ? a.value : [];
     online = b.status === "fulfilled" && Array.isArray(b.value) ? b.value : [];
-    if (document.querySelector(".topstrip")) draw();
+    if (document.querySelector(".qrow")) draw();
   },
 };
 

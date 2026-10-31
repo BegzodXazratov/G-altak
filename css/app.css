@@ -326,3 +326,18 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .lw.theirs{background:var(--line);color:var(--muted);text-decoration:line-through}
 .tpick{margin:0 0 4px}
 .tpick button{flex:1}
+/* v7: ixcham menyu tepasi */
+.mini{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);color:#FFF8EC;
+  background:linear-gradient(135deg,#1F1A16,#3a2c22);box-shadow:0 10px 24px -16px rgba(0,0,0,.6)}
+.mini .avatar{width:40px;height:40px;font-size:17px;flex:none}
+.mi{flex:1;min-width:0}.mi b{display:block;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi span{font-size:12.5px;opacity:.8}
+.mbar{height:5px;border-radius:5px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:6px}
+.mbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#F2B33D,#E8572A)}
+.mscore{text-align:right;line-height:1}.mscore b{font-family:var(--display);font-size:26px;color:#F2B33D}.mscore small{font-size:12px;opacity:.7}
+.qrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
+.qbtn{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:var(--card);border:1px solid var(--line);
+  color:var(--ink);font:inherit;font-size:14px;cursor:pointer;min-width:0}
+.qbtn b{font-weight:700}.qbtn i{margin-left:auto;font-style:normal;color:var(--accent);font-family:var(--display);font-size:13px;white-space:nowrap}
+.qbtn .dot{width:9px;height:9px}
+.qbtn:active{transform:scale(.97)}
