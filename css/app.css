@@ -11,7 +11,7 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--text);font-size:16px;overscroll-behavior:none}
-body{min-height:100vh;padding:max(14px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+body{min-height:100vh;padding:max(14px,env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom))}
 #app{max-width:520px;margin:0 auto}
 h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.01em}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
@@ -208,7 +208,7 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
   background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-weight:600;font-size:14.5px;transition:.2s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%)}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:20px;z-index:10;animation:fade .2s}
-.overlay .card{max-width:380px;width:100%}
+.overlay .card{max-width:380px;width:100%;max-height:calc(100vh - 40px);overflow-y:auto}
 .overlay h2{font-size:23px}
 @keyframes fade{from{opacity:0}}
 
@@ -264,3 +264,35 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .gbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .gbtns .btn{padding:13px 10px;font-size:14.5px}
 .countdown{z-index:2}
+
+/* v4: menyu pastki qismi */
+.invite{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:14px 16px;border-radius:20px;border:1px dashed var(--line,#ffffff2a);
+  background:transparent;color:inherit;text-align:left;font:inherit;cursor:pointer}
+.invite>span:first-child{font-size:26px}
+.invite b{display:block;font-size:15px}.invite small{display:block;opacity:.65;font-size:12.5px;margin-top:2px}
+.invite i{margin-left:auto;font-style:normal;opacity:.6;font-size:18px}
+.invite:active{transform:scale(.98)}
+.foot{text-align:center;font-size:12px;opacity:.45;margin:22px 0 8px}
+/* v4: hazil pufakchasi */
+#quip{position:fixed;left:50%;top:calc(max(10px, env(safe-area-inset-top)) + 4px);z-index:30;pointer-events:none;
+  transform:translate(-50%,-14px) scale(.9);opacity:0;max-width:86vw;padding:10px 16px;border-radius:18px 18px 18px 6px;
+  background:var(--ink);color:var(--bg);font-weight:700;font-size:15px;line-height:1.25;box-shadow:0 10px 30px #0004;
+  transition:opacity .25s, transform .35s cubic-bezier(.2,1.4,.4,1)}
+#quip.on{opacity:1;transform:translate(-50%,0) scale(1)}
+/* v4: Topqir yordam */
+.wtools{display:flex;justify-content:center;gap:8px;margin:10px 0 2px}
+.hintbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:9px 14px;font:inherit;font-weight:700;font-size:14px}
+.hintbtn:disabled{opacity:.4}
+.lt.hl{animation:hintGlow 1s ease-in-out 3;box-shadow:0 0 0 3px #F5B83D inset}
+.lt.hl.h0{background:#F5B83D;color:#1F1A16}
+@keyframes hintGlow{50%{transform:scale(1.08)}}
+.hinttxt{text-align:center;font-size:13px;color:var(--muted);min-height:18px;margin-top:4px}
+/* v4: Gugurt javobi */
+.st.slot.ans-from .wood{stroke:#E5484D;stroke-width:2.5;stroke-dasharray:4 4}
+.st.ans-to .wood{fill:#3DBE6B}
+.st.ans-to{animation:ansPop .7s ease-out 2}
+@keyframes ansPop{50%{opacity:.4}}
+.ansbox{border-radius:16px;background:var(--bg);padding:10px 8px 6px;margin:4px 0}
+.ansbox .eqsvg{width:100%;height:auto;max-height:110px}
+.anslbl{font-size:13px;color:var(--muted);margin:0 0 4px;text-align:center}
+.anseq{font-family:var(--display);font-size:15px;text-align:center;margin:4px 0 0}

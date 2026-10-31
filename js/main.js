@@ -129,7 +129,9 @@ const menu = {
             <h2>Gugurt</h2><p>Bitta cho'pni ko'chirib, tenglamani to'g'rilang</p>
             <span class="art" aria-hidden="true">🔥</span>
           </button>
-        </div>`;
+        </div>
+        <button class="invite" data-invite><span>📨</span><span><b>Do'stlarni chaqiring</b><small>Birga o'ynash qiziqroq — havolani yuboring</small></span><i>→</i></button>
+        <footer class="foot">G'altak · o'ynang, yuting, chempion bo'ling 👑</footer>`;
       app().querySelectorAll("[data-go]").forEach(b => b.onclick = () => {
         const g = b.dataset.go;
         if (g === "shashka") show(shashkaMenu());
@@ -137,6 +139,12 @@ const menu = {
         if (g === "gugurt") show(gugurtMenu());
       });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
+      app().querySelector("[data-invite]").onclick = async () => {
+        const bot = await botUsername(), link = bot ? `https://t.me/${bot}` : location.origin;
+        const text = "G'altak'da bellashamizmi? Shashka, Topqir va Gugurt — 1 vs 1 🎮";
+        if (tg?.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+        else if (navigator.share) navigator.share({ text: text + "\n" + link }).catch(() => {});
+      };
     };
     draw();
     try { [top] = await Promise.all([read("g_leaderboard", { p_game: "all" }), refreshProfile()]); } catch (e) { top = []; }

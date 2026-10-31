@@ -1,5 +1,6 @@
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy, sleep,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
+import { quip } from "./quip.js";
 import { initBoard, legalMoves, applyMove, bestMove, countPieces } from "./shashka-engine.js";
 
 const DEPTH = { oson: 1, orta: 3, qiyin: 6 };
@@ -143,6 +144,19 @@ function gameScreen(opt) {
     g.anim = false;
   }
 
+  // hazil: kim yurdi, nechta urdi, damka bo'ldimi
+  function react(mover, caps, kinged) {
+    const mine = opt.mode === "local" || mover === (opt.mode === "ai" ? opt.human : opt.mySide);
+    if (mine) {
+      if (kinged) quip("king", true);
+      else if (caps >= 2) quip("multi", true);
+      else if (caps === 1 && Math.random() < 0.6) quip("capture");
+    } else {
+      if (kinged) quip("oppKing", true);
+      else if (caps >= 1 && Math.random() < 0.7) quip("lost", caps >= 2);
+    }
+  }
+
   function finishCheck() {
     if (g.quiet >= QUIET_DRAW) g.winner = "draw";
     else if (!legalMoves(g.board, g.side).length) g.winner = g.side === 1 ? "b" : "w";
@@ -154,6 +168,7 @@ function gameScreen(opt) {
     g.board = applyMove(g.board, m);
     g.last = { path: m.path, caps: m.caps };
     g.quiet = m.caps.length || Math.abs(moved) === 1 ? 0 : g.quiet + 1;
+    react(g.side, m.caps.length, Math.abs(moved) === 1 && Math.abs(g.board[m.path[m.path.length - 1]]) === 2);
     g.side = -g.side; g.sel = null;
     haptic(m.caps.length ? "medium" : "light");
     finishCheck();
@@ -309,7 +324,9 @@ function gameScreen(opt) {
               const s = r.state;
               const changed = JSON.stringify(s.board) !== JSON.stringify(g.board);
               if (changed && s.last?.path && g.board[s.last.path[0]]) {
+                const moved = g.board[s.last.path[0]], endAt = s.last.path[s.last.path.length - 1];
                 await animate(s.last.path, s.last.caps); haptic("light");
+                react(Math.sign(moved), s.last.caps?.length || 0, Math.abs(moved) === 1 && Math.abs(s.board[endAt]) === 2);
               }
               adopt(s);
               if (r.status === "done") refreshProfile();

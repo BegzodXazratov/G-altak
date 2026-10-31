@@ -1,3 +1,4 @@
+import { quip, watcher } from "./quip.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 
@@ -19,35 +20,44 @@ async function dict() {
   if (!DICT) DICT = new Set(await (await fetch("data/words.json")).json());
   return DICT;
 }
+// keng tarqalgan, hamma biladigan so'zlar — taxtaga shulardan ko'proq joylanadi (topish oson bo'lsin)
+const COMMON = ['OSH', 'NON', 'SUV', 'GUL', "KO'Z", "QO'L", 'BOSH', 'UY', "YO'L", 'TOSH', 'OY', 'KUN', 'YIL', 'OTA', 'ONA', 'AKA', 'UKA', 'OPA', 'BOLA', 'QIZ', "O'G'IL", 'ER', "DO'ST", 'ISH', 'PUL', 'VAQT', 'SOAT', 'DARS', 'KITOB', 'DALA', "TOG'", 'DARYO', "KO'L", "BOG'", 'OLMA', 'NOK', 'UZUM', 'ANOR', 'QOVUN', 'PIYOZ', 'SABZI', 'TUZ', 'SUT', 'QATIQ', 'CHOY', 'ASAL', 'MOY', 'TUXUM', 'BALIQ', 'OT', 'IT', 'MUSHUK', 'SIGIR', "QO'Y", 'ECHKI', 'TOVUQ', 'QUSH', 'ARI', 'ILON', 'SHER', "BO'RI", 'TULKI', 'AYIQ', 'FIL', 'TUYA', 'ESHAK', 'QUYOSH', 'OSMON', 'BULUT', 'QOR', 'SHAMOL', 'MUZ', 'OLOV', 'YER', 'QUM', 'TEMIR', 'OLTIN', 'MIS', 'ESHIK', 'DEVOR', 'TOM', 'STOL', 'STUL', 'GILAM', 'KIYIM', "TO'N", 'SHIM', 'ETIK', 'SOCH', 'BURUN', 'QULOQ', "OG'IZ", 'TISH', 'TIL', 'YUZ', 'YELKA', 'QORIN', 'OYOQ', 'BARMOQ', 'YURAK', 'QON', 'TER', 'MEHR', 'TINCH', 'BAXT', 'KULGI', 'ORZU', 'UMID', 'GAP', "SO'Z", 'SAVOL', 'JAVOB', 'ERTAK', 'KUY', 'RAQS', "O'YIN", "TO'P", 'KEMA', "KO'CHA", 'BOZOR', 'NARX', 'MEHMON', "TO'Y", 'BAYRAM', 'HAFTA', 'KECHA', 'TONG', 'KUZ', 'QISH', 'BAHOR', 'YOZ', 'ISSIQ', 'SOVUQ', 'KATTA', 'YAXSHI', 'YOMON', 'TEZ', 'SEKIN', 'OQ', 'QORA', 'QIZIL', 'SARIQ', "KO'K", 'OCH', 'YANGI', 'ESKI', 'UZUN', 'QISQA', 'PAST', 'KENG', 'TOR', 'SHIRIN', 'BIR', 'IKKI', 'UCH', "TO'RT", 'BESH', 'OLTI', 'YETTI', "O'N", 'MING', 'BOR', "YO'Q", 'HA', 'ROST', 'AQL', 'BILIM', 'ILM', 'FAN', 'DUNYO', 'XALQ', 'EL', 'VATAN', 'YURT', 'HARF', 'RAQAM', 'SON', 'HISOB', 'USTOZ', 'USTA', 'ARAVA', 'TAYOQ', 'ARQON', 'IGNA', 'PICHOQ', 'KOSA', 'LAGAN', 'QOZON', 'XONA', 'HOVLI', 'EKIN', 'ARPA', 'PAXTA', 'SHOLI', 'BEHI', 'LIMON', 'BODOM', 'PISTA', 'MAYIZ', 'HOLVA', 'SOMSA', 'MANTI', 'KABOB', 'PALOV', 'ON', 'UN', 'IZ', 'OL', 'AY', 'OR'];
 const isWord = w => DICT && (DICT.has(w) || (w.endsWith("LAR") && w.length >= 5 && DICT.has(w.slice(0, -3))));
 const adj = (a, b) => Math.max(Math.abs(((a / N) | 0) - ((b / N) | 0)), Math.abs((a % N) - (b % N))) === 1;
 
 export async function generate() {
-  const d = [...(await dict())];
-  const grid = Array.from({ length: N * N }, randLetter);
-  // ichiga 16 ta haqiqiy so'zni ilon-izi bo'ylab joylaymiz — topiladigan so'z ko'p bo'lsin
-  let placed = 0;
-  for (let t = 0; t < 400 && placed < 16; t++) {
-    const w = d[(Math.random() * d.length) | 0];
+  const D = await dict();
+  const pool = COMMON.filter(w => D.has(w));
+  const grid = Array(N * N).fill(null);
+  const seeds = [], used = new Set();
+  // ~30 ta oddiy so'zni ilon-izi bo'ylab joylaymiz; bir-birini buzmaydi (katak bo'sh yoki xuddi shu harf bo'lsa)
+  for (let t = 0; t < 3000 && seeds.length < 30; t++) {
+    const w = pool[(Math.random() * pool.length) | 0];
+    if (used.has(w)) continue;
     const tk = tokens(w);
-    if (tk.length < 3 || tk.length > 7) continue;
+    const fits = (i, k) => grid[i] === null || grid[i] === tk[k];
     let cur = (Math.random() * N * N) | 0;
+    if (!fits(cur, 0)) continue;
     const path = [cur];
     for (let k = 1; k < tk.length; k++) {
       const nb = [];
       for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-        const r = ((cur / N) | 0) + dr, c = (cur % N) + dc;
-        if ((dr || dc) && r >= 0 && r < N && c >= 0 && c < N && !path.includes(r * N + c)) nb.push(r * N + c);
+        const r = ((cur / N) | 0) + dr, c = (cur % N) + dc, j = r * N + c;
+        if ((dr || dc) && r >= 0 && r < N && c >= 0 && c < N && !path.includes(j) && fits(j, k)) nb.push(j);
       }
       if (!nb.length) break;
-      cur = nb[(Math.random() * nb.length) | 0];
+      // bo'sh kataklardan ko'ra mos harfli katakni afzal ko'ramiz — taxta zichroq bo'ladi
+      const share = nb.filter(j => grid[j] !== null);
+      const from = share.length && Math.random() < 0.5 ? share : nb;
+      cur = from[(Math.random() * from.length) | 0];
       path.push(cur);
     }
     if (path.length !== tk.length) continue;
     path.forEach((i, k) => grid[i] = tk[k]);
-    placed++;
+    used.add(w); seeds.push({ w, path });
   }
-  return { grid, claimed: {}, seconds: SECONDS };
+  for (let i = 0; i < grid.length; i++) if (grid[i] === null) grid[i] = randLetter();
+  return { grid, claimed: {}, seeds, seconds: SECONDS };
 }
 
 // ---------------- lobby ----------------
@@ -61,6 +71,7 @@ export function sozMenu() {
           <b>Qanday o'ynaladi:</b> harflar ichidan istalgan o'zbekcha so'zni toping — barmoqni harfdan qo'shni harfga
           (yonga, tepaga, diagonalga) yurgizib chizing. So'zlar oldindan aytilmaydi. Har harf — 1 ochko.
           Raqib topgan so'z sizga qolmaydi. Vaqt — <b>1 daqiqa</b>.
+          <br>Taxtada <b>oddiy so'zlar</b> ko'p: OSH, NON, GUL, KO'Z… Qiynalsangiz — <b>💡 Yordam</b> tugmasi (3 marta).
         </div>
         <div class="stack" style="margin-top:12px">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reyting uchun</small></span></button>
@@ -120,6 +131,8 @@ function sozGame(opt) {
   const meKey = room ? (room.p1 === me().id ? "p1" : "p2") : "p1";
   const themKey = meKey === "p1" ? "p2" : "p1";
   let path = [], dragging = false, poll = null, tick = null, finishing = false, alive = true, pending = 0;
+  let hints = 3, streak = 0, lastFound = 0, bads = 0, saidStart = false;
+  const W = watcher();
 
   const claimedBy = w => st.claimed?.[w];
   const wordsOf = who => Object.entries(st.claimed || {}).filter(([, v]) => v === who).map(([w]) => w);
@@ -131,20 +144,42 @@ function sozGame(opt) {
   async function submit(cells) {
     if (cells.length < 2) return;
     const w = cells.map(i => st.grid[i]).join("");
-    if (!isWord(w)) { haptic("error"); flash("bad"); return; }
+    W.act();
+    if (!isWord(w)) { haptic("error"); flash("bad"); bads++; streak = 0; showMsg(`${w} — lug'atda yo'q`); if (bads >= 2) { bads = 0; quip("badWord"); } return; }
     const by = claimedBy(w);
-    if (by) { toast(by === meKey ? "Bu so'zni topgansiz" : "Raqib oldinroq topdi 😅"); flash("bad"); return; }
-    haptic("ok"); flash("good", `+${pts(w)}`);
+    if (by) { toast(by === meKey ? "Bu so'zni topgansiz" : "Raqib oldinroq topdi 😅"); flash("bad"); if (by !== meKey) quip("taken"); return; }
+    haptic("ok"); flash("good", `+${pts(w)}`); bads = 0;
+    streak = Date.now() - lastFound < 8000 ? streak + 1 : 1; lastFound = Date.now();
+    quip(pts(w) >= 5 ? "longWord" : streak >= 3 ? "streak" : "word", pts(w) >= 5 || streak === 3);
     if (!room) { st.claimed[w] = "p1"; draw(); return; }
     pending++; st.claimed = { ...st.claimed, [w]: meKey }; draw();
     try {
       const r = await api("claim", { id: room.id, path: cells });
-      if (r.error === "taken") { room = r; st = r.state; toast("Raqib bir lahza oldin topdi 😅"); }
+      if (r.error === "taken") { room = r; st = r.state; quip("taken", true); }
       else if (r.error === "no_word") { const c = { ...st.claimed }; delete c[w]; st.claimed = c; toast("Bu so'z lug'atda yo'q"); }
       else if (r.id) { room = r; st = r.state; }
     } catch (e) { toast("Internet bilan muammo"); }
     pending--;
     draw();
+  }
+
+  function showMsg(t) {
+    const el = document.querySelector(".hinttxt"); if (!el) return;
+    el.textContent = t; clearTimeout(showMsg.t); showMsg.t = setTimeout(() => { if (el.isConnected) el.textContent = ""; }, 2200);
+  }
+
+  // 💡 Yordam: hali topilmagan oddiy so'zning birinchi 2 harfini yoritadi va uzunligini aytadi
+  function hint() {
+    if (!hints || done() || !started()) return;
+    const free = (st.seeds || []).filter(x => !claimedBy(x.w) && x.path.every((i, k) => st.grid[i] === tokens(x.w)[k]));
+    if (!free.length) return toast("Yordam uchun so'z qolmadi 🙂");
+    const x = free.sort((a, b) => a.path.length - b.path.length)[(Math.random() * Math.min(5, free.length)) | 0];
+    hints--; W.act(); haptic("light");
+    const cells = x.path.slice(0, x.path.length <= 3 ? 1 : 2);
+    cells.forEach((i, k) => document.querySelector(`.lt[data-i="${i}"]`)?.classList.add("hl", "h" + k));
+    showMsg(`💡 ${x.path.length} harfli so'z: ${cells.map(i => st.grid[i]).join("")}…`);
+    setTimeout(() => cells.forEach(i => document.querySelector(`.lt[data-i="${i}"]`)?.classList.remove("hl", "h0", "h1")), 3200);
+    const b = document.querySelector("[data-hint]"); if (b) { b.textContent = `💡 Yordam (${hints})`; b.disabled = !hints; }
   }
 
   function flash(kind, text) {
@@ -161,7 +196,7 @@ function sozGame(opt) {
     const sel = new Set(path);
     document.querySelectorAll(".lt").forEach(el => {
       const i = +el.dataset.i;
-      el.className = `lt ${sel.has(i) ? "sel" : ""} ${path[path.length - 1] === i ? "head" : ""}`;
+      el.classList.toggle("sel", sel.has(i)); el.classList.toggle("head", path[path.length - 1] === i);
     });
     const cur = path.map(i => st.grid[i]).join("");
     const pv = document.querySelector(".preview");
@@ -180,6 +215,8 @@ function sozGame(opt) {
     document.querySelector(".found").innerHTML = `
       <div><span class="flabel">Siz topgan</span>${mine.map(w => `<span class="wchip mine">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>
       ${room ? `<div><span class="flabel">Raqib</span>${theirs.map(w => `<span class="wchip theirs">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>` : ""}`;
+    if (started() && !done() && !saidStart) { saidStart = true; W.act(); quip("start", true); }
+    W.tick({ left: t, started: started(), done: done(), mine: score(meKey), theirs: score(themKey), online: !!room });
     const cd = document.getElementById("cd");
     if (cd) cd.innerHTML = !started() && !done() ? `<div class="countdown">${Math.max(1, Math.ceil(((st.ends_at - (st.seconds || SECONDS) * 1000) - Date.now()) / 1000))}</div>` : "";
     const ov = document.getElementById("ov");
@@ -223,9 +260,12 @@ function sozGame(opt) {
       <div class="sbar"></div>
       <div class="preview"></div>
       <div class="wwrap"><div class="wgrid">${st.grid.map((ch, i) => `<div class="lt" data-i="${i}"><b>${ch}</b></div>`).join("")}</div><div id="cd"></div></div>
+      <div class="hinttxt"></div>
+      <div class="wtools"><button class="hintbtn" data-hint>💡 Yordam (${hints})</button></div>
       <div class="found"></div>
       <div id="ov"></div>`;
     bindBack();
+    app().querySelector("[data-hint]").onclick = hint;
     const grid = document.querySelector(".wgrid");
     // barmoq katak markaziga yaqin bo'lsagina qo'shiladi — diagonal yurish oson bo'lsin
     const cellAt = (x, y) => {
@@ -233,7 +273,7 @@ function sozGame(opt) {
       if (!el) return null;
       const r = el.getBoundingClientRect();
       const dx = (x - (r.left + r.width / 2)) / r.width, dy = (y - (r.top + r.height / 2)) / r.height;
-      return dx * dx + dy * dy < 0.16 ? +el.dataset.i : null;
+      return dx * dx + dy * dy < 0.2 ? +el.dataset.i : null;
     };
     grid.addEventListener("pointerdown", e => {
       if (done() || !started()) return;
@@ -277,7 +317,7 @@ function sozGame(opt) {
             if (!r.error && r.version > room.version) {
               const before = wordsOf(themKey).length;
               room = r; st = r.state;
-              if (wordsOf(themKey).length > before) haptic("medium");
+              if (wordsOf(themKey).length > before) { haptic("medium"); quip("oppScore"); }
               if (r.status === "done") refreshProfile();
               draw();
             }

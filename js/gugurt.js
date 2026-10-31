@@ -1,6 +1,10 @@
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
-import { makeSet, evaluate, SEG_BITS, OP_BITS } from "./gugurt-engine.js";
+import { makeSet, evaluate, oneMoves, SEG_BITS, OP_BITS } from "./gugurt-engine.js";
+import { quip, watcher } from "./quip.js";
+
+// jumboq yechimi: { st: to'g'ri holat, from, to }
+export function solutionOf(puz) { for (const mv of oneMoves(puz)) if (evaluate(mv.st).ok) return mv; return null; }
 
 const SECONDS = 60;
 
@@ -22,7 +26,7 @@ function stick([x1, y1, x2, y2], cls, data) {
     <ellipse class="head" cx="${hx}" cy="${hy}" rx="${horiz ? 7 : 6.5}" ry="${horiz ? 6.5 : 7}"/></g>`;
 }
 
-function svgFor(st, picked) {
+function svgFor(st, picked, mark) {
   let x = 0, out = "";
   st.slots.forEach((s, i) => {
     if (i === st.eq) { // "=" belgisi (qimirlamaydi)
@@ -33,12 +37,20 @@ function svgFor(st, picked) {
     let g = "";
     for (const b of B) {
       const on = s.m & b, isPicked = picked && picked[0] === i && picked[1] === b;
-      g += stick(geo[b], on ? (isPicked ? "on picked" : "on") : (picked ? "slot armed" : "slot"), `data-s="${i}" data-b="${b}"`);
+      const mk = mark ? (mark.from[0] === i && mark.from[1] === b ? " ans-from" : mark.to[0] === i && mark.to[1] === b ? " ans-to" : "") : "";
+      g += stick(geo[b], (on ? (isPicked ? "on picked" : "on") : (picked ? "slot armed" : "slot")) + mk, `data-s="${i}" data-b="${b}"`);
     }
     out += `<g transform="translate(${x},0)">${g}</g>`;
     x += (s.t === "d" ? DW : OW) + GAP;
   });
   return `<svg class="eqsvg" viewBox="-14 -14 ${x + 18} ${H + 28}" preserveAspectRatio="xMidYMid meet">${out}</svg>`;
+}
+
+function answerHtml(puz, label) {
+  const sol = puz && solutionOf(puz); if (!sol) return "";
+  const a = evaluate(puz), b = evaluate(sol.st);
+  return `<div class="ansbox"><p class="anslbl">${label}</p>${svgFor(sol.st, null, sol)}
+    <p class="anseq">${a.valid ? a.text.replace("=", "≠") + " → " : ""}<b>${b.text}</b> ✅</p></div>`;
 }
 
 // ---------------- lobby ----------------
@@ -112,16 +124,19 @@ function gugGame(opt) {
   const meKey = room ? (room.p1 === me().id ? "p1" : "p2") : "p1";
   const themKey = meKey === "p1" ? "p2" : "p1";
   let idx = 0, work = null, picked = null, locked = false, poll = null, tick = null, finishing = false, alive = true, local = 0;
+  let shownAt = Date.now(), wrongs = 0, saidStart = false;
+  const W = watcher();
 
   const myScore = () => room ? Math.max(st.score?.[meKey] || 0, local) : local;
   const theirScore = () => st.score?.[themKey] || 0;
   const left = () => Math.max(0, Math.ceil(((st.ends_at || 0) - Date.now()) / 1000));
   const started = () => Date.now() >= (st.ends_at || 0) - (st.seconds || SECONDS) * 1000;
   const done = () => room ? room.status === "done" : left() === 0;
-  const loadPuzzle = () => { work = JSON.parse(JSON.stringify(st.puzzles[idx % st.puzzles.length])); picked = null; };
+  const loadPuzzle = () => { work = JSON.parse(JSON.stringify(st.puzzles[idx % st.puzzles.length])); picked = null; shownAt = Date.now(); wrongs = 0; };
 
   async function tapStick(s, b) {
     if (locked || done() || !started()) return;
+    W.act();
     const on = work.slots[s].m & b;
     if (on) {
       picked = picked && picked[0] === s && picked[1] === b ? null : [s, b];
@@ -140,18 +155,29 @@ function gugGame(opt) {
     if (ev.ok) {
       haptic("ok"); flash("good");
       local++;
+      quip(Date.now() - shownAt < 6000 ? "fast" : "solved");
       const answer = JSON.parse(JSON.stringify(work)), myIdx = idx;
       if (room) api("gsolve", { id: room.id, idx: myIdx, answer }).then(r => { if (r?.id) { room = r; st = r.state; drawBar(); } }).catch(() => {});
       setTimeout(() => { idx++; loadPuzzle(); locked = false; drawEq(); drawBar(); }, 650);
     } else {
       haptic("error"); flash("bad");
+      wrongs++; quip("wrong", wrongs === 1);
       setTimeout(() => { work = JSON.parse(JSON.stringify(start)); locked = false; drawEq(); }, 750);
     }
   }
 
+  // o'tkazib yuborilsa — avval javob 1.6 soniya ko'rsatiladi, keyin keyingi topshiriq
   function skip() {
     if (locked || done() || !started()) return;
-    idx++; loadPuzzle(); drawEq(); haptic("light");
+    W.act();
+    const sol = solutionOf(st.puzzles[idx % st.puzzles.length]);
+    haptic("light"); quip("skip", true);
+    if (!sol) { idx++; loadPuzzle(); drawEq(); return; }
+    locked = true; picked = null;
+    const box = document.querySelector(".eqbox");
+    box.innerHTML = svgFor(sol.st, null, sol);
+    document.querySelector(".ghint").textContent = "Javob: qizil joydan → yashil joyga 👆";
+    setTimeout(() => { if (!alive) return; idx++; loadPuzzle(); locked = false; drawEq(); }, 1600);
   }
   function reset() { if (locked) return; loadPuzzle(); drawEq(); }
 
@@ -182,6 +208,8 @@ function gugGame(opt) {
       <div class="side"><b>${load("gug-best") || 0}</b><span>Rekord</span></div>`;
     const cd = document.getElementById("cd");
     if (cd) cd.innerHTML = !started() && !done() ? `<div class="countdown">${Math.max(1, Math.ceil(((st.ends_at - (st.seconds || SECONDS) * 1000) - Date.now()) / 1000))}</div>` : "";
+    if (started() && !done() && !saidStart) { saidStart = true; W.act(); quip("start", true); }
+    W.tick({ left: t, started: started(), done: done(), mine: myScore(), theirs: theirScore(), online: !!room });
     const ov = document.getElementById("ov");
     const want = done() ? endOverlay() : "";
     if (ov.dataset.html !== want) { ov.innerHTML = want; ov.dataset.html = want; ov.querySelectorAll("[data-end]").forEach(b => b.onclick = () => endAction(b.dataset.end)); }
@@ -192,6 +220,7 @@ function gugGame(opt) {
       const best = Math.max(local, +(load("gug-best") || 0)); save("gug-best", best);
       return `<div class="overlay"><div class="card stack center"><h2>Vaqt tugadi ⏱</h2>
         <p class="muted" style="margin:0"><b>${local}</b> ta topshiriq yechildi · rekord ${best}</p>
+        ${answerHtml(st.puzzles[idx % st.puzzles.length], "Oxirgi topshiriq javobi:")}
         <button class="btn green" data-end="again">Yana o'ynash</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
     }
     const res = room.result || {};
@@ -199,6 +228,7 @@ function gugGame(opt) {
     const offer = room.state?.rematch && room.state.rematch_by !== me().id;
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
       <p class="muted" style="margin:0">Yechildi: <b>${st.score?.[meKey] || 0}</b> : ${theirScore()}</p>${ratingLine(room)}
+      ${answerHtml(st.puzzles[idx % st.puzzles.length], res.winner && res.winner !== meKey ? "Mana bu topshiriq javobi edi 👇" : "Oxirgi topshiriq javobi:")}
       <button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>
       <button class="btn alt" data-end="lb">🏆 Reyting</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
   }
@@ -250,7 +280,7 @@ function gugGame(opt) {
             if (!r.error && r.version > room.version) {
               const before = theirScore();
               room = r; st = r.state;
-              if (theirScore() > before) haptic("medium");
+              if (theirScore() > before) { haptic("medium"); quip("oppScore"); }
               if (r.status === "done") refreshProfile();
               drawBar();
             }
