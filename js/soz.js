@@ -1,9 +1,9 @@
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
-  rating, ratingLine, refreshProfile, nav } from "./core.js";
+  scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 
-// So'z jangi: 10×10 harflar. So'zlar oldindan aytilmaydi — har qanday o'zbekcha so'zni
+// Topqir: 9×9 harflar. So'zlar oldindan aytilmaydi — har qanday o'zbekcha so'zni
 // qo'shni harflar bo'ylab (diagonal ham, istalgan tomonga burilib) chizasiz. 1 daqiqa. Kim ko'p ochko yig'sa — g'olib.
-const N = 10;
+const N = 9;
 const SECONDS = 60;
 // harflar chastotasi (lug'atdan hisoblangan)
 const FREQ = [["A", 19], ["I", 14], ["O", 13], ["R", 9], ["L", 8], ["S", 7], ["T", 7], ["M", 7], ["N", 6.5], ["H", 6], ["Q", 6],
@@ -25,9 +25,9 @@ const adj = (a, b) => Math.max(Math.abs(((a / N) | 0) - ((b / N) | 0)), Math.abs
 export async function generate() {
   const d = [...(await dict())];
   const grid = Array.from({ length: N * N }, randLetter);
-  // ichiga 22 ta haqiqiy so'zni ilon-izi bo'ylab joylaymiz — topiladigan so'z ko'p bo'lsin
+  // ichiga 16 ta haqiqiy so'zni ilon-izi bo'ylab joylaymiz — topiladigan so'z ko'p bo'lsin
   let placed = 0;
-  for (let t = 0; t < 400 && placed < 22; t++) {
+  for (let t = 0; t < 400 && placed < 16; t++) {
     const w = d[(Math.random() * d.length) | 0];
     const tk = tokens(w);
     if (tk.length < 3 || tk.length > 7) continue;
@@ -55,8 +55,8 @@ export function sozMenu() {
   dict().catch(() => {});
   return {
     render() {
-      app().innerHTML = header("So'z jangi") + `
-        <div class="lobby-top"><span>Reytingingiz</span><b>${rating("soz")}</b></div>
+      app().innerHTML = header("Topqir") + `
+        ${scoreCard()}
         <div class="card soz-intro">
           <b>Qanday o'ynaladi:</b> harflar ichidan istalgan o'zbekcha so'zni toping — barmoqni harfdan qo'shni harfga
           (yonga, tepaga, diagonalga) yurgizib chizing. So'zlar oldindan aytilmaydi. Har harf — 1 ochko.
@@ -100,7 +100,7 @@ function sozWaiting(room, matching) {
           ${matching ? "" : `<button class="btn alt" data-copy>Kodni nusxalash</button>`}
         </div>`;
       bindBack();
-      app().querySelector("[data-share]").onclick = () => shareInvite(room.id, `So'z jangiga chiqasanmi? 🔤 Xona: ${room.id}`);
+      app().querySelector("[data-share]").onclick = () => shareInvite(room.id, `Topqirda bellashamizmi? 🔤 Xona: ${room.id}`);
       const c = app().querySelector("[data-copy]"); if (c) c.onclick = () => copy(room.id);
       timer = setInterval(async () => {
         try {
@@ -199,7 +199,7 @@ function sozGame(opt) {
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
     const offer = room.state?.rematch && room.state.rematch_by !== me().id;
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
-      <p class="muted" style="margin:0">Ochko: <b>${a}</b> : ${b}</p>${ratingLine(room, "soz")}
+      <p class="muted" style="margin:0">Ochko: <b>${a}</b> : ${b}</p>${ratingLine(room)}
       <button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>
       <button class="btn alt" data-end="lb">🏆 Reyting</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
   }
@@ -219,7 +219,7 @@ function sozGame(opt) {
   }
 
   function render() {
-    app().innerHTML = header("So'z jangi") + `
+    app().innerHTML = header("Topqir") + `
       <div class="sbar"></div>
       <div class="preview"></div>
       <div class="wwrap"><div class="wgrid">${st.grid.map((ch, i) => `<div class="lt" data-i="${i}"><b>${ch}</b></div>`).join("")}</div><div id="cd"></div></div>

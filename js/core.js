@@ -24,7 +24,24 @@ export function setProfile(p) { profile = p; }
 export function me() {
   return { id: profile?.id || "", name: profile?.name || tg?.initDataUnsafe?.user?.first_name || "O'yinchi" };
 }
-export const rating = game => profile?.stats?.[game]?.rating ?? 1000;
+export const score = () => profile?.stats?.all?.rating ?? 0;
+export const rating = () => score();
+// darajalar (0–100 ball)
+const LEVELS = [[0, "Yangi boshlovchi", "🌱"], [10, "Havaskor", "🎯"], [30, "Tajribali", "⚔️"], [50, "Usta", "🛡️"],
+  [70, "Ustoz", "🎖️"], [90, "Afsona", "🔥"], [100, "Chempion", "👑"]];
+export function level(b = score()) {
+  let cur = LEVELS[0], next = null;
+  for (let i = 0; i < LEVELS.length; i++) if (b >= LEVELS[i][0]) { cur = LEVELS[i]; next = LEVELS[i + 1] || null; }
+  return { name: cur[1], icon: cur[2], next: next ? { at: next[0], name: next[1], need: next[0] - b } : null };
+}
+export function scoreCard(b = score()) {
+  const lv = level(b);
+  const msg = b >= 100 ? "Cho'qqidasiz! Yana yutsangiz — chempionlik tasdiqlanadi 👑"
+    : b === 0 ? "Birinchi g'alabangiz — birinchi ball! Boshladik 💪"
+    : `${lv.next.name} darajasigacha yana ${lv.next.need} ta g'alaba`;
+  return `<div class="scorecard"><div class="sc-top"><span class="lv">${lv.icon} ${lv.name}</span><b>${b}<small>/100</small></b></div>
+    <div class="bar"><i style="width:${b}%"></i></div><p>${msg}</p></div>`;
+}
 
 export async function api(action, payload = {}) {
   const r = await fetch("/api/game", {
@@ -126,13 +143,15 @@ export function copy(t) {
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 export const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// natija oynasi (onlayn): reyting o'zgarishi
-export function ratingLine(room, game) {
+// natija oynasi (onlayn): ball o'zgarishi
+export function ratingLine(room) {
   const res = room?.result;
   if (!res || res.cancelled) return "";
   const mine = room.p1 === me().id ? "p1" : "p2";
   const d = res[mine + "_delta"], r = res[mine + "_rating"];
   if (d === undefined) return "";
-  if (profile?.stats?.[game]) profile.stats[game].rating = r;
-  return `<div class="delta ${d >= 0 ? "up" : "down"}">${d >= 0 ? "+" : ""}${d} reyting · ${r}</div>`;
+  if (profile?.stats?.all) profile.stats.all.rating = r;
+  if (res[mine + "_champion"]) return `<div class="champ">👑<b>Siz chempionsiz!</b><span>100 ballni himoya qildingiz</span></div>`;
+  const txt = d > 0 ? `+${d} ball` : d < 0 ? `${d} ball` : "Ball o'zgarmadi";
+  return `<div class="delta ${d > 0 ? "up" : d < 0 ? "down" : ""}">${txt} · ${r}/100</div>`;
 }

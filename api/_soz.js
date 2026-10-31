@@ -12,7 +12,7 @@ export function isWord(w) {
   return w.endsWith("LAR") && w.length >= 5 && d.has(w.slice(0, -3)); // ko'plik: KITOBLAR
 }
 // path: katak indekslari (10x10); har biri oldingisiga qo'shni (diagonal ham), takrorlanmaydi
-export function pathWord(grid, path, n = 10) {
+export function pathWord(grid, path, n = Math.round(Math.sqrt(grid.length))) {
   if (!Array.isArray(path) || path.length < 2 || path.length > 20) return null;
   const seen = new Set();
   for (let k = 0; k < path.length; k++) {

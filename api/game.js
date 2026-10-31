@@ -1,8 +1,9 @@
 // Barcha yozish amallari shu yerdan: Telegram imzosi tekshiriladi, keyin Supabase'ga server kaliti bilan boriladi.
 import { verifyInitData, rpc, fullName } from "./_lib.js";
 import { isWord, pathWord } from "./_soz.js";
+import { checkSolution } from "../js/gugurt-engine.js";
 
-const GAMES = ["shashka", "soz"];
+const GAMES = ["shashka", "soz", "gugurt"];
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -18,11 +19,24 @@ export default async function handler(req, res) {
         out = await rpc("g_profile", { p_id: id }, false);
         if (!out) out = { id, name: fullName(user), has_phone: false, stats: {}, isNew: true };
         break;
-      case "register": {
-        // telefon: requestContact natijasi (contact.user_id foydalanuvchiniki bo'lishi shart)
-        const c = b.contact || {};
-        const phone = c.phone_number && String(c.user_id) === id ? String(c.phone_number) : null;
-        out = await rpc("g_player_upsert", { p_id: id, p_name: name, p_username: user.username || null, p_phone: phone });
+      case "register":
+        // telefon faqat bot chatidagi "Raqamni yuborish" tugmasi orqali keladi (api/bot.js)
+        out = await rpc("g_player_upsert", { p_id: id, p_name: name, p_username: user.username || null, p_phone: null });
+        break;
+      case "askphone":
+        await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: user.id, text: "📱 Ro'yxatdan o'tishni tugatish uchun pastdagi tugmani bosing — raqamingiz bot orqali xavfsiz yuboriladi.",
+            reply_markup: { keyboard: [[{ text: "📱 Raqamni yuborish", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } }),
+        });
+        out = { ok: true };
+        break;
+      case "gsolve": {
+        const room = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
+        if (!room || room.error || room.game !== "gugurt") return res.status(200).json({ error: "not_found" });
+        const idx = Number(b.idx), start = room.state?.puzzles?.[idx % (room.state?.puzzles?.length || 1)];
+        if (!Number.isInteger(idx) || !start || !checkSolution(start, b.answer)) return res.status(200).json({ error: "wrong" });
+        out = await rpc("g_gug_solve", { p_id: room.id, p_player: id, p_idx: idx });
         break;
       }
       case "create":

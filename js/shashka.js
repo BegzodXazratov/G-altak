@@ -1,5 +1,5 @@
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy, sleep,
-  rating, ratingLine, refreshProfile, nav } from "./core.js";
+  scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 import { initBoard, legalMoves, applyMove, bestMove, countPieces } from "./shashka-engine.js";
 
 const DEPTH = { oson: 1, orta: 3, qiyin: 6 };
@@ -15,7 +15,7 @@ export function shashkaMenu() {
   return {
     render() {
       app().innerHTML = header("Shashka") + `
-        <div class="lobby-top"><span>Reytingingiz</span><b>${rating("shashka")}</b></div>
+        ${scoreCard()}
         <div class="stack">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reytingga ta'sir qiladi</small></span></button>
           <button class="bigbtn b-friend" data-act="online"><span class="ic">🔗</span><span><b>Do'stni chaqirish</b><small>Havola yuboring — u bossa, o'yin boshlanadi</small></span></button>
@@ -100,6 +100,7 @@ export async function joinRoom(code) {
   if (r.error === "not_found") return toast("Bunday xona topilmadi");
   if (r.error === "full") return toast("Bu xonada allaqachon ikki kishi o'ynayapti");
   if (r.game === "soz") { const m = await import("./soz.js"); return m.openSozRoom(r); }
+  if (r.game === "gugurt") { const m = await import("./gugurt.js"); return m.openGugRoom(r); }
   if (r.p1 === me().id && r.status === "waiting") return show(waitingScreen(r, false));
   show(gameScreen({ mode: "online", room: r, mySide: r.p1 === me().id ? 1 : -1 }));
 }
@@ -261,7 +262,7 @@ function gameScreen(opt) {
     if (room?.state?.resigned && room.state.resigned !== me().id) sub = "Raqib taslim bo'ldi";
     const rematchOffer = room?.state?.rematch && room.state.rematch_by !== me().id;
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>${sub ? `<p class="muted" style="margin:0">${sub}</p>` : ""}
-      ${opt.mode === "online" ? ratingLine(room, "shashka") : ""}
+      ${opt.mode === "online" ? ratingLine(room) : ""}
       ${opt.mode === "online" ? `<button class="btn green" data-end="rematch">${rematchOffer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>`
         : `<button class="btn green" data-end="again">Yana o'ynash</button>`}
       ${opt.mode === "online" ? `<button class="btn alt" data-end="lb">🏆 Reyting</button>` : ""}

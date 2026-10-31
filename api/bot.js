@@ -12,18 +12,30 @@ export default async function handler(req, res) {
   if (secret && req.headers["x-telegram-bot-api-secret-token"] !== secret) return res.status(401).end();
   const m = req.body?.message;
   try {
-    if (m?.contact && m.from && String(m.contact.user_id) === String(m.from.id)) {
-      await rpc("g_player_upsert", { p_id: String(m.from.id), p_name: fullName(m.from), p_username: m.from.username || null,
-        p_phone: String(m.contact.phone_number) });
+    const base = process.env.WEBAPP_URL || `https://${req.headers.host}/`;
+    const playBtn = (text = "🎮 O'ynash", url = base) => ({ inline_keyboard: [[{ text, web_app: { url } }]] });
+    if (m?.contact && m.from) {
+      if (String(m.contact.user_id) !== String(m.from.id)) {
+        await send(m.chat.id, "Iltimos, o'zingizning raqamingizni pastdagi tugma orqali yuboring.");
+      } else {
+        await rpc("g_player_upsert", { p_id: String(m.from.id), p_name: "", p_username: m.from.username || null,
+          p_phone: String(m.contact.phone_number) });
+        await send(m.chat.id, "✅ Rahmat! Akkauntingiz tayyor.", { reply_markup: { remove_keyboard: true } });
+        await send(m.chat.id, "O'yinga qaytish uchun bosing 👇", { reply_markup: playBtn() });
+      }
     } else if (m?.text?.startsWith("/start")) {
       const arg = m.text.split(" ")[1] || "";
-      const base = process.env.WEBAPP_URL || `https://${req.headers.host}/`;
-      let url = base, text = "🎮 G'altak o'yinlari\n\nShashka, 2048 va So'z jangi — pastdagi tugmani bosing.";
-      if (arg.startsWith("r_")) {
-        url = `${base}?room=${encodeURIComponent(arg.slice(2))}`;
-        text = "⚔️ Do'stingiz sizni o'yinga chaqiryapti!";
+      const prof = await rpc("g_profile", { p_id: String(m.from.id) }, false);
+      if (!prof?.has_phone) {
+        await rpc("g_player_upsert", { p_id: String(m.from.id), p_name: fullName(m.from), p_username: m.from.username || null, p_phone: null });
+        await send(m.chat.id, "👋 G'altak o'yinlariga xush kelibsiz!\n\nRo'yxatdan o'tish uchun pastdagi «📱 Raqamni yuborish» tugmasini bosing.",
+          { reply_markup: { keyboard: [[{ text: "📱 Raqamni yuborish", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } });
       }
-      await send(m.chat.id, text, { reply_markup: { inline_keyboard: [[{ text: arg ? "⚔️ O'yinga kirish" : "🎮 O'ynash", web_app: { url } }]] } });
+      if (arg.startsWith("r_")) {
+        await send(m.chat.id, "⚔️ Do'stingiz sizni o'yinga chaqiryapti!", { reply_markup: playBtn("⚔️ O'yinga kirish", `${base}?room=${encodeURIComponent(arg.slice(2))}`) });
+      } else if (prof?.has_phone) {
+        await send(m.chat.id, "🎮 G'altak o'yinlari: Shashka, Topqir va Gugurt — hammasi 1 vs 1. Pastdagi tugmani bosing.", { reply_markup: playBtn() });
+      }
     }
   } catch (e) { console.error(e); }
   res.status(200).json({ ok: true });

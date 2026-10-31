@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>G'altak · Admin</title>
+<link rel="icon" href="img/favicon.png">
+<style>
+:root{--bg:#F4EEE3;--card:#FFFBF4;--ink:#1F1A16;--muted:#7A6F63;--line:#E4D9C8;--accent:#E8572A;--green:#1F6F4E}
+@media (prefers-color-scheme:dark){:root{--bg:#15120F;--card:#201B17;--ink:#F3EADC;--muted:#A79A8A;--line:#352D26}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px 16px 40px}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:22px;margin:0}h1 span{color:var(--accent)}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}.top .sp{flex:1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.login{max-width:360px;margin:12vh auto;text-align:center;display:grid;gap:12px}
+.login img{width:84px;height:84px;border-radius:50%;margin:0 auto}
+input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;font-weight:700;background:var(--accent);color:#fff}
+button.alt{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.err{color:#C0392B;min-height:20px;margin:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi span{display:block;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.kpi b{font-size:28px}
+.tools{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}.tools input{flex:1;min-width:200px}
+.tw{overflow-x:auto;border-radius:16px;border:1px solid var(--line);background:var(--card)}
+table{width:100%;border-collapse:collapse;min-width:820px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--card)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.muted{color:var(--muted)}.pill{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(31,111,78,.12);color:var(--green);font-size:12px;font-weight:700}
+.nophone{background:rgba(192,57,43,.1);color:#C0392B}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = d => d ? new Date(d).toLocaleString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+let pass = "", data = null, q = "", sortK = "created_at", sortDir = -1;
+try { pass = sessionStorage.getItem("galtak-admin") || ""; } catch (e) {}
+
+function loginView(err = "") {
+  $("#app").innerHTML = `<form class="card login" id="lf"><img src="img/logo.png" alt=""><h1>G'altak <span>admin</span></h1>
+    <input type="password" id="pw" placeholder="Parol" autocomplete="current-password" autofocus>
+    <p class="err">${esc(err)}</p><button>Kirish</button></form>`;
+  $("#lf").onsubmit = e => { e.preventDefault(); pass = $("#pw").value; load(); };
+}
+
+async function load() {
+  try {
+    const r = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass }) });
+    const j = await r.json();
+    if (!r.ok) { try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} return loginView(j.error || "Xato"); }
+    try { sessionStorage.setItem("galtak-admin", pass); } catch (e) {}
+    data = j; view();
+  } catch (e) { loginView("Internet bilan muammo"); }
+}
+
+function rows() {
+  const s = q.toLowerCase();
+  return data.players.filter(p => !s || [p.name, p.username, p.phone, p.tg_id].some(v => String(v || "").toLowerCase().includes(s)))
+    .sort((a, b) => { const x = a[sortK] ?? "", y = b[sortK] ?? ""; return (x > y ? 1 : x < y ? -1 : 0) * sortDir; });
+}
+
+function view() {
+  const P = data.players, day = Date.now() - 864e5;
+  const cols = [["name", "Ism"], ["username", "Username"], ["phone", "Telefon"], ["rating", "Ball", 1], ["games", "O'yinlar", 1], ["wins", "G'alaba", 1],
+    ["created_at", "Ro'yxatdan o'tgan"], ["seen_at", "Oxirgi kirish"]];
+  const list = rows();
+  $("#app").innerHTML = `
+    <div class="top"><h1>G'altak <span>admin</span></h1><span class="sp"></span>
+      <button class="alt" id="rf">↻ Yangilash</button><button class="alt" id="csv">⬇ CSV</button><button class="alt" id="lo">Chiqish</button></div>
+    <div class="kpis">
+      <div class="card kpi"><span>Ro'yxatdan o'tgan</span><b>${P.length}</b></div>
+      <div class="card kpi"><span>Raqami bor</span><b>${P.filter(p => p.phone).length}</b></div>
+      <div class="card kpi"><span>24 soatda yangi</span><b>${P.filter(p => new Date(p.created_at) > day).length}</b></div>
+      <div class="card kpi"><span>24 soatda faol</span><b>${P.filter(p => new Date(p.seen_at) > day).length}</b></div>
+      <div class="card kpi"><span>O'ynalgan o'yinlar</span><b>${data.games_done}</b></div>
+      <div class="card kpi"><span>Bugun ochilgan xonalar</span><b>${data.rooms_today}</b></div>
+    </div>
+    <p class="muted" style="margin:0 0 12px">Shashka: ${data.by_game?.shashka || 0} · Topqir: ${data.by_game?.soz || 0} · Gugurt: ${data.by_game?.gugurt || 0}</p>
+    <div class="tools"><input id="q" placeholder="Ism, username yoki telefon bo'yicha qidirish" value="${esc(q)}"></div>
+    <div class="tw"><table><thead><tr>${cols.map(([k, l, n]) => `<th class="${n ? "num" : ""}" data-k="${k}">${l}${sortK === k ? (sortDir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr></thead>
+      <tbody>${list.map(p => `<tr><td><b>${esc(p.name)}</b></td><td class="muted">${p.username ? "@" + esc(p.username) : "—"}</td>
+        <td>${p.phone ? `<a href="tel:+${esc(String(p.phone).replace(/^\+/, ""))}">+${esc(String(p.phone).replace(/^\+/, ""))}</a>` : `<span class="pill nophone">yo'q</span>`}</td>
+        <td class="num"><span class="pill">${p.rating ?? 0}</span></td><td class="num">${p.games}</td><td class="num">${p.wins}</td>
+        <td>${fmt(p.created_at)}</td><td class="muted">${fmt(p.seen_at)}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">Hech kim topilmadi</td></tr>`}</tbody></table></div>
+    <p class="muted" style="margin-top:10px">${list.length} ta o'yinchi ko'rsatilmoqda</p>`;
+  $("#q").oninput = e => { q = e.target.value; const pos = e.target.selectionStart; view(); const i = $("#q"); i.focus(); i.setSelectionRange(pos, pos); };
+  document.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => { const k = th.dataset.k; sortDir = sortK === k ? -sortDir : -1; sortK = k; view(); });
+  $("#rf").onclick = load;
+  $("#lo").onclick = () => { pass = ""; try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} loginView(); };
+  $("#csv").onclick = () => {
+    const head = ["tg_id", "name", "username", "phone", "rating", "games", "wins", "created_at", "seen_at"];
+    const csv = [head.join(","), ...rows().map(p => head.map(k => `"${String(p[k] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" }));
+    a.download = "galtak-oyinchilar.csv"; a.click();
+  };
+}
+pass ? load() : loginView();
+</script>
+</body>
+</html>
