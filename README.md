@@ -1,16 +1,18 @@
 # G'altak o'yinlari — Telegram Mini App
 
-Uchta o'yin: **Shashka** (kompyuterga qarshi 3 darajada, bitta telefonda yoki do'st bilan onlayn — havola orqali),
-**2048** va **Rost yoki jur'at** (do'stlar / juftlik / oila davrasi).
+Uchta o'yin: **Shashka** (tezkor o'yin — tasodifiy raqib, do'st bilan havola orqali, kompyuter, bitta telefonda),
+**So'z jangi** (10×10 harflar ichidan o'zbekcha so'zlarni raqibdan oldin topish, 3 daqiqa) va **2048**.
+Akkaunt: ism + Telegram orqali telefon raqami. Onlayn o'yinlar Elo reytingiga ta'sir qiladi.
 
 - Frontend: oddiy HTML/CSS/JS (`index.html`, `js/`, `css/`) — Vercel'da statik.
 - Bot: `api/bot.js` (Vercel funksiyasi, webhook) — `/start` ga "O'ynash" tugmasi; `/start r_KOD` — shashka xonasiga taklif.
-- Onlayn xonalar: Supabase `g_rooms` jadvali + `g_room_*` RPC'lar.
+- `api/game.js` — barcha yozish amallari: Telegram `initData` imzosi tekshiriladi, keyin Supabase RPC server kaliti (`G_SERVER_KEY`) bilan chaqiriladi.
+- Supabase: `g_players`, `g_stats` (reyting), `g_rooms` (onlayn xonalar).
 
 ## Ishga tushirish
 1. @BotFather → `/newbot` → token.
 2. Vercel → loyiha → Settings → Environment Variables:
    - `BOT_TOKEN` — bot tokeni
-   - `WEBHOOK_SECRET` — o'zingiz o'ylab topgan uzun so'z (faqat harf/raqam)
+   - `WEBHOOK_SECRET`, `G_SERVER_KEY` — allaqachon qo'shilgan
 3. Redeploy, keyin brauzerda bir marta oching: `https://<domen>/api/setup?key=<WEBHOOK_SECRET>`
 4. Botga `/start` yozing.

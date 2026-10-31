@@ -1,6 +1,5 @@
-// Telegram Mini App yordamchilari, ekranlar, saqlash va server (Supabase RPC)
+// Telegram Mini App yordamchilari, ekranlar, akkaunt va server
 export const tg = window.Telegram?.WebApp;
-export const $ = s => document.querySelector(s);
 export const app = () => document.getElementById("app");
 
 const SB_URL = "https://ljilvblrbdhdizvgqtyc.supabase.co";
@@ -17,12 +16,41 @@ export function setupTelegram() {
   try { tg.setHeaderColor?.("bg_color"); } catch (e) {}
 }
 
+export const inTelegram = () => !!tg?.initData;
+
+// ---------- akkaunt ----------
+export let profile = null;
+export function setProfile(p) { profile = p; }
 export function me() {
-  const u = tg?.initDataUnsafe?.user;
-  if (u) return { id: String(u.id), name: u.first_name || "O'yinchi" };
-  let id = load("guest-id");
-  if (!id) { id = "g" + Math.random().toString(36).slice(2, 10); save("guest-id", id); }
-  return { id, name: "Mehmon" };
+  return { id: profile?.id || "", name: profile?.name || tg?.initDataUnsafe?.user?.first_name || "O'yinchi" };
+}
+export const rating = game => profile?.stats?.[game]?.rating ?? 1000;
+
+export async function api(action, payload = {}) {
+  const r = await fetch("/api/game", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, initData: tg?.initData || "", name: profile?.name, ...payload }),
+  });
+  if (r.status === 401) throw new Error("Telegram orqali kiring");
+  if (!r.ok) throw new Error("Server xatosi");
+  return r.json();
+}
+
+// faqat o'qish (ochiq)
+export async function read(fn, args) {
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(args),
+  });
+  if (!r.ok) throw new Error("Server xatosi " + r.status);
+  return r.json();
+}
+
+export async function refreshProfile() {
+  try { const p = await read("g_profile", { p_id: me().id }); if (p) profile = { ...profile, ...p }; } catch (e) {}
+  return profile;
 }
 
 export function startParam() {
@@ -44,10 +72,11 @@ let toastT;
 export function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("on");
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2200);
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2400);
 }
 
-// ekranlar: har biri {render, leave}
+// ---------- ekranlar ----------
+export const nav = {}; // boshqa modullar uchun: nav.leaderboard(game)
 let current = null;
 const stack = [];
 export function show(screen, push = true) {
@@ -63,26 +92,17 @@ export function back() {
   if (prev) show(prev, false);
 }
 export function home() {
+  if (!stack.length) return;
   stack.length = 1;
   back();
 }
 tg?.BackButton?.onClick(back);
 
-export function header(title) {
-  return `<div class="top">${stack.length ? `<button class="back" data-back aria-label="Orqaga">←</button>` : ""}<h1>${title}</h1></div>`;
+export function header(title, right = "") {
+  return `<div class="top">${stack.length ? `<button class="back" data-back aria-label="Orqaga">←</button>` : ""}<h1>${title}</h1><span class="grow"></span>${right}</div>`;
 }
 export function bindBack(root = app()) {
   root.querySelectorAll("[data-back]").forEach(b => b.onclick = back);
-}
-
-export async function rpc(fn, args) {
-  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
-    method: "POST",
-    headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY, "Content-Type": "application/json" },
-    body: JSON.stringify(args),
-  });
-  if (!r.ok) throw new Error("Server xatosi " + r.status);
-  return r.json();
 }
 
 let botName = null;
@@ -92,4 +112,27 @@ export async function botUsername() {
   return botName;
 }
 
+export async function shareInvite(roomId, text) {
+  const bot = await botUsername();
+  const link = bot ? `https://t.me/${bot}?start=r_${roomId}` : "";
+  if (link && tg?.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+  else if (navigator.share) navigator.share({ text: text + (link ? "\n" + link : "") }).catch(() => {});
+  else copy(roomId);
+}
+export function copy(t) {
+  navigator.clipboard?.writeText(t).then(() => toast("Nusxalandi: " + t), () => toast("Kod: " + t));
+}
+
 export const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// natija oynasi (onlayn): reyting o'zgarishi
+export function ratingLine(room, game) {
+  const res = room?.result;
+  if (!res || res.cancelled) return "";
+  const mine = room.p1 === me().id ? "p1" : "p2";
+  const d = res[mine + "_delta"], r = res[mine + "_rating"];
+  if (d === undefined) return "";
+  if (profile?.stats?.[game]) profile.stats[game].rating = r;
+  return `<div class="delta ${d >= 0 ? "up" : "down"}">${d >= 0 ? "+" : ""}${d} reyting · ${r}</div>`;
+}
