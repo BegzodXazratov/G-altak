@@ -46,13 +46,16 @@ export default async function handler(req, res) {
           const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
           await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!`,
+            body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!${b.game !== "shashka" && b.seconds ? ` (${Math.round(b.seconds / 60)} daqiqa)` : ""}`,
               reply_markup: { inline_keyboard: [[{ text: "▶️ Qabul qilish", web_app: { url } }]] } }),
           }).catch(() => {});
           out = { ok: true };
         }
         break;
       }
+      case "cancel":
+        out = await rpc("g_room_cancel", { p_id: String(b.id || ""), p_player: id });
+        break;
       case "answer":
         out = await rpc("g_invite_answer", { p_id: id, p_invite: Number(b.invite) || 0, p_accept: !!b.accept });
         break;

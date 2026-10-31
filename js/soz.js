@@ -1,5 +1,5 @@
 import { quip, watcher } from "./quip.js";
-import { isMe } from "./core.js";
+import { isMe, waitScreen, gameSeconds, timePicker, bindTimePicker } from "./core.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 
@@ -28,7 +28,7 @@ const LONG = ["TARVUZ", "SHAHAR", "YULDUZ", "YASHIL", "KONFET", "OSHPAZ", "HIKOY
 const isWord = w => DICT && (DICT.has(w) || (w.endsWith("LAR") && w.length >= 5 && DICT.has(w.slice(0, -3))));
 const adj = (a, b) => Math.max(Math.abs(((a / N) | 0) - ((b / N) | 0)), Math.abs((a % N) - (b % N))) === 1;
 
-export async function generate() {
+export async function generate(secs = gameSeconds("soz")) {
   const D = await dict();
   const pool = COMMON.filter(w => D.has(w));
   const grid = Array(N * N).fill(null);
@@ -36,7 +36,7 @@ export async function generate() {
   // ~30 ta oddiy so'zni ilon-izi bo'ylab joylaymiz; bir-birini buzmaydi (katak bo'sh yoki xuddi shu harf bo'lsa)
   const longPool = LONG.filter(w => D.has(w));
   let longs = 0;
-  for (let t = 0; t < 4000 && seeds.length < 32; t++) {
+  for (let t = 0; t < 5000 && seeds.length < 40; t++) {
     // avval 7 ta uzun so'z (bo'sh taxtaga oson sig'adi), keyin qisqalar
     const wantLong = longs < 7 && t < 1500;
     const src = wantLong ? longPool : pool;
@@ -66,7 +66,7 @@ export async function generate() {
     if (wantLong) longs++;
   }
   for (let i = 0; i < grid.length; i++) if (grid[i] === null) grid[i] = randLetter();
-  return { grid, claimed: {}, seeds, seconds: SECONDS };
+  return { grid, claimed: {}, seeds, seconds: secs };
 }
 
 // ---------------- lobby ----------------
@@ -79,16 +79,18 @@ export function sozMenu() {
         <div class="card soz-intro">
           <b>Qanday o'ynaladi:</b> harflar ichidan istalgan o'zbekcha so'zni toping — barmoqni harfdan qo'shni harfga
           (yonga, tepaga, diagonalga) yurgizib chizing. So'zlar oldindan aytilmaydi. Har harf — 1 ochko.
-          Raqib topgan so'z sizga qolmaydi. Vaqt — <b>1 daqiqa</b>.
-          <br>Taxtada <b>oddiy so'zlar</b> ko'p: OSH, NON, GUL… va har safar <b>7 ta uzun so'z</b> yashiringan (MAKTAB, KAPALAK, SAMOLYOT kabi) — ular ko'p ochko beradi! Qiynalsangiz — <b>💡 Yordam</b> (3 marta).
+          Raqib topgan so'z sizga qolmaydi.
+          <br>Taxtada <b>oddiy so'zlar</b> ko'p: OSH, NON, GUL… Har safar <b>7 ta uzun so'z</b> ham yashirin — ularning birinchi harfi va uzunligi ekranda ko'rsatiladi. Qiynalsangiz — <b>💡 Yordam</b> (5 marta).
         </div>
+        <p class="lbl" style="margin:14px 4px 6px">O'yin vaqti</p>${timePicker("soz")}
         <div class="stack" style="margin-top:12px">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reyting uchun</small></span></button>
           <button class="bigbtn b-friend" data-act="create"><span class="ic">🔗</span><span><b>Do'stni chaqirish</b><small>Havola yuboring</small></span></button>
-          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>1 daqiqada necha ochko? Rekord: ${load("soz-best2") || 0}</small></span></button>
+          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>Necha ochko yig'asiz? Rekord: ${load("soz-best2") || 0}</small></span></button>
         </div>`;
       bindBack();
-      app().querySelector('[data-act="solo"]').onclick = async () => show(sozGame({ room: null, state: { ...(await generate()), ends_at: Date.now() + 3000 + SECONDS * 1000 } }));
+      bindTimePicker(app(), "soz", () => this.render());
+      app().querySelector('[data-act="solo"]').onclick = async () => { const st = await generate(); show(sozGame({ room: null, state: { ...st, ends_at: Date.now() + 3000 + st.seconds * 1000 } })); };
       app().querySelector('[data-act="create"]').onclick = () => startOnline("create");
       app().querySelector('[data-act="match"]').onclick = () => startOnline("match");
     },
@@ -107,37 +109,16 @@ export async function openSozRoom(room, matching = false) {
   show(sozWaiting(room, matching));
 }
 
-export async function createPrivate() {
+export async function createPrivate(invited = "") {
   const room = await api("create", { game: "soz", state: await generate() });
   if (!room?.id) throw new Error("Xona ochilmadi");
-  show(sozWaiting(room, false));
+  show(sozWaiting(room, false, invited));
   return room;
 }
 
-function sozWaiting(room, matching) {
-  let timer;
-  return {
-    render() {
-      app().innerHTML = header(matching ? "Raqib qidirilmoqda" : "Do'stni kutyapmiz") + `
-        <div class="card stack center">
-          ${matching ? `<div class="radar"><span></span><span></span><span></span><b>🔤</b></div><p class="muted" style="margin:0">Raqib qidiryapmiz…</p>`
-            : `<p class="muted" style="margin:0">Xona kodi</p><div class="code">${room.id}</div>
-               <p class="small muted" style="margin:0">Do'stingiz kirishi bilan 1 daqiqalik jang boshlanadi.</p>`}
-          <button class="btn" data-share>📨 Do'stga yuborish</button>
-          ${matching ? "" : `<button class="btn alt" data-copy>Kodni nusxalash</button>`}
-        </div>`;
-      bindBack();
-      app().querySelector("[data-share]").onclick = () => shareInvite(room.id, `Topqirda bellashamizmi? 🔤 Xona: ${room.id}`);
-      const c = app().querySelector("[data-copy]"); if (c) c.onclick = () => copy(room.id);
-      timer = setInterval(async () => {
-        try {
-          const r = await read("g_room_get", { p_id: room.id });
-          if (r.status === "playing") { clearInterval(timer); haptic("ok"); show(sozGame({ room: r }), false); }
-        } catch (e) {}
-      }, 1200);
-    },
-    leave() { clearInterval(timer); },
-  };
+function sozWaiting(room, matching, invited = "") {
+  return waitScreen(room, { matching, invited, icon: "🔤", shareText: "Topqirda bellashamizmi? 🔤",
+    onStart: r => show(sozGame({ room: r }), false) });
 }
 
 // ---------------- o'yin ----------------
@@ -147,7 +128,7 @@ function sozGame(opt) {
   const meKey = room ? (isMe(room.p1) ? "p1" : "p2") : "p1";
   const themKey = meKey === "p1" ? "p2" : "p1";
   let path = [], dragging = false, poll = null, tick = null, finishing = false, alive = true, pending = 0;
-  let hints = 3, streak = 0, lastFound = 0, bads = 0, saidStart = false;
+  let hints = 5, streak = 0, lastFound = 0, bads = 0, saidStart = false;
   const W = watcher();
 
   const claimedBy = w => st.claimed?.[w];
@@ -228,6 +209,13 @@ function sozGame(opt) {
       <div class="timer ${t <= 10 && started() ? "low" : ""}">${clock}</div>
       <div class="side"><b>${wordsOf("p1").length}</b><span>So'z</span></div>`;
     const mine = wordsOf(meKey), theirs = room ? wordsOf(themKey) : [];
+    // uzun yashirin so'zlar: birinchi harf + uzunlik (topilgani to'liq ochiladi)
+    const lw = document.querySelector(".longs");
+    if (lw) lw.innerHTML = (st.seeds || []).filter(x => x.path.length >= 6).sort((a, b) => a.path.length - b.path.length).map(x => {
+      const by = claimedBy(x.w), tk = tokens(x.w);
+      return by ? `<span class="lw ${by === meKey ? "mine" : "theirs"}">${x.w}</span>`
+        : `<span class="lw">${tk[0]}${"<i></i>".repeat(tk.length - 1)}</span>`;
+    }).join("");
     document.querySelector(".found").innerHTML = `
       <div><span class="flabel">Siz topgan</span>${mine.map(w => `<span class="wchip mine">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>
       ${room ? `<div><span class="flabel">Raqib</span>${theirs.map(w => `<span class="wchip theirs">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>` : ""}`;
@@ -251,8 +239,9 @@ function sozGame(opt) {
     const res = room.result || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
     const offer = room.state?.rematch && !isMe(room.state.rematch_by);
+    const leftNote = room.state?.left ? `<p class="small muted" style="margin:0">${isMe(room.state.resigned) ? "Siz o'yindan chiqib ketgansiz" : "Raqib o'yinni tashlab chiqib ketdi"}</p>` : "";
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
-      <p class="muted" style="margin:0">Ochko: <b>${a}</b> : ${b}</p>${ratingLine(room)}
+      <p class="muted" style="margin:0">Ochko: <b>${a}</b> : ${b}</p>${ratingLine(room)}${leftNote}
       <button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>
       <button class="btn alt" data-end="lb">🏆 Reyting</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
   }
@@ -260,10 +249,10 @@ function sozGame(opt) {
   async function endAction(a) {
     if (a === "menu") return home();
     if (a === "lb") return show(nav.leaderboard("soz"));
-    if (a === "again") return show(sozGame({ room: null, state: { ...(await generate()), ends_at: Date.now() + 3000 + SECONDS * 1000 } }), false);
+    if (a === "again") { const ns = await generate(st.seconds || SECONDS); return show(sozGame({ room: null, state: { ...ns, ends_at: Date.now() + 3000 + ns.seconds * 1000 } }), false); }
     if (a === "rematch") {
       try {
-        const r = await api("rematch", { id: room.id, state: await generate() });
+        const r = await api("rematch", { id: room.id, state: await generate(st.seconds || SECONDS) });
         if (r.error) return toast("Revansh ochilmadi");
         if (r.status === "playing") show(sozGame({ room: r }), false);
         else show(sozWaiting(r, false), false);
@@ -277,6 +266,7 @@ function sozGame(opt) {
       <div class="preview"></div>
       <div class="wwrap"><div class="wgrid">${st.grid.map((ch, i) => `<div class="lt" data-i="${i}"><b>${ch}</b></div>`).join("")}</div><div id="cd"></div></div>
       <div class="hinttxt"></div>
+      <div class="longs"></div>
       <div class="wtools"><button class="hintbtn" data-hint>💡 Yordam (${hints})</button></div>
       <div class="found"></div>
       <div id="ov"></div>`;
@@ -333,7 +323,7 @@ function sozGame(opt) {
             if (!r.error && r.version > room.version) {
               const before = wordsOf(themKey).length;
               room = r; st = r.state;
-              if (wordsOf(themKey).length > before) { haptic("medium"); quip("oppScore"); }
+              if (wordsOf(themKey).length > before) { haptic("medium"); }
               if (r.status === "done") refreshProfile();
               draw();
             }

@@ -317,3 +317,12 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .invic{font-size:34px}
 .invpop .row{display:flex;gap:8px}.invpop .row .btn{flex:1}
 @keyframes slideUp{from{transform:translateY(120%)}}
+/* v6: Topqir uzun so'zlar, vaqt tanlash */
+.longs{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:8px 0 2px}
+.lw{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:10px;background:var(--card);border:1px solid var(--line);
+  font-family:var(--display);font-size:13px;letter-spacing:.04em}
+.lw i{display:inline-block;width:9px;height:2px;background:var(--muted);border-radius:2px;margin-top:9px}
+.lw.mine{background:var(--green);border-color:transparent;color:#fff}
+.lw.theirs{background:var(--line);color:var(--muted);text-decoration:line-through}
+.tpick{margin:0 0 4px}
+.tpick button{flex:1}

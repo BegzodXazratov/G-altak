@@ -1,4 +1,4 @@
-import { isMe } from "./core.js";
+import { isMe, waitScreen } from "./core.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy, sleep,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 import { quip } from "./quip.js";
@@ -29,8 +29,6 @@ export function shashkaMenu() {
               `<button data-color="${k}" aria-pressed="${color === k}">${l}</button>`).join("")}</div>
             <button class="btn green" data-act="ai">Boshlash</button></div>` : ""}
           <button class="bigbtn b-local" data-act="local"><span class="ic">📱</span><span><b>Bitta telefonda</b><small>Yonma-yon o'tirib, navbat bilan</small></span></button>
-          <div class="joinrow"><input class="inp" id="code" placeholder="Xona kodi" maxlength="6" autocapitalize="characters">
-            <button class="btn alt" data-act="join">Kirish</button></div>
           <p class="small muted rules">Qoidalar: urish majburiy · oddiy dona orqaga ham uradi · damka uzoqqa yuradi.</p>
         </div>`;
       bindBack();
@@ -43,11 +41,6 @@ export function shashkaMenu() {
       root.querySelector('[data-act="local"]').onclick = () => show(gameScreen({ mode: "local" }));
       root.querySelector('[data-act="online"]').onclick = () => startOnline("create");
       root.querySelector('[data-act="match"]').onclick = () => startOnline("match");
-      root.querySelector('[data-act="join"]').onclick = () => {
-        const code = root.querySelector("#code").value.trim().toUpperCase();
-        if (code.length < 4) return toast("Xona kodini kiriting");
-        joinRoom(code);
-      };
     },
   };
 }
@@ -60,53 +53,22 @@ async function startOnline(kind) {
   show(waitingScreen(room, kind === "match"));
 }
 
-export async function createPrivate() {
+export async function createPrivate(invited = "") {
   const room = await api("create", { game: "shashka", state: freshState() });
   if (!room?.id) throw new Error("Xona ochilmadi");
-  show(waitingScreen(room, false));
+  show(waitingScreen(room, false, invited));
   return room;
 }
 
-function waitingScreen(room, matching) {
-  let timer, dots = 0;
-  return {
-    render() {
-      app().innerHTML = header(matching ? "Raqib qidirilmoqda" : "Do'stni kutyapmiz") + (matching ? `
-        <div class="card stack center">
-          <div class="radar"><span></span><span></span><span></span><b>⚫</b></div>
-          <p class="muted" id="wt" style="margin:0">Sizga mos raqib qidiryapmiz…</p>
-          <button class="btn alt" data-share>🔗 Yoki do'stni chaqiring</button>
-        </div>` : `
-        <div class="card stack center">
-          <p class="muted" style="margin:0">Xona kodi</p>
-          <div class="code">${room.id}</div>
-          <p class="small muted" style="margin:0">Do'stingiz havolani bossa yoki kodni kiritsa — o'yin o'zi boshlanadi. Siz oq donalar bilan o'ynaysiz.</p>
-          <button class="btn" data-share>📨 Do'stga yuborish</button>
-          <button class="btn alt" data-copy>Kodni nusxalash</button>
-        </div>`);
-      bindBack();
-      app().querySelector("[data-share]").onclick = () => shareInvite(room.id, `Shashka o'ynaymizmi? ⚫⚪ Xona: ${room.id}`);
-      const c = app().querySelector("[data-copy]"); if (c) c.onclick = () => copy(room.id);
-      timer = setInterval(async () => {
-        dots = (dots + 1) % 4;
-        const wt = document.getElementById("wt"); if (wt) wt.textContent = "Sizga mos raqib qidiryapmiz" + ".".repeat(dots);
-        try {
-          const r = await read("g_room_get", { p_id: room.id });
-          if (r.status === "playing") {
-            clearInterval(timer); haptic("ok");
-            show(gameScreen({ mode: "online", room: r, mySide: 1 }), false);
-          }
-        } catch (e) {}
-      }, 1300);
-    },
-    leave() { clearInterval(timer); },
-  };
+function waitingScreen(room, matching, invited = "") {
+  return waitScreen(room, { matching, invited, icon: "⚫", shareText: "Shashka o'ynaymizmi? ⚫⚪",
+    onStart: r => show(gameScreen({ mode: "online", room: r, mySide: isMe(r.p1) ? 1 : -1 }), false) });
 }
 
 export async function joinRoom(code) {
   let r;
   try { r = await api("join", { id: code }); } catch (e) { return toast(e.message); }
-  if (r.error === "not_found") return toast("Bunday xona topilmadi");
+  if (r.error === "not_found" || r.error === "gone") return toast("Bu o'yin endi mavjud emas — do'stingiz chiqib ketgan");
   if (r.error === "full") return toast("Bu xonada allaqachon ikki kishi o'ynayapti");
   if (r.game === "soz") { const m = await import("./soz.js"); return m.openSozRoom(r); }
   if (r.game === "gugurt") { const m = await import("./gugurt.js"); return m.openGugRoom(r); }
@@ -160,8 +122,7 @@ function gameScreen(opt) {
       else if (caps >= 2) quip("multi", true);
       else if (caps === 1 && Math.random() < 0.6) quip("capture");
     } else {
-      if (kinged) quip("oppKing", true);
-      else if (caps >= 1 && Math.random() < 0.7) quip("lost", caps >= 2);
+      if (caps >= 1 && Math.random() < 0.7) quip("lost", caps >= 2);
     }
   }
 
@@ -282,7 +243,7 @@ function gameScreen(opt) {
     else if (meSide === null) title = (winSide === 1 ? "Oq" : "Qora") + " yutdi! 🏆";
     else if (meSide === winSide) { title = "Siz yutdingiz! 🏆"; haptic("ok"); }
     else { title = "Bu safar yutqazdingiz"; sub = isMe(room?.state?.resigned) ? "Siz taslim bo'ldingiz" : "Revansh olasizmi?"; }
-    if (room?.state?.resigned && !isMe(room.state.resigned)) sub = "Raqib taslim bo'ldi";
+    if (room?.state?.resigned && !isMe(room.state.resigned)) sub = room.state.left ? "Raqib o'yinni tashlab chiqib ketdi — g'alaba sizniki" : "Raqib taslim bo'ldi";
     const rematchOffer = room?.state?.rematch && !isMe(room.state.rematch_by);
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>${sub ? `<p class="muted" style="margin:0">${sub}</p>` : ""}
       ${opt.mode === "online" ? ratingLine(room) : ""}

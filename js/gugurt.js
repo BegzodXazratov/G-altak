@@ -1,4 +1,4 @@
-import { isMe } from "./core.js";
+import { isMe, waitScreen, gameSeconds, timePicker, bindTimePicker } from "./core.js";
 import { app, header, bindBack, show, home, me, api, read, toast, haptic, esc, load, save, shareInvite, copy,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
 import { makeSet, evaluate, oneMoves, SEG_BITS, OP_BITS } from "./gugurt-engine.js";
@@ -61,16 +61,18 @@ export function gugurtMenu() {
       app().innerHTML = header("Gugurt") + scoreCard() + `
         <div class="card soz-intro" style="margin-top:12px">
           <b>Qanday o'ynaladi:</b> tenglama noto'g'ri. <b>Bitta</b> gugurt cho'pini bosib oling va boshqa joyga qo'ying —
-          tenglama to'g'ri bo'lsin. 1 daqiqada kim ko'p topshiriq yechsa, o'sha yutadi.
+          tenglama to'g'ri bo'lsin. Belgilangan vaqtda kim ko'p topshiriq yechsa, o'sha yutadi.
           <div class="gdemo">${svgFor({ eq: 3, slots: [{ t: "d", m: 125 }, { t: "o", m: 3 }, { t: "d", m: 102 }, { t: "d", m: 102 }] }, null)}</div>
           <p class="small muted" style="margin:0;text-align:center">Masalan: <b>6 + 4 = 4</b> noto'g'ri. 6 ning o'rtadagi cho'pini o'ng-tepaga ko'chirsangiz — <b>0 + 4 = 4</b> ✅</p>
         </div>
+        <p class="lbl" style="margin:14px 4px 6px">O'yin vaqti</p>${timePicker("gugurt")}
         <div class="stack" style="margin-top:12px">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reyting uchun</small></span></button>
           <button class="bigbtn b-friend" data-act="create"><span class="ic">🔗</span><span><b>Do'stni chaqirish</b><small>Havola yuboring</small></span></button>
-          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>1 daqiqada nechta? Rekord: ${load("gug-best") || 0}</small></span></button>
+          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>Nechta yecha olasiz? Rekord: ${load("gug-best") || 0}</small></span></button>
         </div>`;
       bindBack();
+      bindTimePicker(app(), "gugurt", () => this.render());
       app().querySelector('[data-act="solo"]').onclick = () => show(gugGame({ room: null, state: newState(true) }));
       app().querySelector('[data-act="create"]').onclick = () => startOnline("create");
       app().querySelector('[data-act="match"]').onclick = () => startOnline("match");
@@ -78,8 +80,8 @@ export function gugurtMenu() {
   };
 }
 
-const newState = solo => ({ puzzles: makeSet(40), seconds: SECONDS, score: {}, solved: {},
-  ...(solo ? { ends_at: Date.now() + 3000 + SECONDS * 1000 } : {}) });
+const newState = (solo, secs = gameSeconds("gugurt")) => ({ puzzles: makeSet(Math.max(40, secs / 2)), seconds: secs, score: {}, solved: {},
+  ...(solo ? { ends_at: Date.now() + 3000 + secs * 1000 } : {}) });
 
 async function startOnline(kind) {
   let room;
@@ -92,37 +94,16 @@ export function openGugRoom(room, matching = false) {
   show(gugWaiting(room, matching));
 }
 
-export async function createPrivate() {
+export async function createPrivate(invited = "") {
   const room = await api("create", { game: "gugurt", state: newState(false) });
   if (!room?.id) throw new Error("Xona ochilmadi");
-  show(gugWaiting(room, false));
+  show(gugWaiting(room, false, invited));
   return room;
 }
 
-function gugWaiting(room, matching) {
-  let timer;
-  return {
-    render() {
-      app().innerHTML = header(matching ? "Raqib qidirilmoqda" : "Do'stni kutyapmiz") + `
-        <div class="card stack center">
-          ${matching ? `<div class="radar"><span></span><span></span><span></span><b>🔥</b></div><p class="muted" style="margin:0">Raqib qidiryapmiz…</p>`
-            : `<p class="muted" style="margin:0">Xona kodi</p><div class="code">${room.id}</div>
-               <p class="small muted" style="margin:0">Do'stingiz kirishi bilan 1 daqiqalik bellashuv boshlanadi.</p>`}
-          <button class="btn" data-share>📨 Do'stga yuborish</button>
-          ${matching ? "" : `<button class="btn alt" data-copy>Kodni nusxalash</button>`}
-        </div>`;
-      bindBack();
-      app().querySelector("[data-share]").onclick = () => shareInvite(room.id, `Gugurt jumboqlarida bellashamizmi? 🔥 Xona: ${room.id}`);
-      const c = app().querySelector("[data-copy]"); if (c) c.onclick = () => copy(room.id);
-      timer = setInterval(async () => {
-        try {
-          const r = await read("g_room_get", { p_id: room.id });
-          if (r.status === "playing") { clearInterval(timer); haptic("ok"); show(gugGame({ room: r }), false); }
-        } catch (e) {}
-      }, 1200);
-    },
-    leave() { clearInterval(timer); },
-  };
+function gugWaiting(room, matching, invited = "") {
+  return waitScreen(room, { matching, invited, icon: "🔥", shareText: "Gugurt jumboqlarida bellashamizmi? 🔥",
+    onStart: r => show(gugGame({ room: r }), false) });
 }
 
 // ---------------- o'yin ----------------
@@ -234,8 +215,9 @@ function gugGame(opt) {
     const res = room.result || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
     const offer = room.state?.rematch && !isMe(room.state.rematch_by);
+    const leftNote = room.state?.left ? `<p class="small muted" style="margin:0">${isMe(room.state.resigned) ? "Siz o'yindan chiqib ketgansiz" : "Raqib o'yinni tashlab chiqib ketdi"}</p>` : "";
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
-      <p class="muted" style="margin:0">Yechildi: <b>${st.score?.[meKey] || 0}</b> : ${theirScore()}</p>${ratingLine(room)}
+      <p class="muted" style="margin:0">Yechildi: <b>${st.score?.[meKey] || 0}</b> : ${theirScore()}</p>${ratingLine(room)}${leftNote}
       ${answerHtml(st.puzzles[idx % st.puzzles.length], res.winner && res.winner !== meKey ? "Mana bu topshiriq javobi edi 👇" : "Oxirgi topshiriq javobi:")}
       <button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>
       <button class="btn alt" data-end="lb">🏆 Reyting</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
@@ -244,10 +226,10 @@ function gugGame(opt) {
   async function endAction(a) {
     if (a === "menu") return home();
     if (a === "lb") return show(nav.leaderboard("gugurt"));
-    if (a === "again") return show(gugGame({ room: null, state: newState(true) }), false);
+    if (a === "again") return show(gugGame({ room: null, state: newState(true, st.seconds || SECONDS) }), false);
     if (a === "rematch") {
       try {
-        const r = await api("rematch", { id: room.id, state: newState(false) });
+        const r = await api("rematch", { id: room.id, state: newState(false, st.seconds || SECONDS) });
         if (r.error) return toast("Revansh ochilmadi");
         if (r.status === "playing") show(gugGame({ room: r }), false);
         else show(gugWaiting(r, false), false);
@@ -288,7 +270,7 @@ function gugGame(opt) {
             if (!r.error && r.version > room.version) {
               const before = theirScore();
               room = r; st = r.state;
-              if (theirScore() > before) { haptic("medium"); quip("oppScore"); }
+              if (theirScore() > before) { haptic("medium"); }
               if (r.status === "done") refreshProfile();
               drawBar();
             }

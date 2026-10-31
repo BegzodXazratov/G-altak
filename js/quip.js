@@ -1,32 +1,30 @@
-// O'yin davomida hazil-mutoyiba: o'yinchining harakatiga qarab kichik "pufakcha" chiqadi.
+// O'yin davomida hazil-mutoyiba: faqat shu o'yinchining o'z harakatiga qarab, faqat uning ekranida chiqadi.
 const BANK = {
   // --- umumiy ---
   start: ["Qani, ko'raylik-chi 😏", "Bismillah! Omad 🍀", "Barmoqlarni qizdirdingizmi? 🔥", "Bugun kimning kuni ekan? 👀"],
   last10: ["10 soniya! Yurak dukillayapti 💓", "Tezroq, tezroq! ⏱", "Oxirgi zarba! 💥", "Hozir yoki hech qachon! 🏃"],
   idle: ["Uxlab qoldingizmi? 😴", "Choy damlab keldingizmi? ☕", "Hoy, o'yin shu yerda 👋", "Ekranga tikilib qoldingiz-ku 😄",
     "Miyani qizdiryapsizmi? 🧠🔥"],
-  lead: ["Raqib terlayapti 😅", "Zo'r ketyapsiz, to'xtamang! 🚀", "Bu safar sizniki shekilli 😎", "Raqib hozir telefonini silkitayapti 🤣"],
-  trail: ["Hali kech emas! 💪", "Raqib shoshyapti, siz ham bo'shashmang 😤", "Qaytarib olamiz! ⚔️", "Ha, bir oz orqadasiz… hozircha 😉"],
-  oppScore: ["Raqib ham uxlamayapti 👀", "Ana, raqib ham topdi 😬", "Raqib bir qadam oldinda… hozircha", "Raqib ishga tushdi 🏎"],
+  lead: ["Zo'r ketyapsiz, to'xtamang! 🚀", "Bugun formadasiz 😎", "Shu tezlikda davom eting! 🔥", "Siz bugun qizib ketgansiz 🌶"],
+  trail: ["Hali kech emas! 💪", "Bo'shashmang, qaytarib olasiz ⚔️", "Chuqur nafas — va oldinga! 😤", "Eng zo'r qaytishlar shunday boshlanadi 😉"],
   // --- Topqir ---
   word: ["Zo'r! 👏", "Ana bu boshqa gap!", "Bor-yo'g'i boshlanishi 😎", "Lug'at sizdan qo'rqyapti 📖", "Barakalla!"],
   longWord: ["Voy-bo'! Akademik! 🎓", "Bu so'zni hatto lug'at ham zo'rg'a bilardi 😮", "Shoir ekansiz-ku! ✍️", "Uzun so'z — katta ochko 💰"],
   streak: ["Seriya ketyapti! 🔥🔥🔥", "To'xtatib bo'lmaydi! 🚂", "Bugun sizning kuningiz ✨", "Kombo! 🎯"],
   badWord: ["Hmm, bunaqa so'z yo'q-ku 🤔", "Yangi so'z ixtiro qildingizmi? 😄", "Lug'at hayron 🤨", "Yaqin keldi, lekin yo'q 🙃",
     "Bu so'z qaysi tilda? 😅"],
-  taken: ["Raqib bir lahza oldin! 😤", "Kechikdingiz, u allaqachon olib ketdi 🏃", "Bu so'z band 🙅"],
+  taken: ["Bir lahza kechikdingiz 😤", "Bu so'z band — boshqasini qidiring 🔍", "Tezroq bo'ling, chempion! 🏃"],
   // --- Gugurt ---
   solved: ["Muhandis! 🛠", "Gugurt ustasi 🔥", "Einstein ham maqtardi 🧠", "Aql — bu kuch! 💡", "Oson ekan-a? 😏"],
   fast: ["Chaqmoqdek! ⚡", "Buni qanchalik tez yechdingiz?! 😳", "Hali o'ylashga ham ulgurmadingiz-ku 🚀"],
   wrong: ["Gugurt boshqa joyni yoqtiradi 🙃", "Yaqin! Yana bir urinish 🤏", "Matematika o'qituvchingiz yig'layapti 😢",
     "Bu tenglama emas, rebus bo'ldi 😄", "Qaytadan, shoshilmang 🙂"],
-  skip: ["Keyingisi osonroq bo'lar 🤞", "Mayli, buni raqibga qoldiramiz 😄", "Javobini ko'rib qo'ying 👇"],
+  skip: ["Keyingisi osonroq bo'lar 🤞", "Javobini ko'rib qo'ying 👇", "Mayli, keyingisiga! ➡️"],
   // --- Shashka ---
   capture: ["Hap! 😋", "Bitta kam! ✂️", "Mazali yurish 🍽", "Raqibning donasi uyiga ketdi 👋"],
   multi: ["Ikki qushni bir tosh bilan! 🪨🐦🐦", "Qirg'in! 💥", "Bu yurishni ramkaga solib qo'yish kerak 🖼"],
-  lost: ["Voy, donangiz ketdi 😬", "Hech gap emas, urushda bo'ladi 🛡", "Raqib och ekan 😅", "Bu tuzoq edimi? 🤔"],
+  lost: ["Voy, donangiz ketdi 😬", "Hech gap emas, urushda bo'ladi 🛡", "Ehtiyot bo'ling, tuzoq bo'lishi mumkin 🤔", "Bitta dona — hali hammasi oldinda 💪"],
   king: ["Damka! Endi siz qirolsiz 👑", "Toj kiyildi! 👑", "Endi uni to'xtatib bo'lmaydi 😎"],
-  oppKing: ["Raqib damka qildi… ehtiyot bo'ling 👑😬"],
 };
 
 let last = 0, lastKey = "", timer = null;

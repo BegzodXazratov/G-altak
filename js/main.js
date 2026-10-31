@@ -1,5 +1,5 @@
 import { app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, profile, me, score, esc, toast,
-  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername } from "./core.js";
+  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES } from "./core.js";
 import { shashkaMenu, joinRoom, createPrivate as newShashka } from "./shashka.js";
 import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
@@ -88,7 +88,7 @@ function startPresence() {
     } catch (e) {}
   };
   ping();
-  presence = setInterval(ping, 12000);
+  presence = setInterval(ping, 6000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
 }
 function invitePopup(inv) {
@@ -107,11 +107,12 @@ function invitePopup(inv) {
     const accept = b.dataset.a === "1";
     try {
       const r = await api("answer", { invite: inv.id, accept });
-      if (accept) { if (r.room) joinRoom(r.room); else toast("Taklif muddati o'tgan"); }
+      if (accept) { if (r.room) joinRoom(r.room); else toast("Bu taklif eskirgan — do'stingiz boshqa o'yinga o'tgan"); }
     } catch (e) { toast(e.message); }
   });
 }
 
+nav.online = () => show(onlineScreen());
 function onlineScreen() {
   let list = null, timer = null;
   return {
@@ -137,21 +138,32 @@ function pickGame(h, name) {
   document.getElementById("ov2")?.remove();
   const el = document.createElement("div");
   el.id = "ov2"; el.className = "overlay";
-  el.innerHTML = `<div class="card stack center"><h2 style="margin:0">${esc(name)} bilan</h2><p class="muted" style="margin:0">Qaysi o'yin?</p>
-    ${Object.keys(GNAME).map(g => `<button class="btn alt" data-g="${g}">${GICON[g]} ${GNAME[g]}</button>`).join("")}
-    <button class="btn alt" data-x style="opacity:.7">Bekor qilish</button></div>`;
-  document.body.appendChild(el);
-  el.onclick = e => { if (e.target === el || e.target.dataset.x !== undefined) el.remove(); };
-  el.querySelectorAll("[data-g]").forEach(b => b.onclick = async () => {
+  let secs = gameSeconds("soz");
+  const draw = () => {
+    el.innerHTML = `<div class="card stack center"><h2 style="margin:0">${esc(name)} bilan</h2><p class="muted" style="margin:0">Qaysi o'yin?</p>
+      ${Object.keys(GNAME).map(g => `<button class="btn alt" data-g="${g}">${GICON[g]} ${GNAME[g]}</button>`).join("")}
+      <p class="small muted" style="margin:4px 0 0">Topqir va Gugurt vaqti:</p>
+      <div class="seg tpick">${TIMES.map(t => `<button data-t="${t}" aria-pressed="${secs === t}">${t / 60} daq</button>`).join("")}</div>
+      <button class="btn alt" data-x style="opacity:.7">Bekor qilish</button></div>`;
+    el.querySelectorAll("[data-t]").forEach(b => b.onclick = e => { e.stopPropagation(); secs = +b.dataset.t; draw(); });
+    el.querySelectorAll("[data-g]").forEach(b => b.onclick = () => go(b.dataset.g));
+    el.querySelector("[data-x]").onclick = () => el.remove();
+  };
+  el.onclick = e => { if (e.target === el) el.remove(); };
+  async function go(game) {
     el.remove();
-    const game = b.dataset.g;
+    if (game !== "shashka") setGameSeconds(game, secs);
     try {
-      const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug })[game]();
-      const r = await api("invite", { h, game, room: room.id });
-      if (r.ok) { haptic("ok"); toast(`Taklif yuborildi — ${name} javobini kutyapmiz`); }
-      else toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "wait" ? "Biroz kuting, keyin yana chaqiring" : "Taklif yuborilmadi");
+      const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug })[game](name);
+      const r = await api("invite", { h, game, room: room.id, seconds: game === "shashka" ? 0 : secs });
+      if (r.ok) { haptic("ok"); return; }
+      toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring`
+        : r.error === "wait" ? "Biroz kuting, keyin yana chaqiring" : "Taklif yuborilmadi");
+      back(); // kutish xonasini yopamiz
     } catch (e) { toast(e.message); }
-  });
+  }
+  draw();
+  document.body.appendChild(el);
 }
 async function shareApp() {
   const bot = await botUsername(), link = bot ? `https://t.me/${bot}` : location.origin;

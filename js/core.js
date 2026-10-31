@@ -38,9 +38,9 @@ export function level(b = score()) {
 }
 export function scoreCard(b = score()) {
   const lv = level(b);
-  const msg = b >= 100 ? "Cho'qqidasiz! Yana yutsangiz — chempionlik tasdiqlanadi 👑"
-    : b === 0 ? "Birinchi g'alabangiz — birinchi ball! Boshladik 💪"
-    : `${lv.next.name} darajasigacha yana ${lv.next.need} ta g'alaba`;
+  const msg = b >= 100 ? "Siz chempionsiz! Har g'alaba toj'ni himoya qiladi 👑"
+    : b === 0 ? "G'alaba — 3 ball, durang — 1 ball, mag'lubiyat ballni kamaytirmaydi. Boshladik 💪"
+    : `${lv.next.name} darajasigacha ${lv.next.need} ball — taxminan ${Math.ceil(lv.next.need / 3)} ta g'alaba 🔥`;
   return `<div class="scorecard"><div class="sc-top"><span class="lv">${lv.icon} ${lv.name}</span><b>${b}<small>/100</small></b></div>
     <div class="bar"><i style="width:${b}%"></i></div><p>${msg}</p></div>`;
 }
@@ -101,6 +101,7 @@ export const nav = {}; // boshqa modullar uchun: nav.leaderboard(game)
 let current = null;
 const stack = [];
 export function show(screen, push = true) {
+  document.getElementById("quip")?.classList.remove("on");
   if (current?.leave) current.leave();
   if (push && current) stack.push(current);
   current = screen;
@@ -155,7 +156,51 @@ export function ratingLine(room) {
   const d = res[mine + "_delta"], r = res[mine + "_rating"];
   if (d === undefined) return "";
   if (profile?.stats?.all) profile.stats.all.rating = r;
-  if (res[mine + "_champion"]) return `<div class="champ">👑<b>Siz chempionsiz!</b><span>100 ballni himoya qildingiz</span></div>`;
-  const txt = d > 0 ? `+${d} ball` : d < 0 ? `${d} ball` : "Ball o'zgarmadi";
+  if (res[mine + "_champion"]) return `<div class="champ">👑<b>Siz chempionsiz!</b><span>100 ball — eng yuqori cho'qqi</span></div>`;
+  const txt = d >= 3 ? `+${d} ball 🔥` : d > 0 ? `+${d} ball` : d < 0 ? `${d} ball` : "Ball saqlanib qoldi — keyingisida yutasiz!";
   return `<div class="delta ${d > 0 ? "up" : d < 0 ? "down" : ""}">${txt} · ${r}/100</div>`;
+}
+
+// Umumiy kutish ekrani: xona kodi ko'rsatilmaydi. Chiqib ketilsa — xona yopiladi (eski taklifga hech kim tushib qolmaydi).
+export function waitScreen(room, { matching = false, icon = "🎮", invited = "", shareText = "", onStart }) {
+  let timer, started = false, dots = 0;
+  return {
+    render() {
+      app().innerHTML = header(matching ? "Raqib qidirilmoqda" : invited ? "Javob kutilmoqda" : "Do'stni kutyapmiz") + `
+        <div class="card stack center">
+          <div class="radar"><span></span><span></span><span></span><b>${icon}</b></div>
+          <p class="muted" id="wt" style="margin:0">${matching ? "Sizga mos raqib qidiryapmiz…" : invited ? `<b>${esc(invited)}</b> ga taklif yuborildi — qabul qilishi bilan o'yin boshlanadi`
+            : "Do'stingiz havolani bosishi bilan o'yin boshlanadi"}</p>
+          <button class="btn" data-online>🟢 Onlayn o'yinchini chaqirish</button>
+          <button class="btn alt" data-share>📨 Do'stga havola yuborish</button>
+          <button class="btn alt" data-cancel style="opacity:.75">Bekor qilish</button>
+        </div>`;
+      bindBack();
+      app().querySelector("[data-share]").onclick = () => shareInvite(room.id, shareText);
+      app().querySelector("[data-online]").onclick = () => nav.online?.();
+      app().querySelector("[data-cancel]").onclick = () => back();
+      timer = setInterval(async () => {
+        if (matching) { dots = (dots + 1) % 4; const wt = document.getElementById("wt"); if (wt) wt.textContent = "Sizga mos raqib qidiryapmiz" + ".".repeat(dots); }
+        try {
+          const r = await read("g_room_get", { p_id: room.id });
+          if (r.status === "playing") { started = true; clearInterval(timer); haptic("ok"); onStart(r); }
+          else if (r.status === "done") { started = true; clearInterval(timer); home(); }
+        } catch (e) {}
+      }, 1200);
+    },
+    leave() {
+      clearInterval(timer);
+      if (!started) { started = true; api("cancel", { id: room.id }).catch(() => {}); }
+    },
+  };
+}
+
+// Topqir/Gugurt vaqti (soniya) — o'yinchi tanlaydi
+export const TIMES = [60, 120, 180];
+export const gameSeconds = game => { const v = +load(game + "-secs"); return TIMES.includes(v) ? v : 120; };
+export const setGameSeconds = (game, s) => save(game + "-secs", String(s));
+export const timePicker = game => `<div class="seg tpick" data-tp="${game}">${TIMES.map(s =>
+  `<button data-secs="${s}" aria-pressed="${gameSeconds(game) === s}">⏱ ${s / 60} daqiqa</button>`).join("")}</div>`;
+export function bindTimePicker(root, game, rerender) {
+  root.querySelectorAll(`[data-tp="${game}"] [data-secs]`).forEach(b => b.onclick = () => { setGameSeconds(game, +b.dataset.secs); haptic("light"); rerender(); });
 }
