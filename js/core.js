@@ -49,7 +49,7 @@ export async function api(action, payload = {}) {
   const r = await fetch("/api/game", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, initData: tg?.initData || "", name: profile?.name, ...payload }),
+    body: JSON.stringify({ action, v: 2, initData: tg?.initData || "", ...payload }),
   });
   if (r.status === 401) throw new Error("Telegram orqali kiring");
   if (!r.ok) throw new Error("Server xatosi");
