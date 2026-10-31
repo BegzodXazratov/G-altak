@@ -4,49 +4,181 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>G'altak · Admin</title>
+<title>G'altak Admin</title>
 <link rel="icon" href="img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F4EEE3;--card:#FFFBF4;--ink:#1F1A16;--muted:#7A6F63;--line:#E4D9C8;--accent:#E8572A;--green:#1F6F4E}
-@media (prefers-color-scheme:dark){:root{--bg:#15120F;--card:#201B17;--ink:#F3EADC;--muted:#A79A8A;--line:#352D26}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:20px 16px 40px}
-main{max-width:1100px;margin:0 auto}
-h1{font-size:22px;margin:0}h1 span{color:var(--accent)}
-.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}.top .sp{flex:1}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
-.login{max-width:360px;margin:12vh auto;text-align:center;display:grid;gap:12px}
-.login img{width:84px;height:84px;border-radius:50%;margin:0 auto}
-input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit}
-button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;font-weight:700;background:var(--accent);color:#fff}
-button.alt{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.err{color:#C0392B;min-height:20px;margin:0}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
-.kpi span{display:block;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.kpi b{font-size:28px}
-.tools{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}.tools input{flex:1;min-width:200px}
-.tw{overflow-x:auto;border-radius:16px;border:1px solid var(--line);background:var(--card)}
-table{width:100%;border-collapse:collapse;min-width:820px}
-th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
-th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--card)}
-td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
-tr:last-child td{border-bottom:0}
-.muted{color:var(--muted)}.pill{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(31,111,78,.12);color:var(--green);font-size:12px;font-weight:700}
-.nophone{background:rgba(192,57,43,.1);color:#C0392B}
+:root{
+  --bg:#F3EEE6;--panel:#FFFCF7;--panel2:#F7F1E7;--ink:#1D1814;--muted:#7C7166;--line:#E6DCCD;
+  --accent:#E8572A;--green:#1E9E5A;--greenbg:#1E9E5A1a;--red:#D14343;--redbg:#D143431a;--amber:#C98410;--amberbg:#E0A1201f;
+  --shashka:#1F6F4E;--soz:#5B3DB8;--gugurt:#D9531E;--shadow:0 1px 2px #0000000a,0 8px 24px #0000000d;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#110E0C;--panel:#1B1714;--panel2:#231E1A;--ink:#F3EADF;--muted:#9E9184;--line:#2F2823;
+  --green:#3CCB7F;--greenbg:#3CCB7F1c;--red:#F06A6A;--redbg:#F06A6A1c;--amber:#F2B33D;--amberbg:#F2B33D1c;
+  --shashka:#2FA673;--soz:#8C6CF0;--gugurt:#F06A2E;--shadow:0 1px 2px #0006,0 10px 30px #0004}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Onest,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:1240px;margin:0 auto;padding:18px 16px 60px}
+button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
+.disp{font-family:Unbounded,system-ui,sans-serif}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.muted{color:var(--muted)}
+
+/* kirish */
+.login{max-width:380px;margin:14vh auto;background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:28px;text-align:center;display:grid;gap:14px;box-shadow:var(--shadow)}
+.login img{width:76px;height:76px;border-radius:50%;margin:0 auto}
+.login h1{font-size:22px;margin:0}.login h1 span{color:var(--accent)}
+.inp{width:100%;padding:13px 15px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:inherit;outline:none}
+.inp:focus{border-color:var(--accent)}
+.btn{padding:12px 18px;border-radius:14px;font-weight:700;background:var(--accent);color:#fff}
+.err{color:var(--red);min-height:20px;margin:0;font-size:14px}
+
+/* tepa panel */
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:10px}.brand img{width:38px;height:38px;border-radius:50%}
+.brand b{font-size:19px}.brand b span{color:var(--accent)}
+.live{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 var(--green);animation:ping 1.8s infinite;flex:none}
+.dot.off{background:var(--muted);animation:none}
+@keyframes ping{0%{box-shadow:0 0 0 0 #3CCB7F88}80%,100%{box-shadow:0 0 0 8px #3CCB7F00}}
+.sp{flex:1}
+.ibtn{padding:9px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-weight:600;font-size:14px}
+.ibtn:hover{border-color:var(--muted)}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:16px;width:max-content;max-width:100%;overflow-x:auto}
+.tabs button{padding:9px 16px;border-radius:10px;font-weight:600;font-size:14px;color:var(--muted);white-space:nowrap}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.tabs i{font-style:normal;font-size:12px;opacity:.7;margin-left:4px}
+
+/* kartalar */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
+.ph{display:flex;align-items:center;gap:10px;margin:0 0 14px}.ph h2{font-size:15px;margin:0;font-weight:700}.ph .sp{flex:1}
+.ph small{color:var(--muted);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
+.kpi{padding:16px}
+.kpi .l{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);font-weight:600}
+.kpi .v{font-family:Unbounded,system-ui;font-size:30px;font-weight:800;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.kpi .s b{color:var(--green);font-weight:700}
+.kpi.hot{background:linear-gradient(160deg,var(--greenbg),var(--panel) 70%)}
+.grid2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}
+.grid3{display:grid;grid-template-columns:1.35fr 1fr;gap:14px}
+
+/* jonli o'yinlar */
+.games{display:grid;gap:10px}
+.game{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--panel2);border:1px solid var(--line)}
+.gi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:#fff}
+.gi.shashka{background:var(--shashka)}.gi.soz{background:var(--soz)}.gi.gugurt{background:var(--gugurt)}
+.vs{font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.vs em{font-style:normal;color:var(--muted);font-weight:500;font-size:13px}
+.game small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.score{font-family:Unbounded,system-ui;font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.score span{color:var(--muted);font-weight:600}
+.empty{padding:26px 10px;text-align:center;color:var(--muted);font-size:14px;border:1px dashed var(--line);border-radius:16px}
+
+/* onlayn */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:14px;font-weight:600}
+.chip .dot{width:7px;height:7px}
+.chip.play{border-color:var(--amber);background:var(--amberbg)}
+.chip i{font-style:normal;font-size:12px;color:var(--muted);font-weight:500}
+
+/* grafik */
+.chart{display:flex;align-items:flex-end;gap:4px;height:150px;padding-top:8px}
+.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;height:100%;position:relative}
+.col .b{border-radius:4px 4px 2px 2px;min-height:2px}
+.b.reg{background:var(--accent)}.b.gm{background:var(--soz);opacity:.85}
+.col:hover::after{content:attr(data-t);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-size:12px;padding:5px 8px;border-radius:8px;white-space:nowrap;z-index:2}
+.axis{display:flex;gap:4px;margin-top:6px}.axis span{flex:1;text-align:center;font-size:11px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+/* natijalar lentasi */
+.feed{display:grid;gap:2px;max-height:430px;overflow:auto;margin:0 -6px;padding:0 6px}
+.fi{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--line);font-size:14px}
+.fi:last-child{border-bottom:0}
+.fi .gi{width:30px;height:30px;border-radius:9px;font-size:14px;flex:none}
+.fi .t{flex:1;min-width:0}.fi .t b{font-weight:700}
+.fi time{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.bars{display:grid;gap:12px}
+.hb .top{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}.hb .top b{font-variant-numeric:tabular-nums}
+.hb .tr{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden}.hb .fl{height:100%;border-radius:999px}
+
+/* o'yinchilar */
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tools .inp{flex:1;min-width:220px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:13.5px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--panel2)}
+.seg button i{font-style:normal;opacity:.65;margin-left:3px}
+.tools select.inp{flex:none;width:auto;min-width:0;cursor:pointer}
+.plist{display:grid;gap:8px}
+.pr{display:grid;grid-template-columns:44px minmax(150px,1.3fr) minmax(200px,1.1fr) 160px 190px;gap:14px;align-items:center;padding:12px 16px;border-radius:16px;background:var(--panel);border:1px solid var(--line)}
+.av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-family:Unbounded,system-ui;font-weight:800;color:#fff;position:relative}
+.av .st{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--panel);background:var(--muted)}
+.av .st.on{background:var(--green)}.av .st.play{background:var(--amber)}
+.who b{display:block;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who a{color:var(--muted);text-decoration:none;font-size:13.5px}.who a:hover{color:var(--accent)}
+.warn{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--amberbg);color:var(--amber)}
+.bad{background:var(--redbg);color:var(--red)}
+.ph2{display:flex;align-items:center;gap:6px}
+.phone{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:15px;color:var(--ink);text-decoration:none;letter-spacing:.01em}
+.cp{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;border:1px solid var(--line);background:var(--panel2);font-size:13px;color:var(--muted)}
+.cp:hover{color:var(--ink);border-color:var(--muted)}
+.stats{display:flex;gap:14px}
+.stats div{text-align:center}.stats b{display:block;font-family:Unbounded,system-ui;font-size:16px;font-variant-numeric:tabular-nums}
+.stats span{font-size:11.5px;color:var(--muted)}
+.when{font-size:13px;text-align:right;line-height:1.35}.when b{display:block;font-weight:600}
+.when span{color:var(--muted)}
+.foot{color:var(--muted);font-size:13px;margin-top:12px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;transition:.25s;pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}.grid2,.grid3{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .kpis{grid-template-columns:repeat(2,1fr)}.kpi .v{font-size:25px}
+  .pr{grid-template-columns:44px 1fr;row-gap:10px}
+  .pr .ph2,.pr .stats,.pr .when{grid-column:2}.pr .when{text-align:left}
+}
 </style>
 </head>
 <body>
 <main id="app"></main>
+<div id="toast"></div>
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const fmt = d => d ? new Date(d).toLocaleString("uz-UZ", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
-let pass = "", data = null, q = "", sortK = "created_at", sortDir = -1;
-try { pass = sessionStorage.getItem("galtak-admin") || ""; } catch (e) {}
+const GAME = { shashka: ["Shashka", "⚫"], soz: ["Topqir", "🔤"], gugurt: ["Gugurt", "🔥"] };
+const AVC = ["#E8572A", "#1F6F4E", "#5B3DB8", "#C98410", "#2A7FB8", "#B8456E", "#4E8A2A"];
+let pass = "", data = null, tab = "dash", q = "", filt = "all", sortK = "seen_at", timer = null, lastAt = 0, skew = 0;
+try { pass = sessionStorage.getItem("galtak-admin") || ""; tab = sessionStorage.getItem("galtak-admin-tab") || "dash"; } catch (e) {}
+
+const now = () => Date.now() + skew;
+function ago(d) {
+  if (!d) return "—";
+  const s = Math.max(0, (now() - new Date(d)) / 1000);
+  if (s < 45) return "hozirgina";
+  if (s < 3600) return `${Math.round(s / 60)} daq oldin`;
+  if (s < 86400) return `${Math.floor(s / 3600)} soat oldin`;
+  return `${Math.floor(s / 86400)} kun oldin`;
+}
+const clock = d => new Date(d).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Tashkent" });
+const date = d => new Date(d).toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit", timeZone: "Asia/Tashkent" }) + " " + clock(d);
+function fphone(p) {
+  const d = String(p || "").replace(/\D/g, "");
+  if (d.length === 12 && d.startsWith("998")) return `+998 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8, 10)} ${d.slice(10)}`;
+  return "+" + d;
+}
+const isOn = p => now() - new Date(p.seen_at) < 120e3;
+const named = p => p.name && p.name.trim().length >= 2 && p.name !== "O'yinchi";
+const avc = s => AVC[[...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0) % AVC.length];
+function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 1800); }
 
 function loginView(err = "") {
-  $("#app").innerHTML = `<form class="card login" id="lf"><img src="img/logo.png" alt=""><h1>G'altak <span>admin</span></h1>
-    <input type="password" id="pw" placeholder="Parol" autocomplete="current-password" autofocus>
-    <p class="err">${esc(err)}</p><button>Kirish</button></form>`;
+  clearInterval(timer);
+  $("#app").innerHTML = `<form class="login" id="lf"><img src="img/logo.png" alt=""><h1 class="disp">G'altak <span>admin</span></h1>
+    <input class="inp" type="password" id="pw" placeholder="Parol" autocomplete="current-password" autofocus>
+    <p class="err">${esc(err)}</p><button class="btn">Kirish</button></form>`;
   $("#lf").onsubmit = e => { e.preventDefault(); pass = $("#pw").value; load(); };
 }
 
@@ -56,52 +188,196 @@ async function load() {
     const j = await r.json();
     if (!r.ok) { try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} return loginView(j.error || "Xato"); }
     try { sessionStorage.setItem("galtak-admin", pass); } catch (e) {}
-    data = j; view();
-  } catch (e) { loginView("Internet bilan muammo"); }
+    data = j; lastAt = Date.now(); if (j.now) skew = new Date(j.now) - Date.now();
+    render();
+    if (!timer) timer = setInterval(() => { if (!document.hidden) load(); else liveLabel(); }, 10000);
+  } catch (e) { if (!data) loginView("Internet bilan muammo"); else liveLabel(true); }
 }
 
-function rows() {
-  const s = q.toLowerCase();
-  return data.players.filter(p => !s || [p.name, p.username, p.phone, p.tg_id].some(v => String(v || "").toLowerCase().includes(s)))
-    .sort((a, b) => { const x = a[sortK] ?? "", y = b[sortK] ?? ""; return (x > y ? 1 : x < y ? -1 : 0) * sortDir; });
+function liveLabel(fail) {
+  const el = $("#live"); if (!el) return;
+  const s = Math.round((Date.now() - lastAt) / 1000);
+  el.innerHTML = fail ? `<span class="dot off"></span>Aloqa uzildi` : `<span class="dot"></span>Jonli · ${s < 3 ? "hozir yangilandi" : s + " soniya oldin"}`;
+}
+setInterval(() => liveLabel(), 1000);
+
+// ---------- hisoblar ----------
+function liveScore(g) {
+  const s = g.s || {};
+  if (g.game === "soz") {
+    const sum = who => Object.entries(s.claimed || {}).filter(([, v]) => v === who).reduce((a, [w]) => a + (w.match(/[OG]'|[A-Z]/g) || []).length, 0);
+    return [sum("p1"), sum("p2")];
+  }
+  if (g.game === "gugurt") return [s.score?.p1 || 0, s.score?.p2 || 0];
+  if (Array.isArray(s.board)) return [s.board.filter(v => v > 0).length, s.board.filter(v => v < 0).length];
+  return [0, 0];
+}
+function liveSub(g) {
+  const s = g.s || {};
+  if (g.game !== "shashka" && s.ends_at) {
+    const left = Math.round((Number(s.ends_at) - now()) / 1000);
+    return left > 60 ? "boshlanmoqda…" : left > 0 ? `${left} soniya qoldi` : "tugamoqda…";
+  }
+  return `${g.game === "shashka" ? "donalar · " : ""}${Math.max(1, g.version)} yurish · ${ago(g.created_at).replace(" oldin", "")} davom etmoqda`;
 }
 
-function view() {
-  const P = data.players, day = Date.now() - 864e5;
-  const cols = [["name", "Ism"], ["username", "Username"], ["phone", "Telefon"], ["rating", "Ball", 1], ["games", "O'yinlar", 1], ["wins", "G'alaba", 1],
-    ["created_at", "Ro'yxatdan o'tgan"], ["seen_at", "Oxirgi kirish"]];
-  const list = rows();
+// ---------- ko'rinish ----------
+function render() {
+  const P = data.players, day = now() - 864e5;
+  const online = P.filter(isOn), playing = P.filter(p => p.playing);
+  const newToday = P.filter(p => new Date(p.created_at) > day).length;
+  const withPhone = P.filter(p => p.phone).length;
+  const live = data.live || [];
   $("#app").innerHTML = `
-    <div class="top"><h1>G'altak <span>admin</span></h1><span class="sp"></span>
-      <button class="alt" id="rf">↻ Yangilash</button><button class="alt" id="csv">⬇ CSV</button><button class="alt" id="lo">Chiqish</button></div>
-    <div class="kpis">
-      <div class="card kpi"><span>Ro'yxatdan o'tgan</span><b>${P.length}</b></div>
-      <div class="card kpi"><span>Raqami bor</span><b>${P.filter(p => p.phone).length}</b></div>
-      <div class="card kpi"><span>24 soatda yangi</span><b>${P.filter(p => new Date(p.created_at) > day).length}</b></div>
-      <div class="card kpi"><span>24 soatda faol</span><b>${P.filter(p => new Date(p.seen_at) > day).length}</b></div>
-      <div class="card kpi"><span>O'ynalgan o'yinlar</span><b>${data.games_done}</b></div>
-      <div class="card kpi"><span>Bugun ochilgan xonalar</span><b>${data.rooms_today}</b></div>
+    <div class="bar">
+      <div class="brand"><img src="img/logo.png" alt=""><b class="disp">G'altak <span>admin</span></b></div>
+      <span class="live" id="live"></span><span class="sp"></span>
+      <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
-    <p class="muted" style="margin:0 0 12px">Shashka: ${data.by_game?.shashka || 0} · Topqir: ${data.by_game?.soz || 0} · Gugurt: ${data.by_game?.gugurt || 0}</p>
-    <div class="tools"><input id="q" placeholder="Ism, username yoki telefon bo'yicha qidirish" value="${esc(q)}"></div>
-    <div class="tw"><table><thead><tr>${cols.map(([k, l, n]) => `<th class="${n ? "num" : ""}" data-k="${k}">${l}${sortK === k ? (sortDir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr></thead>
-      <tbody>${list.map(p => `<tr><td><b>${esc(p.name)}</b></td><td class="muted">${p.username ? "@" + esc(p.username) : "—"}</td>
-        <td>${p.phone ? `<a href="tel:+${esc(String(p.phone).replace(/^\+/, ""))}">+${esc(String(p.phone).replace(/^\+/, ""))}</a>` : `<span class="pill nophone">yo'q</span>`}</td>
-        <td class="num"><span class="pill">${p.rating ?? 0}</span></td><td class="num">${p.games}</td><td class="num">${p.wins}</td>
-        <td>${fmt(p.created_at)}</td><td class="muted">${fmt(p.seen_at)}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">Hech kim topilmadi</td></tr>`}</tbody></table></div>
-    <p class="muted" style="margin-top:10px">${list.length} ta o'yinchi ko'rsatilmoqda</p>`;
-  $("#q").oninput = e => { q = e.target.value; const pos = e.target.selectionStart; view(); const i = $("#q"); i.focus(); i.setSelectionRange(pos, pos); };
-  document.querySelectorAll("th[data-k]").forEach(th => th.onclick = () => { const k = th.dataset.k; sortDir = sortK === k ? -sortDir : -1; sortK = k; view(); });
-  $("#rf").onclick = load;
-  $("#lo").onclick = () => { pass = ""; try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} loginView(); };
-  $("#csv").onclick = () => {
-    const head = ["tg_id", "name", "username", "phone", "rating", "games", "wins", "created_at", "seen_at"];
-    const csv = [head.join(","), ...rows().map(p => head.map(k => `"${String(p[k] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" }));
-    a.download = "galtak-oyinchilar.csv"; a.click();
-  };
+    <div class="tabs">
+      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""]].map(([k, l, n]) =>
+        `<button data-tab="${k}" aria-pressed="${tab === k}">${l}${n !== undefined && n !== "" ? `<i>${n}</i>` : ""}</button>`).join("")}
+    </div>
+    <div class="kpis">
+      ${kpi("🟢 Hozir onlayn", online.length, `${playing.length} kishi o'ynamoqda`, true)}
+      ${kpi("🎮 Jonli o'yinlar", live.length, `${data.waiting || 0} ta xona sherik kutmoqda`)}
+      ${kpi("👥 O'yinchilar", P.length, `<b>+${newToday}</b> so'nggi 24 soatda`)}
+      ${kpi("📱 Raqami bor", withPhone, `${P.length ? Math.round(withPhone / P.length * 100) : 0}% · ${P.filter(p => !named(p)).length} tasi ismsiz`)}
+      ${kpi("🏁 Bugun o'yinlar", data.games_today ?? 0, `jami ${data.games_done}`)}
+      ${kpi("📨 Takliflar", data.invites_today ?? 0, `${data.invites_accepted ?? 0} tasi qabul qilindi`)}
+    </div>
+    <div id="body"></div>`;
+  liveLabel();
+  document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; try { sessionStorage.setItem("galtak-admin-tab", tab); } catch (e) {} render(); });
+  $("#rf").onclick = () => { load(); toast("Yangilandi"); };
+  $("#lo").onclick = () => { pass = ""; data = null; try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} loginView(); };
+  $("#csv").onclick = csv;
+  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else dashView();
 }
+const kpi = (l, v, s, hot) => `<div class="panel kpi ${hot ? "hot" : ""}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+
+function liveCards(limit) {
+  const live = (data.live || []).slice(0, limit || 99);
+  if (!live.length) return `<div class="empty">Hozir hech kim o'ynamayapti.<br>O'yin boshlanishi bilan shu yerda ko'rinadi.</div>`;
+  return `<div class="games">${live.map(g => {
+    const [a, b] = liveScore(g);
+    return `<div class="game"><div class="gi ${g.game}">${GAME[g.game]?.[1] || "🎮"}</div>
+      <div><div class="vs">${esc(g.p1_name || "?")} <em>vs</em> ${esc(g.p2_name || "?")}</div><small>${GAME[g.game]?.[0]} · ${liveSub(g)}</small></div>
+      <div class="score">${a}<span> : </span>${b}</div></div>`;
+  }).join("")}</div>`;
+}
+
+function onlineChips() {
+  const on = data.players.filter(isOn).sort((a, b) => b.playing - a.playing);
+  if (!on.length) return `<div class="empty">Hozir hech kim ilovada emas</div>`;
+  return `<div class="chips">${on.map(p => `<span class="chip ${p.playing ? "play" : ""}"><span class="dot"></span>${esc(named(p) ? p.name : "Ismsiz")}${p.playing ? `<i>o'ynamoqda</i>` : ""}</span>`).join("")}</div>`;
+}
+
+function chart() {
+  const H = data.hourly || [];
+  const max = Math.max(1, ...H.map(h => Math.max(h.reg, h.games)));
+  const sumR = H.reduce((a, h) => a + h.reg, 0), sumG = H.reduce((a, h) => a + h.games, 0);
+  return `<div class="ph"><h2>So'nggi 24 soat</h2><span class="sp"></span>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Ro'yxatdan o'tdi · ${sumR}</span><span><i style="background:var(--soz)"></i>O'yinlar · ${sumG}</span></div></div>
+    <div class="chart">${H.map(h => `<div class="col" data-t="${clock(h.h)} · ${h.reg} yangi · ${h.games} o'yin" style="flex-direction:row;align-items:flex-end;gap:2px">
+      <div class="b reg" style="flex:1;height:${h.reg / max * 100}%"></div><div class="b gm" style="flex:1;height:${h.games / max * 100}%"></div></div>`).join("")}</div>
+    <div class="axis">${H.map((h, i) => `<span>${i % 4 === 3 || i === H.length - 1 ? clock(h.h).slice(0, 2) : ""}</span>`).join("")}</div>`;
+}
+
+function feed(limit) {
+  const R = (data.recent || []).slice(0, limit || 99);
+  if (!R.length) return `<div class="empty">Hali yakunlangan o'yin yo'q</div>`;
+  return `<div class="feed">${R.map(g => {
+    const w = g.winner === "p1" ? g.p1_name : g.winner === "p2" ? g.p2_name : null, l = g.winner === "p1" ? g.p2_name : g.p1_name;
+    return `<div class="fi"><div class="gi ${g.game}">${GAME[g.game]?.[1] || "🎮"}</div>
+      <div class="t">${w ? `🏆 <b>${esc(w)}</b> yutdi — ${esc(l || "?")}${g.resigned ? " <span class='muted'>(taslim)</span>" : ""}` : `🤝 <b>${esc(g.p1_name)}</b> va <b>${esc(g.p2_name)}</b> — durang`}
+        <span class="muted"> · ${GAME[g.game]?.[0]}</span></div><time title="${date(g.updated_at)}">${ago(g.updated_at)}</time></div>`;
+  }).join("")}</div>`;
+}
+
+function byGame() {
+  const B = data.by_game || {}, tot = Math.max(1, ...Object.values(B));
+  return `<div class="bars">${Object.keys(GAME).map(k => `<div class="hb"><div class="top"><span>${GAME[k][1]} ${GAME[k][0]}</span><b>${B[k] || 0}</b></div>
+    <div class="tr"><div class="fl" style="width:${(B[k] || 0) / tot * 100}%;background:var(--${k})"></div></div></div>`).join("")}</div>`;
+}
+
+function dashView() {
+  $("#body").innerHTML = `
+    <div class="grid2">
+      <section class="panel"><div class="ph"><h2>🎮 Jonli o'yinlar</h2><span class="sp"></span><small>har 10 soniyada yangilanadi</small></div>${liveCards(6)}</section>
+      <section class="panel"><div class="ph"><h2>🟢 Hozir ilovada</h2><span class="sp"></span><small>so'nggi 2 daqiqa</small></div>${onlineChips()}</section>
+    </div>
+    <div class="grid3">
+      <div style="display:grid;gap:14px;align-content:start">
+        <section class="panel">${chart()}</section>
+        <section class="panel"><div class="ph"><h2>O'yinlar bo'yicha</h2><span class="sp"></span><small>jami yakunlangan</small></div>${byGame()}</section>
+      </div>
+      <section class="panel"><div class="ph"><h2>🏁 So'nggi natijalar</h2></div>${feed(25)}</section>
+    </div>`;
+}
+
+function gamesView() {
+  $("#body").innerHTML = `<div class="grid3">
+    <section class="panel"><div class="ph"><h2>🎮 Jonli o'yinlar</h2><span class="sp"></span><small>${(data.live || []).length} ta</small></div>${liveCards()}</section>
+    <section class="panel"><div class="ph"><h2>🏁 So'nggi 40 natija</h2></div>${feed()}</section></div>`;
+}
+
+// ---------- o'yinchilar ----------
+const FILTERS = [["all", "Hammasi", () => true], ["on", "Onlayn", isOn], ["play", "O'ynamoqda", p => p.playing], ["new", "Bugun yangi", p => now() - new Date(p.created_at) < 864e5],
+  ["nophone", "Raqamsiz", p => !p.phone], ["noname", "Ismsiz", p => !named(p)]];
+const SORTS = [["seen_at", "Oxirgi kirgan"], ["created_at", "Yangi qo'shilgan"], ["rating", "Ball"], ["games", "O'yinlar soni"], ["name", "Ism (A–Z)"]];
+function rows() {
+  const s = q.toLowerCase().replace(/\s/g, ""), f = FILTERS.find(x => x[0] === filt)[2];
+  return data.players.filter(f).filter(p => !s || [p.name, p.username, p.phone].some(v => String(v || "").toLowerCase().replace(/\s/g, "").includes(s)))
+    .sort((a, b) => sortK === "name" ? String(a.name).localeCompare(String(b.name))
+      : sortK === "seen_at" || sortK === "created_at" ? new Date(b[sortK]) - new Date(a[sortK]) : (b[sortK] || 0) - (a[sortK] || 0));
+}
+function playersView() {
+  $("#body").innerHTML = `
+    <div class="tools"><input class="inp" id="q" placeholder="🔍  Ism, @username yoki telefon raqam" value="${esc(q)}">
+      <select class="inp" id="sort">${SORTS.map(([k, l]) => `<option value="${k}" ${k === sortK ? "selected" : ""}>Saralash: ${l}</option>`).join("")}</select></div>
+    <div class="seg" style="margin-bottom:14px">${FILTERS.map(([k, l, f]) => `<button data-f="${k}" aria-pressed="${filt === k}">${l}<i>${data.players.filter(f).length}</i></button>`).join("")}</div>
+    <div class="plist" id="pl"></div><p class="foot" id="cnt"></p>`;
+  const q$ = $("#q");
+  q$.oninput = () => { q = q$.value; list(); };
+  $("#sort").onchange = e => { sortK = e.target.value; list(); };
+  document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filt = b.dataset.f; playersView(); });
+  list();
+}
+function list() {
+  const L = rows();
+  $("#pl").innerHTML = L.map(p => {
+    const nm = named(p) ? p.name : "", st = p.playing ? "play" : isOn(p) ? "on" : "";
+    return `<div class="pr">
+      <div class="av" style="background:${avc(p.tg_id)}">${esc((nm || p.username || "?")[0].toUpperCase())}<span class="st ${st}" title="${st === "play" ? "o'ynamoqda" : st ? "onlayn" : "oflayn"}"></span></div>
+      <div class="who"><b>${nm ? esc(nm) : `<span class="warn">Ism kiritilmagan</span>`}</b>
+        ${p.username ? `<a href="https://t.me/${esc(p.username)}" target="_blank" rel="noopener">@${esc(p.username)}</a>` : `<span class="muted" style="font-size:13.5px">username yo'q</span>`}</div>
+      <div class="ph2">${p.phone ? `<a class="phone" href="tel:${fphone(p.phone).replace(/\s/g, "")}">${fphone(p.phone)}</a>
+        <button class="cp" data-cp="${fphone(p.phone).replace(/\s/g, "")}" title="Nusxalash">⧉</button>` : `<span class="warn bad">Raqam yuborilmagan</span>`}</div>
+      <div class="stats"><div><b>${p.rating ?? 0}</b><span>ball</span></div><div><b>${p.games}</b><span>o'yin</span></div><div><b>${p.wins}</b><span>g'alaba</span></div></div>
+      <div class="when"><b>${st === "play" ? "🎮 o'ynamoqda" : st ? "🟢 onlayn" : ago(p.seen_at)}</b><span title="${date(p.created_at)}">qo'shildi: ${ago(p.created_at)}</span></div>
+    </div>`;
+  }).join("") || `<div class="empty">Hech kim topilmadi</div>`;
+  $("#cnt").textContent = `${L.length} ta o'yinchi ko'rsatilmoqda`;
+  document.querySelectorAll("[data-cp]").forEach(b => b.onclick = () => navigator.clipboard?.writeText(b.dataset.cp).then(() => toast("Nusxalandi: " + b.dataset.cp)));
+}
+
+function csv() {
+  const head = ["name", "username", "phone", "rating", "games", "wins", "created_at", "seen_at"];
+  const L = tab === "players" ? rows() : data.players;
+  const out = [head.join(","), ...L.map(p => head.map(k => `"${String(k === "phone" && p.phone ? fphone(p.phone) : p[k] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + out], { type: "text/csv" }));
+  a.download = "galtak-oyinchilar.csv"; a.click();
+}
+
+// o'yinchilar sahifasida qidiruv yozilayotganda avtomatik yangilanish fokusni buzmasin
+const _render = render;
+render = function () {
+  const typing = document.activeElement?.id === "q";
+  if (typing && tab === "players") { liveLabel(); list(); return; }
+  _render();
+};
 pass ? load() : loginView();
 </script>
 </body>
