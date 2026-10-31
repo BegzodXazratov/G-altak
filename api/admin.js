@@ -1,6 +1,7 @@
 // Admin panel ma'lumotlari: parol (ADMIN_PASSWORD) bilan
 import crypto from "node:crypto";
 import { rpc } from "./_lib.js";
+import { broadcast } from "./broadcast.js";
 
 const same = (a, b) => {
   const x = Buffer.from(String(a || "")), y = Buffer.from(String(b || ""));
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
   }
   try {
     res.setHeader("Cache-Control", "no-store");
+    if (req.body?.action === "broadcast") return res.status(200).json(await broadcast(req.headers.host));
     res.status(200).json(await rpc("g_admin_players", {}));
   } catch (e) {
     console.error(e);

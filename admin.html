@@ -232,7 +232,7 @@ function render() {
     <div class="bar">
       <div class="brand"><img src="img/logo.png" alt=""><b class="disp">G'altak <span>admin</span></b></div>
       <span class="live" id="live"></span><span class="sp"></span>
-      <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
+      <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="bc">📢 Yangilanish xabari</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
     <div class="tabs">
       ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""]].map(([k, l, n]) =>
@@ -252,6 +252,15 @@ function render() {
   $("#rf").onclick = () => { load(); toast("Yangilandi"); };
   $("#lo").onclick = () => { pass = ""; data = null; try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} loginView(); };
   $("#csv").onclick = csv;
+  $("#bc").onclick = async () => {
+    if (!confirm("Barcha o'yinchilarga botdan \"O'yin yangilandi\" xabari yuborilsinmi? (har versiyada bir marta)")) return;
+    const b = $("#bc"); b.disabled = true; b.textContent = "Yuborilmoqda…";
+    try {
+      const r = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "broadcast" }) })).json();
+      alert(r.ok ? `Yuborildi: ${r.sent} ta${r.failed ? ` · yetib bormadi: ${r.failed} ta (botni bloklaganlar)` : ""}` : (r.reason || r.error || "Xato"));
+    } catch (e) { alert("Internet bilan muammo"); }
+    b.disabled = false; b.textContent = "📢 Yangilanish xabari";
+  };
   if (tab === "players") playersView(); else if (tab === "games") gamesView(); else dashView();
 }
 const kpi = (l, v, s, hot) => `<div class="panel kpi ${hot ? "hot" : ""}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;

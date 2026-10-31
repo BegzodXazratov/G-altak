@@ -5,9 +5,13 @@ import { APP_VERSION, NEWS } from "../js/version.js";
 export default async function handler(req, res) {
   const key = new URL(req.url, "http://x").searchParams.get("key");
   if (!process.env.WEBHOOK_SECRET || key !== process.env.WEBHOOK_SECRET) return res.status(403).json({ error: "forbidden" });
+  res.status(200).json(await broadcast(req.headers.host));
+}
+
+export async function broadcast(host) {
   const claim = await rpc("g_broadcast_claim", { p_ver: APP_VERSION });
-  if (claim?.error) return res.status(200).json({ ok: false, reason: "bu versiya uchun xabar allaqachon yuborilgan", version: APP_VERSION });
-  const url = `https://${req.headers.host}/`;
+  if (claim?.error) return { ok: false, reason: "Bu versiya uchun xabar allaqachon yuborilgan", version: APP_VERSION };
+  const url = `https://${host}/`;
   let sent = 0, failed = 0;
   for (const chat_id of claim.ids || []) {
     try {
@@ -19,5 +23,5 @@ export default async function handler(req, res) {
     } catch (e) { failed++; }
     await new Promise(r => setTimeout(r, 40)); // Telegram cheklovi: sekundiga ~25 ta
   }
-  res.status(200).json({ ok: true, version: APP_VERSION, sent, failed });
+  return { ok: true, version: APP_VERSION, sent, failed };
 }
