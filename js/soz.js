@@ -98,6 +98,13 @@ export async function openSozRoom(room, matching = false) {
   show(sozWaiting(room, matching));
 }
 
+export async function createPrivate() {
+  const room = await api("create", { game: "soz", state: await generate() });
+  if (!room?.id) throw new Error("Xona ochilmadi");
+  show(sozWaiting(room, false));
+  return room;
+}
+
 function sozWaiting(room, matching) {
   let timer;
   return {

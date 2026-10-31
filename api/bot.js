@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       const arg = m.text.split(" ")[1] || "";
       const prof = await rpc("g_profile", { p_id: String(m.from.id) }, false);
       if (!prof?.has_phone) {
-        await rpc("g_player_upsert", { p_id: String(m.from.id), p_name: fullName(m.from), p_username: m.from.username || null, p_phone: null });
+        await rpc("g_player_upsert", { p_id: String(m.from.id), p_name: "", p_username: m.from.username || null, p_phone: null });
         await send(m.chat.id, "👋 G'altak o'yinlariga xush kelibsiz!\n\nRo'yxatdan o'tish uchun pastdagi «📱 Raqamni yuborish» tugmasini bosing.",
           { reply_markup: { keyboard: [[{ text: "📱 Raqamni yuborish", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } });
       }

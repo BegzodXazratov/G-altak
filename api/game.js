@@ -11,17 +11,50 @@ export default async function handler(req, res) {
   const user = verifyInitData(b.initData, process.env.BOT_TOKEN);
   if (!user) return res.status(401).json({ error: "auth" });
   const id = String(user.id);
-  const name = (b.name || "").trim() || fullName(user);
   try {
+    // xonalarda faqat o'yinchi o'zi kiritgan ism ishlatiladi
+    let name = "";
+    if (["create", "match", "join", "rematch"].includes(b.action)) {
+      const prof = await rpc("g_profile", { p_id: id }, false);
+      if (!prof || prof.needs_name) return res.status(200).json({ error: "need_name" });
+      name = prof.name;
+    }
     let out;
     switch (b.action) {
       case "me":
         out = await rpc("g_profile", { p_id: id }, false);
-        if (!out) out = { id, name: fullName(user), has_phone: false, stats: {}, isNew: true };
+        if (!out) out = { id, name: "", needs_name: true, has_phone: false, stats: {}, isNew: true };
         break;
-      case "register":
+      case "register": {
+        const nm = String(b.name || "").replace(/\s+/g, " ").trim().slice(0, 24);
+        if (nm.length < 2 || nm.toLowerCase() === "o'yinchi" || !/\p{L}/u.test(nm)) return res.status(200).json({ error: "bad_name" });
         // telefon faqat bot chatidagi "Raqamni yuborish" tugmasi orqali keladi (api/bot.js)
-        out = await rpc("g_player_upsert", { p_id: id, p_name: name, p_username: user.username || null, p_phone: null });
+        out = await rpc("g_player_upsert", { p_id: id, p_name: nm, p_username: user.username || null, p_phone: null });
+        break;
+      }
+      case "ping":
+        out = await rpc("g_ping", { p_id: id });
+        break;
+      case "online":
+        out = await rpc("g_online", { p_id: id });
+        break;
+      case "invite": {
+        if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
+        out = await rpc("g_invite", { p_from: id, p_to_h: String(b.h || ""), p_game: b.game, p_room: String(b.room || "") });
+        if (out?.ok) {
+          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt" };
+          const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
+          await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!`,
+              reply_markup: { inline_keyboard: [[{ text: "▶️ Qabul qilish", web_app: { url } }]] } }),
+          }).catch(() => {});
+          out = { ok: true };
+        }
+        break;
+      }
+      case "answer":
+        out = await rpc("g_invite_answer", { p_id: id, p_invite: Number(b.invite) || 0, p_accept: !!b.accept });
         break;
       case "askphone":
         await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {

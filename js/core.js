@@ -22,7 +22,7 @@ export const inTelegram = () => !!tg?.initData;
 export let profile = null;
 export function setProfile(p) { profile = p; }
 export function me() {
-  return { id: profile?.id || "", name: profile?.name || tg?.initDataUnsafe?.user?.first_name || "O'yinchi" };
+  return { id: profile?.id || "", h: profile?.h || "", name: profile?.name || "" };
 }
 export const score = () => profile?.stats?.all?.rating ?? 0;
 export const rating = () => score();
@@ -51,7 +51,9 @@ export async function api(action, payload = {}) {
   });
   if (r.status === 401) throw new Error("Telegram orqali kiring");
   if (!r.ok) throw new Error("Server xatosi");
-  return r.json();
+  const j = await r.json();
+  if (j?.error === "need_name") { nav.askName?.(); throw new Error("Avval ismingizni kiriting"); }
+  return j;
 }
 
 // faqat o'qish (ochiq)

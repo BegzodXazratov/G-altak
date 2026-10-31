@@ -91,6 +91,13 @@ export function openGugRoom(room, matching = false) {
   show(gugWaiting(room, matching));
 }
 
+export async function createPrivate() {
+  const room = await api("create", { game: "gugurt", state: newState(false) });
+  if (!room?.id) throw new Error("Xona ochilmadi");
+  show(gugWaiting(room, false));
+  return room;
+}
+
 function gugWaiting(room, matching) {
   let timer;
   return {

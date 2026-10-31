@@ -59,6 +59,13 @@ async function startOnline(kind) {
   show(waitingScreen(room, kind === "match"));
 }
 
+export async function createPrivate() {
+  const room = await api("create", { game: "shashka", state: freshState() });
+  if (!room?.id) throw new Error("Xona ochilmadi");
+  show(waitingScreen(room, false));
+  return room;
+}
+
 function waitingScreen(room, matching) {
   let timer, dots = 0;
   return {
