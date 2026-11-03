@@ -234,7 +234,7 @@ function liveScore(g) {
   }
   if (g.game === "gugurt") return [s.score?.p1 || 0, s.score?.p2 || 0];
   if (g.game === "shch") return [(s.found?.p1 || []).length, (s.found?.p2 || []).length];
-  if (g.game === "arch") return [s.hp?.p1 ?? 5, s.hp?.p2 ?? 5];
+  if (g.game === "arch") return s.score ? [s.score.p1, s.score.p2] : [s.hp?.p1 ?? 5, s.hp?.p2 ?? 5];
   if (g.game === "kim") return [(s.guesses?.p1 || []).length, (s.guesses?.p2 || []).length];
   if (Array.isArray(s.board)) return [s.board.filter(v => v > 0).length, s.board.filter(v => v < 0).length];
   return [0, 0];
@@ -245,7 +245,7 @@ function liveSub(g) {
     const left = Math.round((Number(s.ends_at) - now()) / 1000);
     return left > 60 ? "boshlanmoqda…" : left > 0 ? `${left} soniya qoldi` : "tugamoqda…";
   }
-  return `${["shashka", "chess"].includes(g.game) ? "donalar · " : g.game === "arch" ? "jonlar · " : ""}${Math.max(1, g.version)} yurish · ${ago(g.created_at).replace(" oldin", "")} davom etmoqda`;
+  return `${["shashka", "chess"].includes(g.game) ? "donalar · " : g.game === "arch" ? (s.score ? "ball · " : "jonlar · ") : ""}${Math.max(1, g.version)} yurish · ${ago(g.created_at).replace(" oldin", "")} davom etmoqda`;
 }
 
 // ---------- ko'rinish ----------

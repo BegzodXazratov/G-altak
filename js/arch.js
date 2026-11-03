@@ -1,8 +1,7 @@
 import { isMe, waitScreen, markJoining } from "./core.js";
 import { app, header, bindBack, show, home, api, read, toast, haptic, esc, load, save, scoreCard, ratingLine, refreshProfile, nav, sleep } from "./core.js";
-import { W, H, LIVES, GROUND, PW, BOW_Y, ANG_MIN, ANG_MAX, layout, rng, initArch, simulate, applyShot, aiShot } from "./arch-engine.js";
+import { W, H, ROUNDS, GROUND, PW, BOW_Y, ANG_MIN, ANG_MAX, layout, rng, initArch, norm, arrowsLeft, applyShot, aiShot } from "./arch-engine.js";
 
-const heart = (n, max = LIVES) => "❤️".repeat(n) + "🖤".repeat(Math.max(0, max - n));
 const PULL_MAX = 28, MIN_POWER = 15; // sahna birligida: shuncha tortilsa — 100% kuch
 const COL = { p1: "#3aa0ff", p2: "#ff6a4d" };
 const SVGNS = "http://www.w3.org/2000/svg";
@@ -24,7 +23,7 @@ export function archMenu() {
             <div class="seg">${[["p1", "Birinchi otaman"], ["p2", "Ikkinchi otaman"]].map(([k, l]) => `<button data-first="${k}" aria-pressed="${first === k}">${l}</button>`).join("")}</div>
             <button class="btn green" data-act="ai">Boshlash</button></div>` : ""}
           <button class="bigbtn b-local" data-act="local"><span class="ic">📱</span><span><b>Bitta telefonda</b><small>Yonma-yon o'tirib, navbat bilan</small></span></button>
-          <p class="small muted rules">Ikki kamonchi turli balandlikdagi minoralarda turadi, joylari har o'yinda o'zgaradi. Har kimda 5 ta jon. Ekranga barmog'ingizni qo'yib orqaga torting — kamon tortiladi, qo'yib yuborsangiz o'q uchadi. Shamolni hisobga oling. Boshga tegsa — 2 jon ketadi. Online o'yinda yurishga 1 daqiqa.</p>
+          <p class="small muted rules">Ikki kamonchi turli balandlikdagi minoralarda turadi, joylari har o'yinda o'zgaradi. Har kimda ${ROUNDS} ta o'q, navbat bilan otiladi. Tanaga tegsa 1, boshga tegsa 2 ball. Hamma o'qlar otilgach ko'p ball to'plagan yutadi (durang bo'lsa — qo'shimcha o'q). Ekranga barmog'ingizni qo'yib orqaga torting — kamon tortiladi, qo'yib yuborsangiz o'q uchadi. Mo'ljal chizig'i yo'q: burchak, kuch va shamolni o'zingiz hisoblang. Online o'yinda yurishga 1 daqiqa.</p>
         </div>`;
       bindBack();
       const root = app();
@@ -142,8 +141,8 @@ function bowShape(pull, armed, arms = true) {
 }
 // p: { hp, aim, pull, armed, dead, hit, wounds:[[dx,dy,dmg]], stuck:{dx,dy,deg}|null }
 function archerInner(side, p) {
-  const col = COL[side], dir = side === "p1" ? 1 : -1, lost = LIVES - p.hp, skin = "#f0c8a0";
-  let s = lost > 0 ? `<ellipse cx="0" cy=".15" rx="${(0.9 + lost * 0.75).toFixed(2)}" ry=".38" fill="#7a0c12" opacity=".88"/>` : "";
+  const col = COL[side], dir = side === "p1" ? 1 : -1, lost = (p.wounds || []).length, skin = "#f0c8a0";
+  let s = lost > 0 ? `<ellipse cx="0" cy=".15" rx="${Math.min(5, 0.9 + lost * 0.6).toFixed(2)}" ry=".38" fill="#7a0c12" opacity=".88"/>` : "";
   s += `<g class="${p.dead ? "fall" + (dir > 0 ? 1 : 2) : p.hit ? "jerk" + (dir > 0 ? 1 : 2) : ""}"><g transform="scale(${dir} 1)">
     <path d="M-.2,-3.4 L-1.4,-.2 M.2,-3.4 L1.3,-.2" stroke="#2a2f45" stroke-width="1.05" stroke-linecap="round"/><path d="M-2,0 h1.3 M.7,0 h1.4" stroke="#1b1e2e" stroke-width=".7" stroke-linecap="round"/>
     <g transform="translate(-1.3 -5.2) rotate(14)"><rect x="-.55" y="-1.6" width="1.1" height="3.2" rx=".3" fill="#6b4a2b"/><path d="M-.25,-1.6 v-1 M0,-1.6 v-1.2 M.25,-1.6 v-1" stroke="#e8453c" stroke-width=".25"/></g>
@@ -168,7 +167,7 @@ function svgEl(tag, attrs, parent) {
 }
 
 function gameScreen(opt) {
-  let room = opt.room || null, st = room?.state?.hp ? room.state : initArch();
+  let room = opt.room || null, st = room?.state?.hp ? norm(room.state) : initArch();
   let shown = null, anim = false, sending = false, alive = true, poll = null, clk = null, deadline = 0, seen = st.seq || 0;
   const aimMem = { p1: { a: 35, p: 0 }, p2: { a: 35, p: 0 } };
   let drag = null, dragFx = null, pullNow = null, hitSide = null, snd = load("arch-snd") !== "0";
@@ -188,18 +187,19 @@ function gameScreen(opt) {
 
   /* — kamonchi holati — */
   function poseOf(side) {
-    const v = shown || st, dead = v.hp[side] <= 0;
+    const v = shown || st, dead = !!v.winner && v.winner !== side;
     let aim = aimMem[side].a, pull = 0, armed = false;
     if (pullNow && pullNow.side === side) { aim = pullNow.a; pull = pullNow.p / 100; armed = true; }
     else if (!dead && !anim && !sending && !st.winner && !shown && side === st.turn) armed = true;
     const lastHit = !shown && st.last && st.last.hit === side;
     const L = layout(st.seed);
-    return { hp: v.hp[side], aim, pull, armed, dead, hit: hitSide === side, wounds: v.wounds?.[side] || [],
+    return { aim, pull, armed, dead, hit: hitSide === side, wounds: v.wounds?.[side] || [],
       stuck: lastHit && st.last.at ? { dx: st.last.at[0] - L.x[side], dy: st.last.at[1] - L.top[side], deg: st.last.deg || 0 } : null };
   }
   const drawActor = side => { const g = el("act-" + side); if (g) g.innerHTML = archerInner(side, poseOf(side)); };
   const drawActors = () => { drawActor("p1"); drawActor("p2"); };
-  const updateHud = () => { const v = shown || st; const a = el("hp1"), b = el("hp2"); if (a) a.textContent = heart(v.hp.p1); if (b) b.textContent = heart(v.hp.p2); };
+  const hudTxt = (v, side) => `🎯 ${v.score[side]} · 🏹 ${arrowsLeft(v, side)}`;
+  const updateHud = () => { const v = shown || st; const a = el("hp1"), b = el("hp2"); if (a) a.textContent = hudTxt(v, "p1"); if (b) b.textContent = hudTxt(v, "p2"); };
 
   /* — o'q parvozi va effektlar — */
   const frame = () => new Promise(r => requestAnimationFrame(r));
@@ -270,14 +270,17 @@ function gameScreen(opt) {
     if (last.hit) {
       const v = last.hit, dmg = last.dmg, sc = el("scene");
       sfx("hit"); haptic(dmg === 2 ? "heavy" : "medium");
-      shown = { ...prev, hp: next.hp, wounds: next.wounds }; hitSide = v; drawActors(); updateHud();
+      shown = { ...prev, hp: next.hp, wounds: next.wounds, score: next.score, shots: next.shots, winner: next.winner }; hitSide = v; drawActors(); updateHud();
       if (sc) { sc.classList.remove("shake"); void sc.getBoundingClientRect(); sc.classList.add("shake"); }
       const fl = el("flash"); if (fl) { fl.setAttribute("class", ""); void fl.getBoundingClientRect(); fl.setAttribute("class", "flash" + dmg); }
-      toast(dmg === 2 ? "🎯 Boshga tegdi! −2 jon" : "🎯 Tegdi! −1 jon");
+      toast(dmg === 2 ? "🎯 Boshga tegdi! +2 ball" : "🎯 Tegdi! +1 ball");
       await bloodBurst(last.at[0], last.at[1], last.deg || 0, dmg, sy(L.top[v]), L.x[v]);
       hitSide = null;
       if (next.winner) await sleep(650);
-    } else { sfx("stick"); haptic("light"); await sleep(280); }
+    } else {
+      sfx("stick"); haptic("light"); shown = { ...prev, score: next.score, shots: next.shots, winner: next.winner }; drawActors(); updateHud();
+      await sleep(next.winner ? 900 : 280);
+    }
     shown = null; st = next; anim = false; render();
   }
 
@@ -290,7 +293,7 @@ function gameScreen(opt) {
       try {
         const r = await api("ashot", { id: room.id, version: room.version, angle: a, power: p });
         sending = false;
-        if (r.error === "stale") { pullNow = null; room = r; setClock(r); if (r.state?.hp) { st = r.state; seen = st.seq; } toast("O'yin yangilandi"); render(); }
+        if (r.error === "stale") { pullNow = null; room = r; setClock(r); if (r.state?.hp) { st = norm(r.state); seen = st.seq; } toast("O'yin yangilandi"); render(); }
         else if (r.error) { pullNow = null; toast("O'q otilmadi"); render(); }
         else { const prev = st; room = r; setClock(r); seen = r.state.seq; await showShot(prev, r.state); if (r.status === "done") refreshProfile(); }
       } catch (e) { sending = false; pullNow = null; toast("Internet bilan muammo — o'q otilmadi"); render(); }
@@ -322,8 +325,6 @@ function gameScreen(opt) {
   function dragUpdate() {
     const side = st.turn, { a, p } = aimFrom(drag);
     pullNow = { side, a, p }; drawActor(side);
-    const pv = el("prev");
-    if (pv) pv.setAttribute("points", p >= MIN_POWER ? simulate(st, side, a, p).path.slice(0, 16).map(([x, y]) => `${x},${sy(y)}`).join(" ") : "");
     el("va").textContent = a + "°"; el("vp").textContent = p + "%"; el("pw").style.width = p + "%";
     el("pw").className = p < MIN_POWER ? "weak" : "";
     if (dragFx) { dragFx.d0.setAttribute("cx", drag.cx0); dragFx.d0.setAttribute("cy", drag.cy0); dragFx.d1.setAttribute("cx", drag.cx); dragFx.d1.setAttribute("cy", drag.cy); dragFx.ln.setAttribute("x1", drag.cx0); dragFx.ln.setAttribute("y1", drag.cy0); dragFx.ln.setAttribute("x2", drag.cx); dragFx.ln.setAttribute("y2", drag.cy); }
@@ -350,7 +351,6 @@ function gameScreen(opt) {
     const up = e => {
       if (!drag || e.pointerId !== drag.id) return;
       const { a, p } = aimFrom(drag), side = st.turn; dragEnd();
-      const pv = el("prev"); if (pv) pv.setAttribute("points", "");
       if (e.type === "pointercancel" || p < MIN_POWER) {
         pullNow = null; drawActor(side); el("pw").style.width = "0%";
         if (e.type !== "pointercancel") toast("Kuchliroq torting 💪");
@@ -380,12 +380,11 @@ function gameScreen(opt) {
     const hint = can ? "👆 Ekranga barmog'ingizni qo'ying va <b>orqaga torting</b> — qo'yib yuborsangiz o'q uchadi" : shown || sending ? "🏹 O'q uchmoqda…" : st.winner ? "O'yin tugadi" : "⏳ " + status;
     app().innerHTML = header("Kamonchi", right) + `
       <div class="status">${st.winner ? "O'yin tugadi" : status}${opt.mode === "online" && room?.status === "playing" && !st.winner ? ` <span id="tclk" class="tclk"></span>` : ""}</div>
-      <div class="arch-hud"><div class="${cur === "p1" && !st.winner ? "on" : ""}"><b>${esc(n1)}</b><span id="hp1">${heart(v.hp.p1)}</span></div><div class="wind">💨 ${wd}</div><div class="${cur === "p2" && !st.winner ? "on" : ""} r"><b>${esc(n2)}</b><span id="hp2">${heart(v.hp.p2)}</span></div></div>
+      <div class="arch-hud"><div class="${cur === "p1" && !st.winner ? "on" : ""}"><b>${esc(n1)}</b><span id="hp1">${hudTxt(v, "p1")}</span></div><div class="wind">💨 ${wd}</div><div class="${cur === "p2" && !st.winner ? "on" : ""} r"><b>${esc(n2)}</b><span id="hp2">${hudTxt(v, "p2")}</span></div></div>
       <div id="play" class="arch-play">
       <svg id="scene" class="arch-scene" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-label="Kamonchi maydoni">
         ${scenery(st.seed)}${flag("p1")}${flag("p2")}${miss}
         <g id="act-p1" transform="translate(${L.x.p1} ${sy(L.top.p1)})"></g><g id="act-p2" transform="translate(${L.x.p2} ${sy(L.top.p2)})"></g>
-        <polyline id="prev" points="" fill="none" stroke="#fff" stroke-width=".45" stroke-dasharray="1 1.5" stroke-linecap="round" opacity=".85"/>
         <polyline id="trail" points="" fill="none" stroke="#fff" stroke-width=".22" opacity=".4"/>
         <g id="arrow" opacity="0">${arrowShape(7)}</g>
         <g id="fx"></g><rect id="flash" width="${W}" height="${H}" fill="#c1121f" opacity="0" pointer-events="none"/>
@@ -416,7 +415,8 @@ function gameScreen(opt) {
     if (room?.state?.timeout) sub = isMe(room.state.resigned) ? "Yurish vaqti (1 daqiqa) tugadi" : "Raqib 1 daqiqada otmadi — g'alaba sizniki";
     else if (room?.state?.resigned) sub = isMe(room.state.resigned) ? "Siz taslim bo'ldingiz" : (room.state.left ? "Raqib o'yinni tashlab chiqib ketdi — g'alaba sizniki" : "Raqib taslim bo'ldi");
     const offer = room?.state?.rematch && !isMe(room.state.rematch_by);
-    return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>${sub ? `<p class="muted" style="margin:0">${sub}</p>` : ""}
+    const sc = st.score ? `<p class="muted" style="margin:0;font-weight:700;font-size:20px">${st.score.p1} : ${st.score.p2}</p>` : "";
+    return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>${sc}${sub ? `<p class="muted" style="margin:0">${sub}</p>` : ""}
       ${opt.mode === "online" ? ratingLine(room) : ""}
       ${opt.mode === "online" ? `<button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>` : `<button class="btn green" data-end="again">Yana o'ynash</button>`}
       ${opt.mode === "online" ? `<button class="btn alt" data-end="lb">🏆 Reyting</button>` : ""}
@@ -452,8 +452,8 @@ function gameScreen(opt) {
             const r = await read("g_room_get", { p_id: room.id });
             if (r.error || r.version <= room.version) return;
             const prev = st; room = r; setClock(r);
-            if (r.state.seq !== seen && r.state.last) { seen = r.state.seq; await showShot(prev, r.state); }
-            else { st = r.state; render(); }
+            if (r.state.seq !== seen && r.state.last) { seen = r.state.seq; await showShot(prev, norm(r.state)); }
+            else { st = norm(r.state); render(); }
             if (r.status === "done") { refreshProfile(); render(); }
           } catch (e) {}
         }, 1100);

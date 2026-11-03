@@ -1,6 +1,6 @@
 // Kamonchi: navbat bilan otish. Fizika bitta joyda — server ham, mijoz ham shu kodni ishlatadi.
 // Ikki kamonchi ochiq maydonda turli balandlikdagi minoralarda turadi; joy va balandlik har o'yinda (seed bo'yicha) tasodifiy.
-export const W = 100, H = 76, LIVES = 5;
+export const W = 100, H = 76, LIVES = 5, ROUNDS = 6; // ROUNDS — har kimning o'qlari soni; eng ko'p ball to'plagan yutadi
 export const GROUND = 5, PW = 4.2, BODY = 8.5, HEAD = 6.2, REACH = 2.4, BOW_Y = 6;
 export const ANG_MIN = -50, ANG_MAX = 85;
 const G = 70, DT = 0.02;
@@ -20,7 +20,13 @@ export function layout(seed) {
   return { x: { p1: Math.round(x1 * 10) / 10, p2: Math.round(x2 * 10) / 10 }, top: { p1: Math.round(t1 * 10) / 10, p2: Math.round(t2 * 10) / 10 } };
 }
 export const newWind = () => Math.round((Math.random() * 10 - 5) * 10) / 10;
-export const initArch = () => ({ seed: Math.floor(Math.random() * 100000), turn: "p1", hp: { p1: LIVES, p2: LIVES }, wind: newWind(), seq: 0, last: null, winner: null, wounds: { p1: [], p2: [] } });
+export const initArch = () => ({ seed: Math.floor(Math.random() * 100000), turn: "p1", hp: { p1: ROUNDS * 2, p2: ROUNDS * 2 }, score: { p1: 0, p2: 0 }, shots: { p1: 0, p2: 0 }, wind: newWind(), seq: 0, last: null, winner: null, wounds: { p1: [], p2: [] } });
+// eski (jon bilan) o'yinlarni yangi hisobga o'tkazadi
+export function norm(st) {
+  if (st.score) return st;
+  const seq = st.seq || 0;
+  return { ...st, score: { p1: Math.max(0, LIVES - (st.hp?.p2 ?? LIVES)), p2: Math.max(0, LIVES - (st.hp?.p1 ?? LIVES)) }, shots: { p1: Math.ceil(seq / 2), p2: Math.floor(seq / 2) } };
+}
 
 // bitta o'q: yo'l, kimga tegdi (qayerga), qancha jon ketdi, qayerga qadaldi, nishonga eng yaqin masofa
 export function simulate(st, side, angle, power) {
@@ -45,17 +51,31 @@ export function simulate(st, side, angle, power) {
 }
 
 export function applyShot(st, side, angle, power) {
+  st = norm(st);
   const r = simulate(st, side, angle, power), hp = { ...st.hp }, L = layout(st.seed);
   const wounds = { p1: [...(st.wounds?.p1 || [])], p2: [...(st.wounds?.p2 || [])] };
+  const score = { ...st.score }, shots = { ...st.shots }; shots[side]++;
   if (r.hit) {
-    hp[r.hit] = Math.max(0, hp[r.hit] - r.dmg);
+    hp[r.hit] = Math.max(0, hp[r.hit] - r.dmg); score[side] += r.dmg;
     wounds[r.hit].push([Math.round((r.at[0] - L.x[r.hit]) * 10) / 10, Math.round((r.at[1] - L.top[r.hit]) * 10) / 10, r.dmg]);
   }
   const foe = side === "p1" ? "p2" : "p1";
-  return { ...st, hp, wounds, turn: foe, wind: newWind(), seq: (st.seq || 0) + 1,
+  return { ...st, hp, score, shots, wounds, turn: foe, wind: newWind(), seq: (st.seq || 0) + 1,
     last: { by: side, angle: Math.round(angle), power: Math.round(power), path: r.path, hit: r.hit, dmg: r.dmg, at: r.at, end: r.end, deg: r.deg },
-    winner: hp.p1 <= 0 ? "p2" : hp.p2 <= 0 ? "p1" : null };
+    winner: decide(score, shots) };
 }
+// Ikkalasi teng miqdorda otgach, ko'p ball to'plagan yutadi (durang bo'lsa — qo'shimcha o'q). Raqib yetib ololmasa — oldinroq tugaydi.
+export function decide(sc, sh) {
+  const rem = s => Math.max(0, ROUNDS - sh[s]), lead = sc.p1 - sc.p2;
+  if (sh.p1 === sh.p2 && sh.p1 >= ROUNDS) return lead > 0 ? "p1" : lead < 0 ? "p2" : null;
+  if (rem("p2") > 0 && lead > 2 * rem("p2")) return "p1";
+  if (rem("p1") > 0 && -lead > 2 * rem("p1")) return "p2";
+  return null;
+}
+export const arrowsLeft = (st, side) => {
+  const base = ROUNDS - (st.shots?.[side] ?? 0); if (base > 0) return base;
+  const foe = side === "p1" ? "p2" : "p1"; return (st.shots?.[side] ?? 0) <= (st.shots?.[foe] ?? 0) && !st.winner ? 1 : 0;
+};
 
 // kompyuter: ko'p urinish orasidan eng yaqinini tanlab, darajaga qarab xato qo'shadi
 export function aiShot(st, side, level) {
