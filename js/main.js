@@ -3,6 +3,7 @@ import { app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, 
 import { shashkaMenu, joinRoom, createPrivate as newShashka } from "./shashka.js";
 import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
+import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen } from "./social.js";
 
 setupTelegram();
 
@@ -82,6 +83,7 @@ function startPresence() {
     if (document.hidden) return;
     try {
       const r = await api("ping");
+      applyPing(r);
       (r.declined || []).forEach(n => toast(`${n} taklifni rad etdi`));
       if (r.busy || isBusy()) return; // o'yin paytida takliflar xalaqit bermaydi
       const inv = (r.invites || []).find(i => !seenInv.has(i.id));
@@ -114,6 +116,7 @@ function invitePopup(inv) {
 }
 
 nav.online = () => show(onlineScreen());
+nav.pick = (h, name) => pickGame(h, name);
 function onlineScreen() {
   let list = null, timer = null;
   return {
@@ -123,15 +126,18 @@ function onlineScreen() {
   async function load() { try { list = await api("online"); } catch (e) { list = list || []; } if (document.querySelector(".onl")) draw(); }
   function draw() {
     app().innerHTML = header("🟢 Onlayn o'yinchilar") + `
-      <p class="small muted" style="margin:0 4px 12px">Hozir ilovada turganlar. Birini tanlang va o'yinga chaqiring — unga bot orqali ham xabar boradi.</p>
+      <p class="small muted" style="margin:0 4px 12px">Hozir ilovada turganlar. O'yinga faqat do'stlarni chaqirish mumkin: do'stlik so'rovi yuboring, qabul qilgach «Do'stlar» menyusidan birga o'ynaysiz.</p>
       <div class="onl">${list === null ? `<p class="muted">Yuklanmoqda…</p>` : list.length ? list.map(p => `
-        <div class="onrow"><span class="avatar sm">${esc(p.name[0] || "?")}</span>
-          <span class="nm">${esc(p.name)}<small>${level(p.rating).icon} ${p.rating} ball</small></span>
-          ${p.busy ? `<span class="busy">o'yinda</span>` : `<button class="pill" data-h="${esc(p.h)}" data-n="${esc(p.name)}">Chaqirish</button>`}</div>`).join("")
+        <div class="onrow">${avatar(p, "sm")}
+          <span class="nm">${esc(p.name)}<small>${level(p.rating).icon} ${p.rating} ball${p.fs === "friend" ? " · do'st" : ""}</small></span>
+          ${p.fs === "friend" ? (p.busy ? `<span class="busy">o'yinda</span>` : `<button class="pill" data-h="${esc(p.h)}" data-n="${esc(p.name)}">🎮 Taklif</button>`)
+            : p.fs === "sent" ? `<span class="busy">so'rov yuborildi</span>`
+            : `<button class="pill" data-fr="${esc(p.h)}">${p.fs === "got" ? "✅ Qabul qilish" : "➕ Do'stlik"}</button>`}</div>`).join("")
         : `<div class="card center"><p style="margin:0">Hozir hech kim onlayn emas 😴</p><p class="small muted">Do'stlaringizni chaqiring — havola yuboring.</p>
            <button class="btn" data-share>📨 Do'stni chaqirish</button></div>`}</div>`;
     bindBack();
     app().querySelectorAll("[data-h]").forEach(b => b.onclick = () => pickGame(b.dataset.h, b.dataset.n));
+    app().querySelectorAll("[data-fr]").forEach(b => b.onclick = async () => { await addFriend(b.dataset.fr); load(); });
     const sh = app().querySelector("[data-share]"); if (sh) sh.onclick = shareApp;
   }
 }
@@ -158,7 +164,7 @@ function pickGame(h, name) {
       const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug })[game](name);
       const r = await api("invite", { h, game, room: room.id, seconds: game === "shashka" ? 0 : secs });
       if (r.ok) { haptic("ok"); return; }
-      toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring`
+      toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "not_friend" ? "Avval do'stlik so'rovi yuboring"
         : r.error === "wait" ? "Biroz kuting, keyin yana chaqiring" : "Taklif yuborilmadi");
       back(); // kutish xonasini yopamiz
     } catch (e) { toast(e.message); }
@@ -193,10 +199,12 @@ function leaderboard(game = "all") {
         : `<p class="muted">Hali hech kim o'ynamagan. Birinchi bo'ling!</p>`}</div>`;
     bindBack();
     app().querySelectorAll("[data-g]").forEach(b => b.onclick = () => show(leaderboard(b.dataset.g), false));
+    app().querySelectorAll("[data-fr]").forEach(b => b.onclick = () => addFriend(b.dataset.fr));
   }
 }
 const lbRow = (p, i) => `<div class="lbrow ${p.h === me().h ? "me" : ""}"><span class="pos">${i < 3 ? ["🥇", "🥈", "🥉"][i] : i + 1}</span>
-  <span class="nm">${esc(p.name)}<small>${level(p.rating).icon} ${level(p.rating).name}</small></span><b>${p.rating}</b></div>`;
+  ${avatar(p, "xs")}<span class="nm">${esc(p.name)}<small>${level(p.rating).icon} ${level(p.rating).name}</small></span><b>${p.rating}</b>
+  ${p.h === me().h ? "" : `<button class="pill sm" data-fr="${esc(p.h)}" aria-label="Do'st qo'shish">➕</button>`}</div>`;
 nav.leaderboard = leaderboard;
 
 // ---------- menyu ----------
@@ -206,14 +214,14 @@ const menu = {
     const draw = () => {
       app().innerHTML = `
         <section class="mini">
-          <span class="avatar">${esc((me().name || "?")[0])}</span>
-          <div class="mi"><b>${esc(me().name)}</b><span>${level().icon} ${level().name}</span>
+          ${avatar({ avatar: profile?.avatar, name: me().name })}
+          <div class="mi"><b>${esc(me().name)} <em class="edit">✎</em></b><span>${level().icon} ${level().name}</span>
             <div class="mbar"><i style="width:${Math.min(100, (profile?.stats?.all?.rating ?? 0) / MAX_SCORE * 100)}%"></i></div></div>
           <div class="mscore"><b>${profile?.stats?.all?.rating ?? 0}</b><small>/${MAX_SCORE}</small></div>
         </section>
         <div class="qrow">
           <button class="qbtn" data-lb><span>🏆</span><b>Reyting</b><i>${profile?.stats?.all?.rank && profile.stats.all.wins + profile.stats.all.losses + profile.stats.all.draws > 0 ? profile.stats.all.rank + "-o'rin" : top?.length ? "top " + Math.min(top.length, 30) : ""}</i></button>
-          <button class="qbtn" data-online><span class="dot"></span><b>Onlayn</b><i>${online === null ? "…" : online.length}</i></button>
+          <button class="qbtn" data-friends><span>👥</span><b>Do'stlar</b><i></i></button>
         </div>
         <h2 class="sect">O'yinlar · hammasi 1 vs 1</h2>
         <div class="games">
@@ -243,12 +251,15 @@ const menu = {
       });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;
-      app().querySelector("[data-online]").onclick = () => show(onlineScreen());
+      app().querySelector("[data-friends]").onclick = () => show(friendsScreen());
+      app().querySelector(".mini").onclick = () => show(profileScreen());
+      paintBadge();
     };
     draw();
-    const [a, b] = await Promise.allSettled([read("g_leaderboard", { p_game: "all" }), api("online"), refreshProfile()]);
+    const [a, b] = await Promise.allSettled([read("g_leaderboard", { p_game: "all" }), api("friends"), refreshProfile()]);
     top = a.status === "fulfilled" && Array.isArray(a.value) ? a.value : [];
-    online = b.status === "fulfilled" && Array.isArray(b.value) ? b.value : [];
+    online = b.status === "fulfilled" && Array.isArray(b.value?.friends) ? b.value.friends : [];
+    social.friendsOnline = online.filter(f => f.online).length;
     if (document.querySelector(".qrow")) draw();
   },
 };

@@ -6,6 +6,16 @@ import { APP_VERSION } from "../js/version.js";
 
 const GAMES = ["shashka", "soz", "gugurt"];
 
+export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
+
+// Bot orqali qisqa xabar (ilovani ochadigan tugma bilan)
+async function tell(host, chat_id, text, btn = "▶️ Ochish") {
+  await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id, text, reply_markup: { inline_keyboard: [[{ text: btn, web_app: { url: `https://${host}/` } }]] } }),
+  }).catch(() => {});
+}
+
 // Botdagi taklif xabaridan "Qabul qilish" tugmasini olib tashlaymiz
 async function closeInvites(room, status, text) {
   try {
@@ -69,6 +79,39 @@ export default async function handler(req, res) {
         }
         break;
       }
+      case "profile_update": {
+        const nm = String(b.name || "").replace(/\s+/g, " ").trim().slice(0, 24);
+        if (nm.length < 2 || nm.toLowerCase() === "o'yinchi" || !/\p{L}/u.test(nm)) return res.status(200).json({ error: "bad_name" });
+        const av = AVATARS.includes(b.avatar) ? b.avatar : "";
+        out = await rpc("g_profile_update", { p_id: id, p_name: nm, p_avatar: av });
+        break;
+      }
+      case "friends":
+        out = await rpc("g_friends_list", { p_id: id });
+        break;
+      case "friend_add":
+        out = await rpc("g_friend_request", { p_from: id, p_to_h: String(b.h || "") });
+        if (out?.ok && out.to_id && !out.sent) {
+          await tell(req.headers.host, out.to_id, out.accepted ? `🤝 ${out.from_name} siz bilan do'st bo'ldi!` : `👋 ${out.from_name} sizga do'stlik so'rovi yubordi`, out.accepted ? "▶️ O'ynash" : "Ko'rish");
+          delete out.to_id;
+        }
+        break;
+      case "friend_answer":
+        out = await rpc("g_friend_answer", { p_id: id, p_h: String(b.h || ""), p_accept: !!b.accept });
+        if (out?.ok && b.accept) await tell(req.headers.host, out.to_id, `🤝 ${out.name} do'stlik so'rovingizni qabul qildi!`, "▶️ O'ynash");
+        if (out?.ok) out = { ok: true };
+        break;
+      case "friend_remove":
+        out = await rpc("g_friend_remove", { p_id: id, p_h: String(b.h || "") });
+        break;
+      case "chat_get":
+        out = await rpc("g_chat_get", { p_id: id, p_h: String(b.h || ""), p_after: Number(b.after) || 0 });
+        break;
+      case "chat_send":
+        out = await rpc("g_chat_send", { p_from: id, p_to_h: String(b.h || ""), p_body: String(b.text || "") });
+        if (out?.notify) { await tell(req.headers.host, out.to_id, `💬 ${out.from_name} sizga xabar yozdi`, "Ochish"); }
+        out = { ok: !!out?.ok, id: out?.id, error: out?.error };
+        break;
       case "cancel":
         out = await rpc("g_room_cancel", { p_id: String(b.id || ""), p_player: id });
         await closeInvites(b.id, "", "⌛ Taklif bekor qilindi");

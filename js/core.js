@@ -180,13 +180,13 @@ export function waitScreen(room, { matching = false, icon = "🎮", invited = ""
           <div class="radar"><span></span><span></span><span></span><b>${icon}</b></div>
           <p class="muted" id="wt" style="margin:0">${matching ? "Sizga mos raqib qidiryapmiz…" : invited ? `<b>${esc(invited)}</b> ga taklif yuborildi — qabul qilishi bilan o'yin boshlanadi`
             : "Do'stingiz havolani bosishi bilan o'yin boshlanadi"}</p>
-          <button class="btn" data-online>🟢 Onlayn o'yinchini chaqirish</button>
+          <button class="btn" data-online>👥 Do'stni chaqirish</button>
           <button class="btn alt" data-share>📨 Do'stga havola yuborish</button>
           <button class="btn alt" data-cancel style="opacity:.75">Bekor qilish</button>
         </div>`;
       bindBack();
       app().querySelector("[data-share]").onclick = () => shareInvite(room.id, shareText);
-      app().querySelector("[data-online]").onclick = () => nav.online?.();
+      app().querySelector("[data-online]").onclick = () => nav.friends?.();
       app().querySelector("[data-cancel]").onclick = () => back();
       timer = setInterval(async () => {
         if (matching) { dots = (dots + 1) % 4; const wt = document.getElementById("wt"); if (wt) wt.textContent = "Sizga mos raqib qidiryapmiz" + ".".repeat(dots); }

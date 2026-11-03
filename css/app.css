@@ -354,3 +354,25 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .tclk{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-family:var(--display);font-size:13px}
 .tclk.mine{background:var(--ink);color:var(--bg)}
 .tclk.low{background:#d9483b;color:#fff;border-color:#d9483b}
+
+/* profil, do'stlar, chat */
+.avatar.emo{background:var(--card);border:1px solid var(--line);font-size:22px;font-family:inherit}
+.avatar.xs{width:30px;height:30px;font-size:14px;flex:none}.avatar.xs.emo{font-size:17px}
+.avatar.sm.emo{font-size:20px}
+.mini .avatar.emo{background:#ffffff1f;border-color:#ffffff33;font-size:22px}
+.avatar.big{width:84px;height:84px;font-size:42px;margin:0 auto}.avatar.big.emo{font-size:46px}
+.mini{cursor:pointer}.mini .edit{font-style:normal;opacity:.55;font-size:12px;margin-left:4px}
+.avgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.avopt{aspect-ratio:1;border-radius:14px;background:var(--bg);border:1.5px solid var(--line);font-size:24px;display:grid;place-items:center}
+.avopt.on{border-color:var(--accent);background:var(--card);box-shadow:0 0 0 3px #e8602c33}
+.pill.ok{background:var(--accent);color:#fff;border-color:transparent}
+.pill.sm{padding:4px 10px;font-size:12px}
+.chatb{position:relative}.bdg{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:#d9483b;color:#fff;font-size:11px;display:grid;place-items:center;padding:0 4px}
+.qbtn i.hot{background:#d9483b;color:#fff;border-radius:999px;padding:2px 8px}
+.frs{display:flex;flex-direction:column;gap:8px}
+.chat{display:flex;flex-direction:column}
+.msgs{height:calc(100vh - 230px);min-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:4px 2px 8px}
+.msg{max-width:80%;align-self:flex-start;background:var(--card);border:1px solid var(--line);padding:8px 12px;border-radius:16px 16px 16px 4px;display:flex;flex-direction:column;gap:2px;word-break:break-word}
+.msg.mine{align-self:flex-end;background:var(--ink);color:var(--bg);border-color:transparent;border-radius:16px 16px 4px 16px}
+.msg small{font-size:10.5px;opacity:.55;align-self:flex-end}
+.cbar{display:flex;gap:8px;align-items:center}.cbar .btn{width:auto;padding:12px 18px}
