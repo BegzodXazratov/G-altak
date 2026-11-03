@@ -3,6 +3,8 @@ import { app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, 
 import { shashkaMenu, joinRoom, createPrivate as newShashka } from "./shashka.js";
 import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
+import { kimMenu, createPrivate as newKim } from "./kim.js";
+import { shchMenu, createPrivate as newShch } from "./shch.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen } from "./social.js";
 
 setupTelegram();
@@ -73,8 +75,8 @@ function enter() {
 nav.askName = () => show(registerScreen(), false);
 
 // ---------- onlayn holat va takliflar ----------
-const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt" };
-const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥" };
+const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot" };
+const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "➕" };
 let presence = null;
 const seenInv = new Set();
 function startPresence() {
@@ -159,10 +161,11 @@ function pickGame(h, name) {
   el.onclick = e => { if (e.target === el) el.remove(); };
   async function go(game) {
     el.remove();
-    if (game !== "shashka") setGameSeconds(game, secs);
+    const timed = game === "soz" || game === "gugurt";
+    if (timed) setGameSeconds(game, secs);
     try {
-      const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug })[game](name);
-      const r = await api("invite", { h, game, room: room.id, seconds: game === "shashka" ? 0 : secs });
+      const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch })[game](name);
+      const r = await api("invite", { h, game, room: room.id, seconds: timed ? secs : 0 });
       if (r.ok) { haptic("ok"); return; }
       toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "not_friend" ? "Avval do'stlik so'rovi yuboring"
         : r.error === "wait" ? "Biroz kuting, keyin yana chaqiring" : "Taklif yuborilmadi");
@@ -174,7 +177,7 @@ function pickGame(h, name) {
 }
 async function shareApp() {
   const bot = await botUsername(), link = bot ? `https://t.me/${bot}` : location.origin;
-  const text = "G'altak'da bellashamizmi? Shashka, Topqir va Gugurt — 1 vs 1 🎮";
+  const text = "G'altak'da bellashamizmi? Shashka, Topqir, Gugurt va yana ko'p o'yinlar — 1 vs 1 🎮";
   if (tg?.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
   else if (navigator.share) navigator.share({ text: text + "\n" + link }).catch(() => {});
 }
@@ -235,6 +238,16 @@ const menu = {
             <h2>Topqir</h2><p>Harflardan o'zbekcha so'zlarni raqibdan tezroq toping</p>
             <span class="art" aria-hidden="true">🔤</span>
           </button>
+          <button class="game g-kim" data-go="kim">
+            <span class="tag">Mantiq · 1 vs 1</span>
+            <h2>Kim topadi?</h2><p>Raqibning 5 xonali yashirin sonini birinchi bo'lib toping</p>
+            <span class="art" aria-hidden="true">🔢</span>
+          </button>
+          <button class="game g-shch" data-go="shch">
+            <span class="tag">Hisob · 3–5 daqiqa</span>
+            <h2>SH-chyot</h2><p>Kataklardagi sonlarni qo'shib, o'zingizga berilgan sonlarni toping</p>
+            <span class="art" aria-hidden="true">➕</span>
+          </button>
           <button class="game g-gug" data-go="gugurt">
             <span class="tag">Mantiq · 1–3 daqiqa</span>
             <h2>Gugurt</h2><p>Bitta cho'pni ko'chirib, tenglamani to'g'rilang</p>
@@ -248,6 +261,8 @@ const menu = {
         if (g === "shashka") show(shashkaMenu());
         if (g === "soz") show(sozMenu());
         if (g === "gugurt") show(gugurtMenu());
+        if (g === "kim") show(kimMenu());
+        if (g === "shch") show(shchMenu());
       });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;

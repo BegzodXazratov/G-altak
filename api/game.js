@@ -2,9 +2,12 @@
 import { verifyInitData, rpc, fullName } from "./_lib.js";
 import { isWord, pathWord } from "./_soz.js";
 import { checkSolution } from "../js/gugurt-engine.js";
+import { makeShch, makeKim } from "./_shch.js";
 import { APP_VERSION } from "../js/version.js";
 
-const GAMES = ["shashka", "soz", "gugurt"];
+const GAMES = ["shashka", "soz", "gugurt", "kim", "shch"];
+// yangi o'yinlarda boshlang'ich holatni server o'zi yaratadi (mijoz maxfiy ma'lumot yoki maqsadlarni o'zgartira olmaydi)
+const initState = b => b.game === "kim" ? makeKim() : b.game === "shch" ? makeShch(b.count) : (b.state || {});
 
 export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
 
@@ -67,11 +70,11 @@ export default async function handler(req, res) {
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
         out = await rpc("g_invite", { p_from: id, p_to_h: String(b.h || ""), p_game: b.game, p_room: String(b.room || "") });
         if (out?.ok) {
-          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt" };
+          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot" };
           const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
           const sent = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!${b.game !== "shashka" && b.seconds ? ` (${Math.round(b.seconds / 60)} daqiqa)` : ""}`,
+            body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!${["soz", "gugurt"].includes(b.game) && b.seconds ? ` (${Math.round(b.seconds / 60)} daqiqa)` : ""}`,
               reply_markup: { inline_keyboard: [[{ text: "▶️ Qabul qilish", web_app: { url } }]] } }),
           }).then(r => r.json()).catch(() => null);
           if (sent?.result?.message_id && out.invite) await rpc("g_invite_msg", { p_invite: out.invite, p_msg: sent.result.message_id }).catch(() => {});
@@ -138,11 +141,11 @@ export default async function handler(req, res) {
       }
       case "create":
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
-        out = await rpc("g_room_create", { p_game: b.game, p_player: id, p_name: name, p_state: b.state || {}, p_public: false });
+        out = await rpc("g_room_create", { p_game: b.game, p_player: id, p_name: name, p_state: initState(b), p_public: false });
         break;
       case "match":
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
-        out = await rpc("g_room_match", { p_game: b.game, p_player: id, p_name: name, p_state: b.state || {} });
+        out = await rpc("g_room_match", { p_game: b.game, p_player: id, p_name: name, p_state: initState(b) });
         break;
       case "join":
         out = await rpc("g_room_join", { p_id: String(b.id || ""), p_player: id, p_name: name });
@@ -165,9 +168,23 @@ export default async function handler(req, res) {
       case "finish":
         out = await rpc("g_soz_finish", { p_id: b.id });
         break;
-      case "rematch":
-        out = await rpc("g_room_rematch", { p_id: b.id, p_player: id, p_name: name, p_state: b.state || {} });
+      case "rematch": {
+        const old = ["kim", "shch"].includes(b.game) ? { ...b } : null;
+        out = await rpc("g_room_rematch", { p_id: b.id, p_player: id, p_name: name, p_state: old ? initState(old) : (b.state || {}) });
         break;
+      }
+      case "kt_setup":
+        out = await rpc("g_kt_setup", { p_id: String(b.id || ""), p_player: id, p_secret: String(b.secret || ""), p_pref: String(b.pref || "first") });
+        break;
+      case "kt_guess":
+        out = await rpc("g_kt_guess", { p_id: String(b.id || ""), p_player: id, p_guess: String(b.guess || "") });
+        break;
+      case "shch_claim": {
+        const path = Array.isArray(b.path) ? b.path.map(Number) : [];
+        if (path.length < 2 || path.length > 14 || path.some(x => !Number.isInteger(x))) return res.status(200).json({ error: "bad_path" });
+        out = await rpc("g_shch_claim", { p_id: String(b.id || ""), p_player: id, p_path: path });
+        break;
+      }
       case "aiwin":
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
         await rpc("g_ai_win", { p_id: id, p_game: b.game });
