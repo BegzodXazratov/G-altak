@@ -100,10 +100,24 @@ export function friendsScreen(ctx = null) {
   let data = null, others = null, timer = null, alive = true;
   async function load() {
     try { data = await api("friends"); social.friendsOnline = (data.friends || []).filter(f => f.online).length; } catch (e) { data = data || { friends: [], incoming: [], outgoing: [], blocked: [] }; }
-    if (ctx) { try { others = (await api("online")).filter(p => p.fs !== "friend"); } catch (e) { others = others || []; } }
+    if (ctx) { try { others = await api("online"); } catch (e) { others = others || []; } }
     if (alive && document.querySelector(".frs")) draw();
   }
+  function drawCtx() {
+    const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
+    app().innerHTML = header("🎮 Kimni chaqiramiz?") + `<div class="frs">
+      <p class="small muted" style="margin:0 4px 10px">${esc(GN[ctx.game] || "O'yin")} uchun hozir onlayn turganlardan tanlang. <b>🤝 do'st</b> belgisi — sizning do'stingiz.</p>
+      <h2 class="sect">Hozir onlayn${others ? ` · ${others.length}` : ""}</h2>
+      ${others === null ? `<p class="muted">Yuklanmoqda…</p>` : others.length ? others.map(p => `
+        <div class="onrow">${avatar(p, "sm")}<span class="nm">${esc(p.name)}<small>${p.fs === "friend" ? `<em class="fchip on">🤝 do'st</em>` : `<em class="fchip">do'st emas</em>`}${p.busy ? "🎮 o'ynamoqda" : "🟢 onlayn"} · ${level(p.rating).icon} ${p.rating}</small></span>
+          ${p.busy ? "" : `<button class="pill ok" data-oinv="${esc(p.h)}">🎮 Taklif</button>`}</div>`).join("")
+        : `<div class="card center"><p style="margin:0">Hozir hech kim onlayn emas 😴</p><p class="small muted">Birozdan keyin qayta urinib ko'ring.</p></div>`}
+    </div>`;
+    bindBack();
+    app().querySelectorAll("[data-oinv]").forEach(b => b.onclick = () => { const p = others.find(x => x.h === b.dataset.oinv); nav.inviteGame?.(p.h, p.name, ctx.game); });
+  }
   function draw() {
+    if (ctx) return drawCtx();
     const d = data;
     const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
     app().innerHTML = header(ctx ? "🎮 Kimni chaqiramiz?" : "👥 Do'stlar") + `<div class="frs">

@@ -126,6 +126,8 @@ function invitePopup(inv) {
   });
 }
 
+// do'stlik belgisi: do'st yoki do'st emas
+const fchip = p => p.fs === "friend" ? `<em class="fchip on">🤝 do'st</em>` : `<em class="fchip">do'st emas</em>`;
 nav.online = () => show(onlineScreen());
 nav.pick = (h, name) => pickGame(h, name);
 function onlineScreen() {
@@ -137,10 +139,10 @@ function onlineScreen() {
   async function load() { try { list = await api("online"); } catch (e) { list = list || []; } if (document.querySelector(".onl")) draw(); }
   function draw() {
     app().innerHTML = header("🟢 Onlayn o'yinchilar") + `
-      <p class="small muted" style="margin:0 4px 12px">Hozir ilovada turganlar. Istalgan o'yinchini o'yinga chaqirishingiz mumkin. Yozishish (chat) esa faqat do'stlar o'rtasida: <b>➕</b> tugmasi bilan do'stlik so'rovi yuboring.</p>
+      <p class="small muted" style="margin:0 4px 12px">Hozir ilovada turganlar. Istalgan o'yinchini o'yinga chaqirishingiz mumkin. <b>🤝 do'st</b> belgisi — sizning do'stingiz. Yozishish (chat) esa faqat do'stlar o'rtasida: <b>➕</b> bilan do'stlik so'rovi yuboring.</p>
       <div class="onl">${list === null ? `<p class="muted">Yuklanmoqda…</p>` : list.length ? list.map(p => `
         <div class="onrow">${avatar(p, "sm")}
-          <span class="nm">${esc(p.name)}<small>${level(p.rating).icon} ${p.rating} ball${p.fs === "friend" ? " · do'st" : ""}</small></span>
+          <span class="nm">${esc(p.name)}<small>${fchip(p)}${level(p.rating).icon} ${p.rating} ball</small></span>
           ${p.busy ? `<span class="busy">o'yinda</span>` : `<button class="pill" data-h="${esc(p.h)}" data-n="${esc(p.name)}">🎮 Taklif</button>`}
           ${p.fs === "friend" ? ""
             : p.fs === "sent" ? `<span class="busy">yuborildi</span>`
@@ -229,7 +231,9 @@ nav.leaderboard = leaderboard;
 const menu = {
   tab: "home",
   async render() {
-    let top = null, online = null;
+    let top = null, online = null, onlineAll = null;
+    const onbarHtml = () => `<span class="dot"></span><span><b>${onlineAll === null ? "Onlayn o'yinchilar" : onlineAll.length ? `${onlineAll.length} ta o'yinchi onlayn` : "Hozir hech kim onlayn emas"}</b>
+          <small>${onlineAll?.length ? onlineAll.slice(0, 3).map(p => esc(p.name)).join(", ") + (onlineAll.length > 3 ? "…" : "") + " · chaqiring" : "Sherik topib, o'yinga chaqiring"}</small></span><i>→</i>`;
     const draw = () => {
       app().innerHTML = `
         <section class="mini">
@@ -242,6 +246,7 @@ const menu = {
           <button class="qbtn" data-lb><span>🏆</span><b>Reyting</b><i>${profile?.stats?.all?.rank && profile.stats.all.wins + profile.stats.all.losses + profile.stats.all.draws > 0 ? profile.stats.all.rank + "-o'rin" : top?.length ? "top " + Math.min(top.length, 30) : ""}</i></button>
           <button class="qbtn" data-friends><span>👥</span><b>Do'stlar</b><i></i></button>
         </div>
+        <button class="onbar" data-online>${onbarHtml()}</button>
         <h2 class="sect">O'yinlar · hammasi 1 vs 1</h2>
         <div class="games">
           <button class="game g-shashka" data-go="shashka">
@@ -295,16 +300,26 @@ const menu = {
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;
       app().querySelector("[data-friends]").onclick = () => goTab("friends");
+      app().querySelector("[data-online]").onclick = () => nav.online();
       app().querySelector(".mini").onclick = () => goTab("profile");
       paintBadge();
     };
     draw();
-    const [a, b] = await Promise.allSettled([read("g_leaderboard", { p_game: "all" }), api("friends"), refreshProfile()]);
+    const [a, b, c] = await Promise.allSettled([read("g_leaderboard", { p_game: "all" }), api("friends"), api("online"), refreshProfile()]);
+    onlineAll = c.status === "fulfilled" && Array.isArray(c.value) ? c.value : [];
     top = a.status === "fulfilled" && Array.isArray(a.value) ? a.value : [];
     online = b.status === "fulfilled" && Array.isArray(b.value?.friends) ? b.value.friends : [];
     social.friendsOnline = online.filter(f => f.online).length;
     if (document.querySelector(".qrow")) draw();
+    // bosh sahifada turganda onlayn tugmasi yangilanib turadi
+    clearInterval(this._t);
+    this._t = setInterval(async () => {
+      const bar = document.querySelector(".onbar[data-online]");
+      if (!bar || document.hidden) return;
+      try { onlineAll = await api("online"); bar.innerHTML = onbarHtml(); } catch (e) {}
+    }, 8000);
   },
+  leave() { clearInterval(this._t); },
 };
 
 function outside() {

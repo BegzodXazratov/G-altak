@@ -453,3 +453,6 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .btn.danger{background:#E5484D;color:#fff}
 .linkbtn{margin-top:10px;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
 .top .pill.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.fchip{font-style:normal;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;margin-right:6px;color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.fchip.on{color:#2FBF5B;border-color:#2FBF5B55;background:#2FBF5B14}
+.onrow .nm{padding-bottom:2px}
