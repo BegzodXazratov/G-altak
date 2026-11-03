@@ -6,6 +6,17 @@ import { APP_VERSION } from "../js/version.js";
 
 const GAMES = ["shashka", "soz", "gugurt"];
 
+// Botdagi taklif xabaridan "Qabul qilish" tugmasini olib tashlaymiz
+async function closeInvites(room, status, text) {
+  try {
+    const rows = await rpc("g_invite_close", { p_room: String(room || ""), p_status: status });
+    await Promise.all((rows || []).map(r => fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/editMessageText`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: r.to_id, message_id: r.msg, text: `${text}${r.from_name ? ` — ${r.from_name}` : ""}`, reply_markup: { inline_keyboard: [] } }),
+    }).catch(() => {})));
+  } catch (e) { console.error("closeInvites", e.message); }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   const b = req.body || {};
@@ -48,20 +59,23 @@ export default async function handler(req, res) {
         if (out?.ok) {
           const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt" };
           const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
-          await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+          const sent = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!${b.game !== "shashka" && b.seconds ? ` (${Math.round(b.seconds / 60)} daqiqa)` : ""}`,
               reply_markup: { inline_keyboard: [[{ text: "▶️ Qabul qilish", web_app: { url } }]] } }),
-          }).catch(() => {});
+          }).then(r => r.json()).catch(() => null);
+          if (sent?.result?.message_id && out.invite) await rpc("g_invite_msg", { p_invite: out.invite, p_msg: sent.result.message_id }).catch(() => {});
           out = { ok: true };
         }
         break;
       }
       case "cancel":
         out = await rpc("g_room_cancel", { p_id: String(b.id || ""), p_player: id });
+        await closeInvites(b.id, "", "⌛ Taklif bekor qilindi");
         break;
       case "answer":
         out = await rpc("g_invite_answer", { p_id: id, p_invite: Number(b.invite) || 0, p_accept: !!b.accept });
+        if (out?.room && !b.accept) await closeInvites(out.room, "", "❌ Taklif rad etildi");
         break;
       case "askphone":
         await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
@@ -89,6 +103,7 @@ export default async function handler(req, res) {
         break;
       case "join":
         out = await rpc("g_room_join", { p_id: String(b.id || ""), p_player: id, p_name: name });
+        if (out?.status === "playing") await closeInvites(b.id, "accepted", "✅ O'yin boshlandi");
         break;
       case "move":
         out = await rpc("g_room_move", { p_id: b.id, p_player: id, p_version: b.version, p_state: b.state });

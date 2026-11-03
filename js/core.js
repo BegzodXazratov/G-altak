@@ -29,9 +29,10 @@ export function me() {
 export const isMe = x => !!x && (x === profile?.id || x === profile?.h);
 export const score = () => profile?.stats?.all?.rating ?? 0;
 export const rating = () => score();
-// darajalar (0–100 ball)
-const LEVELS = [[0, "Yangi boshlovchi", "🌱"], [10, "Havaskor", "🎯"], [30, "Tajribali", "⚔️"], [50, "Usta", "🛡️"],
-  [70, "Ustoz", "🎖️"], [90, "Afsona", "🔥"], [100, "Chempion", "👑"]];
+// darajalar (0–1000 ball)
+export const MAX_SCORE = 1000;
+const LEVELS = [[0, "Yangi boshlovchi", "🌱"], [30, "Havaskor", "🎯"], [100, "Tajribali", "⚔️"], [250, "Usta", "🛡️"],
+  [450, "Ustoz", "🎖️"], [700, "Afsona", "🔥"], [1000, "Chempion", "👑"]];
 export function level(b = score()) {
   let cur = LEVELS[0], next = null;
   for (let i = 0; i < LEVELS.length; i++) if (b >= LEVELS[i][0]) { cur = LEVELS[i]; next = LEVELS[i + 1] || null; }
@@ -39,11 +40,11 @@ export function level(b = score()) {
 }
 export function scoreCard(b = score()) {
   const lv = level(b);
-  const msg = b >= 100 ? "Siz chempionsiz! Har g'alaba toj'ni himoya qiladi 👑"
+  const msg = b >= MAX_SCORE ? "Siz chempionsiz! Har g'alaba toj'ni himoya qiladi 👑"
     : b === 0 ? "G'alaba +3, durang +1, mag'lubiyat −1. Boshladik 💪"
     : `${lv.next.name} darajasigacha ${lv.next.need} ball — taxminan ${Math.ceil(lv.next.need / 3)} ta g'alaba 🔥`;
-  return `<div class="scorecard"><div class="sc-top"><span class="lv">${lv.icon} ${lv.name}</span><b>${b}<small>/100</small></b></div>
-    <div class="bar"><i style="width:${b}%"></i></div><p>${msg}</p></div>`;
+  return `<div class="scorecard"><div class="sc-top"><span class="lv">${lv.icon} ${lv.name}</span><b>${b}<small>/${MAX_SCORE}</small></b></div>
+    <div class="bar"><i style="width:${Math.min(100, b / MAX_SCORE * 100)}%"></i></div><p>${msg}</p></div>`;
 }
 
 export async function api(action, payload = {}) {
@@ -102,8 +103,10 @@ export function toast(msg) {
 export const nav = {}; // boshqa modullar uchun: nav.leaderboard(game)
 let current = null;
 const stack = [];
+export const isBusy = () => !!current?.busy; // o'yin yoki kutish ekrani — taklif oynalari chiqmaydi
 export function show(screen, push = true) {
   document.getElementById("quip")?.classList.remove("on");
+  if (screen.busy) document.getElementById("invpop")?.remove();
   if (current?.leave) current.leave();
   if (push && current) stack.push(current);
   current = screen;
@@ -158,9 +161,9 @@ export function ratingLine(room) {
   const d = res[mine + "_delta"], r = res[mine + "_rating"];
   if (d === undefined) return "";
   if (profile?.stats?.all) profile.stats.all.rating = r;
-  if (res[mine + "_champion"]) return `<div class="champ">👑<b>Siz chempionsiz!</b><span>100 ball — eng yuqori cho'qqi</span></div>`;
+  if (res[mine + "_champion"]) return `<div class="champ">👑<b>Siz chempionsiz!</b><span>1000 ball — eng yuqori cho'qqi</span></div>`;
   const txt = d >= 3 ? `+${d} ball 🔥` : d > 0 ? `+${d} ball` : d < 0 ? `${d} ball — keyingisida qaytarib olasiz!` : "Ball o'zgarmadi";
-  return `<div class="delta ${d > 0 ? "up" : d < 0 ? "down" : ""}">${txt} · ${r}/100</div>`;
+  return `<div class="delta ${d > 0 ? "up" : d < 0 ? "down" : ""}">${txt} · ${r}/${MAX_SCORE}</div>`;
 }
 
 // Umumiy kutish ekrani: xona kodi ko'rsatilmaydi. Chiqib ketilsa — xona yopiladi (eski taklifga hech kim tushib qolmaydi).
@@ -170,6 +173,7 @@ export const markJoining = () => { joiningUntil = Date.now() + 10000; };
 export function waitScreen(room, { matching = false, icon = "🎮", invited = "", shareText = "", onStart }) {
   let timer, started = false, dots = 0, alive = true;
   return {
+    busy: true,
     render() {
       app().innerHTML = header(matching ? "Raqib qidirilmoqda" : invited ? "Javob kutilmoqda" : "Do'stni kutyapmiz") + `
         <div class="card stack center">

@@ -80,7 +80,17 @@ export async function joinRoom(code) {
 // ---------------- o'yin ----------------
 function gameScreen(opt) {
   const g = { board: initBoard(), side: 1, last: null, quiet: 0, winner: null, sel: null, thinking: false, anim: false };
-  let room = opt.room || null, poll = null, sending = false, alive = true;
+  let room = opt.room || null, poll = null, sending = false, alive = true, clk = null, deadline = 0;
+  // online o'yinda har bir yurishga 1 daqiqa; vaqt tugasa — yutqazadi (hisobni server yuritadi)
+  const setClock = r => { deadline = r && r.turn_left != null && r.status === "playing" ? Date.now() + r.turn_left * 1000 : 0; };
+  const tickClock = () => {
+    const el = document.getElementById("tclk"); if (!el) return;
+    if (!deadline || g.winner || room?.status !== "playing") { el.textContent = ""; return; }
+    const t = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    el.textContent = `⏱ ${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}`;
+    el.className = "tclk" + (t <= 15 ? " low" : "") + (g.side === opt.mySide ? " mine" : "");
+  };
+  setClock(room);
   if (room?.state?.board) adopt(room.state);
 
   const flip = (opt.mode === "ai" && opt.human === -1) || (opt.mode === "online" && opt.mySide === -1);
@@ -150,9 +160,9 @@ function gameScreen(opt) {
     sending = true;
     try {
       const r = await api("move", { id: room.id, version: room.version, state: stateOf() });
-      if (r.error === "stale") { room = r; adopt(r.state); toast("O'yin yangilandi"); }
+      if (r.error === "stale") { room = r; setClock(r); adopt(r.state); toast("O'yin yangilandi"); }
       else if (r.error) toast("Yurish yuborilmadi");
-      else room = r;
+      else { room = r; setClock(r); }
     } catch (e) { toast("Internet bilan muammo — yurish yuborilmadi"); }
     sending = false;
     render();
@@ -221,7 +231,7 @@ function gameScreen(opt) {
     const right = opt.mode === "online" ? (room.status === "playing" ? `<button class="pill" data-resign>🏳️ Taslim</button>` : "")
       : `<button class="pill" data-restart>↻ Qaytadan</button>`;
     app().innerHTML = header("Shashka", right) + `
-      <div class="status">${g.winner ? "O'yin tugadi" : status}</div>
+      <div class="status">${g.winner ? "O'yin tugadi" : status}${opt.mode === "online" && room?.status === "playing" && !g.winner ? ` <span id="tclk" class="tclk"></span>` : ""}</div>
       ${pl(topIsWhite)}
       <div class="board"><div class="squares">${squares}</div><div class="pieces">${pieces}</div></div>
       ${pl(!topIsWhite)}
@@ -232,6 +242,7 @@ function gameScreen(opt) {
     const rs = app().querySelector("[data-restart]"); if (rs) rs.onclick = restart;
     const rg = app().querySelector("[data-resign]"); if (rg) rg.onclick = resign;
     app().querySelectorAll("[data-end]").forEach(b => b.onclick = () => endAction(b.dataset.end));
+    tickClock();
   }
 
   function endOverlay() {
@@ -244,7 +255,8 @@ function gameScreen(opt) {
     else if (meSide === null) title = (winSide === 1 ? "Oq" : "Qora") + " yutdi! 🏆";
     else if (meSide === winSide) { title = "Siz yutdingiz! 🏆"; haptic("ok"); }
     else { title = "Bu safar yutqazdingiz"; sub = isMe(room?.state?.resigned) ? "Siz taslim bo'ldingiz" : "Revansh olasizmi?"; }
-    if (room?.state?.resigned && !isMe(room.state.resigned)) sub = room.state.left ? "Raqib o'yinni tashlab chiqib ketdi — g'alaba sizniki" : "Raqib taslim bo'ldi";
+    if (room?.state?.timeout) sub = isMe(room.state.resigned) ? "Yurish vaqti (1 daqiqa) tugadi" : "Raqib 1 daqiqada yurmadi — g'alaba sizniki";
+    else if (room?.state?.resigned && !isMe(room.state.resigned)) sub = room.state.left ? "Raqib o'yinni tashlab chiqib ketdi — g'alaba sizniki" : "Raqib taslim bo'ldi";
     const rematchOffer = room?.state?.rematch && !isMe(room.state.rematch_by);
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>${sub ? `<p class="muted" style="margin:0">${sub}</p>` : ""}
       ${opt.mode === "online" ? ratingLine(room) : ""}
@@ -284,13 +296,14 @@ function gameScreen(opt) {
       alive = true;
       render();
       aiTurn();
+      if (opt.mode === "online") clk = setInterval(tickClock, 250);
       if (opt.mode === "online" && !poll) {
         poll = setInterval(async () => {
           if (sending || g.anim) return;
           try {
             const r = await read("g_room_get", { p_id: room.id });
             if (!r.error && r.version > room.version) {
-              const prev = room; room = r;
+              const prev = room; room = r; setClock(r);
               const s = r.state;
               const changed = JSON.stringify(s.board) !== JSON.stringify(g.board);
               if (changed && s.last?.path && g.board[s.last.path[0]]) {
@@ -306,6 +319,7 @@ function gameScreen(opt) {
         }, 1100);
       }
     },
-    leave() { alive = false; clearInterval(poll); poll = null; },
+    busy: true,
+    leave() { alive = false; clearInterval(poll); clearInterval(clk); poll = null; },
   };
 }

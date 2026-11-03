@@ -128,7 +128,7 @@ function sozGame(opt) {
   const meKey = room ? (isMe(room.p1) ? "p1" : "p2") : "p1";
   const themKey = meKey === "p1" ? "p2" : "p1";
   let path = [], dragging = false, poll = null, tick = null, finishing = false, alive = true, pending = 0;
-  let hints = 5, streak = 0, lastFound = 0, bads = 0, saidStart = false;
+  let hints = 5, streak = 0, lastFound = 0, bads = 0, saidStart = false, reveal = false, focusW = "";
   const W = watcher();
 
   const claimedBy = w => st.claimed?.[w];
@@ -218,15 +218,38 @@ function sozGame(opt) {
     }).join("");
     document.querySelector(".found").innerHTML = `
       <div><span class="flabel">Siz topgan</span>${mine.map(w => `<span class="wchip mine">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>
-      ${room ? `<div><span class="flabel">Raqib</span>${theirs.map(w => `<span class="wchip theirs">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>` : ""}`;
+      ${room ? `<div><span class="flabel">Raqib</span>${theirs.map(w => `<span class="wchip theirs">${w}<i>${pts(w)}</i></span>`).join("") || `<span class="muted small">hali yo'q</span>`}</div>` : ""}
+      ${done() && reveal ? `<div><span class="flabel">Topilmagan so'zlar — ustiga bossangiz, yo'li ko'rinadi</span>${missed().map(x => `<button class="wchip miss ${focusW === x.w ? "on" : ""}" data-miss="${x.w}">${x.w}<i>${pts(x.w)}</i></button>`).join("") || `<span class="muted small">hammasi topildi 🎉</span>`}</div>` : ""}`;
+    document.querySelectorAll("[data-miss]").forEach(b => b.onclick = () => { focusW = focusW === b.dataset.miss ? "" : b.dataset.miss; draw(); document.querySelector(".wgrid")?.scrollIntoView({ block: "center", behavior: "smooth" }); });
+    for (const sel of [".longs", ".wtools"]) { const e = document.querySelector(sel); if (e) e.style.display = done() && reveal ? "none" : ""; }
+    drawMissed();
     if (started() && !done() && !saidStart) { saidStart = true; W.act(); quip("start", true); }
     W.tick({ left: t, started: started(), done: done(), mine: score(meKey), theirs: score(themKey), online: !!room });
     const cd = document.getElementById("cd");
     if (cd) cd.innerHTML = !started() && !done() ? `<div class="countdown">${Math.max(1, Math.ceil(((st.ends_at - (st.seconds || SECONDS) * 1000) - Date.now()) / 1000))}</div>` : "";
     const ov = document.getElementById("ov");
-    const want = done() ? endOverlay() : "";
+    const want = done() ? (reveal ? revBar() : endOverlay()) : "";
     if (ov.dataset.html !== want) { ov.innerHTML = want; ov.dataset.html = want; ov.querySelectorAll("[data-end]").forEach(b => b.onclick = () => endAction(b.dataset.end)); }
   }
+
+  const missed = () => (st.seeds || []).filter(x => !claimedBy(x.w)).sort((a, b) => b.path.length - a.path.length)
+    .filter(x => x.path.every((i, k) => st.grid[i] === tokens(x.w)[k]));
+  // oxirida topilmagan so'zlar yo'lini katakchalar ustida chizamiz
+  function drawMissed() {
+    const g = document.querySelector(".wgrid"); if (!g) return;
+    g.querySelector(".missed")?.remove();
+    if (!(done() && reveal)) return;
+    const n = Math.round(Math.sqrt(st.grid.length)), list = missed();
+    const pt = i => `${(i % n) + .5},${((i / n) | 0) + .5}`;
+    const lines = list.map((x, k) => {
+      const on = !focusW || focusW === x.w, hue = (k * 47) % 360;
+      return `<polyline points="${x.path.map(pt).join(" ")}" fill="none" stroke="hsl(${hue} 80% 48%)" stroke-width="${focusW === x.w ? .26 : .2}"
+        stroke-linecap="round" stroke-linejoin="round" opacity="${on ? (focusW ? .95 : .6) : .08}"/>
+        <circle cx="${pt(x.path[0]).split(",")[0]}" cy="${pt(x.path[0]).split(",")[1]}" r="${focusW === x.w ? .26 : .17}" fill="hsl(${hue} 80% 40%)" opacity="${on ? .9 : .08}"/>`;
+    }).join("");
+    g.insertAdjacentHTML("beforeend", `<svg class="missed" viewBox="0 0 ${n} ${n}" aria-hidden="true">${lines}</svg>`);
+  }
+  const revBar = () => `<div class="revbar"><button class="btn alt" data-end="result">📋 Natija</button><button class="btn" data-end="menu">Menyuga</button></div>`;
 
   function endOverlay() {
     const a = score(meKey), b = score(themKey);
@@ -234,7 +257,7 @@ function sozGame(opt) {
       const best = Math.max(a, +(load("soz-best2") || 0)); save("soz-best2", best);
       return `<div class="overlay"><div class="card stack center"><h2>Vaqt tugadi ⏱</h2>
         <p class="muted" style="margin:0"><b>${a}</b> ochko · ${wordsOf("p1").length} ta so'z · rekord ${best}</p>
-        <button class="btn green" data-end="again">Yana o'ynash</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
+        <button class="btn green" data-end="again">Yana o'ynash</button><button class="btn alt" data-end="reveal">👀 Topilmagan so'zlar</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
     }
     const res = room.result || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
@@ -243,11 +266,14 @@ function sozGame(opt) {
     return `<div class="overlay"><div class="card stack center"><h2>${title}</h2>
       <p class="muted" style="margin:0">Ochko: <b>${a}</b> : ${b}</p>${ratingLine(room)}${leftNote}
       <button class="btn green" data-end="rematch">${offer ? "✅ Revanshni qabul qilish" : "🔁 Revansh"}</button>
+      <button class="btn alt" data-end="reveal">👀 Topilmagan so'zlar</button>
       <button class="btn alt" data-end="lb">🏆 Reyting</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
   }
 
   async function endAction(a) {
     if (a === "menu") return home();
+    if (a === "reveal") { reveal = true; focusW = ""; draw(); return window.scrollTo({ top: 0, behavior: "smooth" }); }
+    if (a === "result") { reveal = false; return draw(); }
     if (a === "lb") return show(nav.leaderboard("soz"));
     if (a === "again") { const ns = await generate(st.seconds || SECONDS); return show(sozGame({ room: null, state: { ...ns, ends_at: Date.now() + 3000 + ns.seconds * 1000 } }), false); }
     if (a === "rematch") {
@@ -331,6 +357,7 @@ function sozGame(opt) {
         }, 1000);
       }
     },
+    busy: true,
     leave() { alive = false; clearInterval(poll); clearInterval(tick); poll = null; },
   };
 }

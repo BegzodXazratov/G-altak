@@ -278,6 +278,7 @@ function gugGame(opt) {
         }, 1000);
       }
     },
+    busy: true,
     leave() { alive = false; clearInterval(poll); clearInterval(tick); poll = null; },
   };
 }

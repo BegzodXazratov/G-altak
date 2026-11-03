@@ -1,5 +1,5 @@
 import { app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, profile, me, score, esc, toast,
-  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES } from "./core.js";
+  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES, isBusy, MAX_SCORE } from "./core.js";
 import { shashkaMenu, joinRoom, createPrivate as newShashka } from "./shashka.js";
 import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
@@ -16,7 +16,7 @@ function registerScreen() {
         <section class="welcome">
           <img src="img/logo.png" alt="" class="wlogo">
           <h1>G'altak <span>o'yinlari</span></h1>
-          <p class="muted">Do'stlar bilan bellashing va 100 ballik reytingda chempion bo'ling.</p>
+          <p class="muted">Do'stlar bilan bellashing va 1000 ballik reytingda chempion bo'ling.</p>
         </section>
         <div class="card stack">
           <div><label class="lbl" for="nm">1. Ismingiz — majburiy (boshqa o'yinchilar faqat ism va balingizni ko'radi)</label>
@@ -83,6 +83,7 @@ function startPresence() {
     try {
       const r = await api("ping");
       (r.declined || []).forEach(n => toast(`${n} taklifni rad etdi`));
+      if (r.busy || isBusy()) return; // o'yin paytida takliflar xalaqit bermaydi
       const inv = (r.invites || []).find(i => !seenInv.has(i.id));
       if (inv) { seenInv.add(inv.id); invitePopup(inv); }
     } catch (e) {}
@@ -207,8 +208,8 @@ const menu = {
         <section class="mini">
           <span class="avatar">${esc((me().name || "?")[0])}</span>
           <div class="mi"><b>${esc(me().name)}</b><span>${level().icon} ${level().name}</span>
-            <div class="mbar"><i style="width:${Math.min(100, profile?.stats?.all?.rating ?? 0)}%"></i></div></div>
-          <div class="mscore"><b>${profile?.stats?.all?.rating ?? 0}</b><small>/100</small></div>
+            <div class="mbar"><i style="width:${Math.min(100, (profile?.stats?.all?.rating ?? 0) / MAX_SCORE * 100)}%"></i></div></div>
+          <div class="mscore"><b>${profile?.stats?.all?.rating ?? 0}</b><small>/${MAX_SCORE}</small></div>
         </section>
         <div class="qrow">
           <button class="qbtn" data-lb><span>🏆</span><b>Reyting</b><i>${profile?.stats?.all?.rank && profile.stats.all.wins + profile.stats.all.losses + profile.stats.all.draws > 0 ? profile.stats.all.rank + "-o'rin" : top?.length ? "top " + Math.min(top.length, 30) : ""}</i></button>
