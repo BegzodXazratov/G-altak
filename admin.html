@@ -335,7 +335,7 @@ function liveCards(limit) {
 function onlineChips() {
   const on = data.players.filter(isOn).sort((a, b) => b.playing - a.playing);
   if (!on.length) return `<div class="empty">Hozir hech kim ilovada emas</div>`;
-  return `<div class="chips">${on.map(p => `<span class="chip ${p.playing ? "play" : ""}"><span class="dot"></span>${esc(named(p) ? p.name : "Ismsiz")}${p.playing ? `<i>o'ynamoqda</i>` : ""}</span>`).join("")}</div>`;
+  return `<div class="chips">${on.map(p => `<span class="chip ${p.playing ? "play" : ""}"><span class="dot"></span>${esc(named(p) ? p.name : "Ismsiz")}${p.playing ? `<i>${GAME[p.pgame]?.[1] || "🎮"} ${GAME[p.pgame]?.[0] || "o'ynamoqda"}${p.pvs ? ` · ${esc(p.pvs)} bilan` : ""}</i>` : ""}</span>`).join("")}</div>`;
 }
 
 function chart() {
@@ -504,7 +504,7 @@ function list() {
       <div class="ph2">${p.phone ? `<a class="phone" href="tel:${fphone(p.phone).replace(/\s/g, "")}">${fphone(p.phone)}</a>
         <button class="cp" data-cp="${fphone(p.phone).replace(/\s/g, "")}" title="Nusxalash">⧉</button>` : `<span class="warn bad">Raqam yuborilmagan</span>`}</div>
       <div class="stats"><div><b>${p.rating ?? 0}</b><span>ball</span></div><div><b>${p.games}</b><span>o'yin</span></div><div><b>${p.wins}</b><span>g'alaba</span></div></div>
-      <div class="when"><b>${st === "play" ? "🎮 o'ynamoqda" : st ? "🟢 onlayn" : ago(p.seen_at)}</b><span title="${date(p.created_at)}">qo'shildi: ${ago(p.created_at)}</span></div>
+      <div class="when"><b>${st === "play" ? `${GAME[p.pgame]?.[1] || "🎮"} ${GAME[p.pgame]?.[0] || "o'ynamoqda"}` : st ? "🟢 onlayn" : ago(p.seen_at)}</b><span title="${date(p.created_at)}">qo'shildi: ${ago(p.created_at)}</span></div>
     </div>`;
   }).join("") || `<div class="empty">Hech kim topilmadi</div>`;
   $("#cnt").textContent = `${L.length} ta o'yinchi ko'rsatilmoqda`;
