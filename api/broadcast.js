@@ -1,5 +1,5 @@
 // Yangilanish xabari: /api/broadcast?key=WEBHOOK_SECRET — har versiya uchun faqat bir marta yuboriladi.
-import { rpc } from "./_lib.js";
+import { rpc, noteReach } from "./_lib.js";
 import { APP_VERSION, NEWS } from "../js/version.js";
 
 export default async function handler(req, res) {
@@ -19,7 +19,8 @@ export async function broadcast(host) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id, text: NEWS, reply_markup: { inline_keyboard: [[{ text: "▶️ O'ynash", web_app: { url } }]] } }),
       });
-      (await r.json()).ok ? sent++ : failed++;
+      const j = await r.json(); await noteReach(chat_id, j);
+      j.ok ? sent++ : failed++;
     } catch (e) { failed++; }
     await new Promise(r => setTimeout(r, 40)); // Telegram cheklovi: sekundiga ~25 ta
   }

@@ -32,3 +32,13 @@ export async function rpc(fn, args, withKey = true) {
 }
 
 export const fullName = u => [u?.first_name, u?.last_name].filter(Boolean).join(" ").slice(0, 40) || "O'yinchi";
+
+// Telegram javobidan o'yinchiga xabar yetib borish holatini aniqlaydi va yozib qo'yadi
+export const reachOf = j => j?.ok ? "ok" : j?.error_code === 403
+  ? (/blocked/i.test(j.description || "") ? "blocked" : /deactivated/i.test(j.description || "") ? "gone" : "never")
+  : j?.error_code === 400 && /chat not found/i.test(j.description || "") ? "never" : null;
+export async function noteReach(id, j) {
+  const r = reachOf(j);
+  if (r) await rpc("g_mark_reach", { p_id: String(id), p_reach: r }).catch(() => {});
+  return r;
+}

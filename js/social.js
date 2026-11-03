@@ -1,5 +1,5 @@
 // Profil, do'stlar va do'stlar chati
-import { app, show, api, me, profile, setProfile, esc, toast, header, bindBack, haptic, nav, level, MAX_SCORE, refreshProfile, back } from "./core.js";
+import { app, show, api, me, profile, setProfile, esc, toast, header, bindBack, haptic, nav, level, MAX_SCORE, refreshProfile, back, tabBadge, paintTabs, goTab, gameSeconds } from "./core.js";
 
 export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
 export const avatar = (p, cls = "") => `<span class="avatar ${cls} ${p?.avatar ? "emo" : ""}">${esc(p?.avatar || (p?.name || "?")[0] || "?")}</span>`;
@@ -15,6 +15,8 @@ export function applyPing(r) {
 }
 export const badgeCount = () => social.unread + social.requests.length;
 export function paintBadge() {
+  tabBadge.friends = social.requests.length; tabBadge.chats = social.unread;
+  paintTabs();
   const el = document.querySelector("[data-friends] i");
   if (!el) return;
   const n = badgeCount();
@@ -26,6 +28,7 @@ export function paintBadge() {
 export function profileScreen() {
   let av = profile?.avatar || "", nm = profile?.name || "";
   return {
+    tab: "profile",
     render() {
       const st = profile?.stats?.all || {};
       const lv = level(st.rating ?? 0);
@@ -68,7 +71,7 @@ export function profileScreen() {
 }
 
 // ---------- do'stlar ----------
-export function friendsScreen() {
+export function friendsScreen(ctx = null) {
   let data = null, timer = null, alive = true;
   async function load() {
     try { data = await api("friends"); social.friendsOnline = (data.friends || []).filter(f => f.online).length; } catch (e) { data = data || { friends: [], incoming: [], outgoing: [] }; }
@@ -76,29 +79,30 @@ export function friendsScreen() {
   }
   function draw() {
     const d = data;
-    app().innerHTML = header("👥 Do'stlar") + `<div class="frs">
-      <button class="btn" data-find>➕ Do'st qo'shish — onlayn o'yinchilar</button>
+    const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
+    app().innerHTML = header(ctx ? "🎮 Kimni chaqiramiz?" : "👥 Do'stlar") + `<div class="frs">
+      ${ctx ? `<p class="small muted" style="margin:0 4px 10px">${esc(GN[ctx.game] || "O'yin")} uchun do'stingizni tanlang — o'yin qayta so'ralmaydi.</p>` : `<button class="btn" data-find>➕ Do'st qo'shish — onlayn o'yinchilar</button>`}
       ${d === null ? `<p class="muted">Yuklanmoqda…</p>` : ""}
-      ${d?.incoming?.length ? `<h2 class="sect">Do'stlik so'rovlari</h2>${d.incoming.map(p => `
+      ${!ctx && d?.incoming?.length ? `<h2 class="sect">Do'stlik so'rovlari</h2>${d.incoming.map(p => `
         <div class="onrow">${avatar(p, "sm")}<span class="nm">${esc(p.name)}<small>do'st bo'lishni xohlaydi</small></span>
           <button class="pill ok" data-acc="${esc(p.h)}">Qabul</button><button class="pill" data-dec="${esc(p.h)}">✕</button></div>`).join("")}` : ""}
       ${d ? `<h2 class="sect">Do'stlarim · ${d.friends.length}</h2>
         ${d.friends.length ? d.friends.map(f => `
           <div class="onrow">${avatar(f, "sm")}
             <span class="nm">${esc(f.name)}<small>${f.online ? (f.busy ? "🎮 o'ynamoqda" : "🟢 onlayn") : "oflayn"} · ${level(f.rating).icon} ${f.rating}</small></span>
-            <button class="pill chatb" data-chat="${esc(f.h)}">💬${f.unread ? `<b class="bdg">${f.unread}</b>` : ""}</button>
+            ${ctx ? "" : `<button class="pill chatb" data-chat="${esc(f.h)}">💬${f.unread ? `<b class="bdg">${f.unread}</b>` : ""}</button>`}
             ${f.online && !f.busy ? `<button class="pill ok" data-inv="${esc(f.h)}">🎮 Taklif</button>` : ""}
-            <button class="pill" data-more="${esc(f.h)}" aria-label="Boshqa">⋯</button></div>`).join("")
+            ${ctx ? "" : `<button class="pill" data-more="${esc(f.h)}" aria-label="Boshqa">⋯</button>`}</div>`).join("")
           : `<div class="card center"><p style="margin:0">Hali do'stingiz yo'q 🙂</p><p class="small muted">«Do'st qo'shish» orqali onlayn o'yinchilarga so'rov yuboring yoki reytingdan toping.</p></div>`}
         ${d.outgoing?.length ? `<p class="small muted" style="margin:10px 4px 0">Javob kutilmoqda: ${d.outgoing.map(p => esc(p.name)).join(", ")}</p>` : ""}` : ""}
     </div>`;
     bindBack();
     const byH = h => d.friends.find(f => f.h === h);
-    app().querySelector("[data-find]").onclick = () => nav.online?.();
+    const fd = app().querySelector("[data-find]"); if (fd) fd.onclick = () => nav.online?.();
     app().querySelectorAll("[data-acc]").forEach(b => b.onclick = () => answer(b.dataset.acc, true));
     app().querySelectorAll("[data-dec]").forEach(b => b.onclick = () => answer(b.dataset.dec, false));
     app().querySelectorAll("[data-chat]").forEach(b => b.onclick = () => show(chatScreen(byH(b.dataset.chat))));
-    app().querySelectorAll("[data-inv]").forEach(b => b.onclick = () => nav.pick?.(b.dataset.inv, byH(b.dataset.inv).name));
+    app().querySelectorAll("[data-inv]").forEach(b => b.onclick = () => ctx ? nav.inviteGame?.(b.dataset.inv, byH(b.dataset.inv).name, ctx.game) : nav.pick?.(b.dataset.inv, byH(b.dataset.inv).name));
     app().querySelectorAll("[data-more]").forEach(b => b.onclick = async () => {
       const f = byH(b.dataset.more);
       if (!confirm(`${f.name} ni do'stlardan chiqarasizmi?`)) return;
@@ -109,7 +113,36 @@ export function friendsScreen() {
     try { await api("friend_answer", { h, accept }); haptic("ok"); toast(accept ? "Endi do'stsiz 🤝" : "Rad etildi"); load(); } catch (e) { toast(e.message); }
   }
   return {
+    tab: ctx ? undefined : "friends",
     render() { alive = true; draw(); load(); timer = setInterval(load, 6000); },
+    leave() { alive = false; clearInterval(timer); },
+  };
+}
+
+// ---------- chatlar ro'yxati ----------
+export function chatsScreen() {
+  let list = null, timer = null, alive = true;
+  const fmt = t => { const d = new Date(t), n = new Date(); return d.toDateString() === n.toDateString()
+    ? `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; };
+  async function load() {
+    try { list = await api("chat_list"); social.unread = list.reduce((a, c) => a + (c.unread || 0), 0); paintBadge(); } catch (e) { list = list || []; }
+    if (alive && document.querySelector(".chl")) draw();
+  }
+  function draw() {
+    app().innerHTML = header("💬 Chatlar") + `<div class="chl">
+      ${list === null ? `<p class="muted">Yuklanmoqda…</p>` : list.length ? list.map(c => `
+        <button class="onrow chrow" data-chat="${esc(c.h)}">${avatar(c, "sm")}
+          <span class="nm">${esc(c.name)}${c.online ? ` <i class="ondot"></i>` : ""}<small>${c.mine ? "Siz: " : ""}${esc(c.last)}</small></span>
+          <span class="chmeta"><time>${fmt(c.at)}</time>${c.unread ? `<b class="bdg">${c.unread}</b>` : ""}</span></button>`).join("")
+        : `<div class="card center"><p style="margin:0">Hali yozishmalar yo'q 💬</p><p class="small muted">Do'stlaringiz bilan o'yin haqida maslahat va taassurotlarni ulashing.</p>
+           <button class="btn" data-tofr>👥 Do'stlarga o'tish</button></div>`}</div>`;
+    bindBack();
+    app().querySelectorAll("[data-chat]").forEach(b => b.onclick = () => show(chatScreen(list.find(c => c.h === b.dataset.chat))));
+    const t = app().querySelector("[data-tofr]"); if (t) t.onclick = () => goTab("friends");
+  }
+  return {
+    tab: "chats",
+    render() { alive = true; draw(); load(); timer = setInterval(load, 5000); },
     leave() { alive = false; clearInterval(timer); },
   };
 }
@@ -182,5 +215,6 @@ export function chatScreen(friend) {
   };
 }
 
-nav.friends = () => show(friendsScreen());
-nav.profile = () => show(profileScreen());
+nav.tabs = { friends: () => friendsScreen(), chats: () => chatsScreen(), profile: () => profileScreen() };
+nav.friends = ctx => ctx ? show(friendsScreen(ctx), false) : goTab("friends");
+nav.profile = () => goTab("profile");

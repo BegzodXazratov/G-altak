@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   const host = `https://${req.headers.host}`;
   const tg = (m, body) => fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${m}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
-  const webhook = await tg("setWebhook", { url: `${host}/api/bot`, secret_token: WEBHOOK_SECRET, allowed_updates: ["message"] });
+  const webhook = await tg("setWebhook", { url: `${host}/api/bot`, secret_token: WEBHOOK_SECRET, allowed_updates: ["message", "my_chat_member"] });
   const menu = await tg("setChatMenuButton", { menu_button: { type: "web_app", text: "O'ynash", web_app: { url: `${host}/` } } });
   const cmds = await tg("setMyCommands", { commands: [{ command: "start", description: "O'yinlarni ochish" }] });
   res.status(200).json({ webhook, menu, cmds });

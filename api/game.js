@@ -1,5 +1,5 @@
 // Barcha yozish amallari shu yerdan: Telegram imzosi tekshiriladi, keyin Supabase'ga server kaliti bilan boriladi.
-import { verifyInitData, rpc, fullName } from "./_lib.js";
+import { verifyInitData, rpc, fullName, noteReach } from "./_lib.js";
 import { isWord, pathWord } from "./_soz.js";
 import { checkSolution } from "../js/gugurt-engine.js";
 import { makeShch, makeKim } from "./_shch.js";
@@ -15,10 +15,11 @@ export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", 
 
 // Bot orqali qisqa xabar (ilovani ochadigan tugma bilan)
 async function tell(host, chat_id, text, btn = "▶️ Ochish") {
-  await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+  const r = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id, text, reply_markup: { inline_keyboard: [[{ text: btn, web_app: { url: `https://${host}/` } }]] } }),
-  }).catch(() => {});
+  }).then(x => x.json()).catch(() => null);
+  if (r) await noteReach(chat_id, r);
 }
 
 // Botdagi taklif xabaridan "Qabul qilish" tugmasini olib tashlaymiz
@@ -79,6 +80,7 @@ export default async function handler(req, res) {
             body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!${["soz", "gugurt"].includes(b.game) && b.seconds ? ` (${Math.round(b.seconds / 60)} daqiqa)` : ""}`,
               reply_markup: { inline_keyboard: [[{ text: "▶️ Qabul qilish", web_app: { url } }]] } }),
           }).then(r => r.json()).catch(() => null);
+          if (sent) await noteReach(out.to_id, sent);
           if (sent?.result?.message_id && out.invite) await rpc("g_invite_msg", { p_invite: out.invite, p_msg: sent.result.message_id }).catch(() => {});
           out = { ok: true };
         }
@@ -91,6 +93,9 @@ export default async function handler(req, res) {
         out = await rpc("g_profile_update", { p_id: id, p_name: nm, p_avatar: av });
         break;
       }
+      case "chat_list":
+        out = await rpc("g_chat_list", { p_id: id });
+        break;
       case "friends":
         out = await rpc("g_friends_list", { p_id: id });
         break;

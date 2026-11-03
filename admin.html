@@ -55,7 +55,7 @@ button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:var(--shadow)}
 .ph{display:flex;align-items:center;gap:10px;margin:0 0 14px}.ph h2{font-size:15px;margin:0;font-weight:700}.ph .sp{flex:1}
 .ph small{color:var(--muted);font-size:13px}
-.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
 .kpi{padding:16px}
 .kpi .l{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);font-weight:600}
 .kpi .v{font-family:Unbounded,system-ui;font-size:30px;font-weight:800;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -104,6 +104,19 @@ button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
 .hb .top{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}.hb .top b{font-variant-numeric:tabular-nums}
 .hb .tr{height:10px;border-radius:999px;background:var(--panel2);overflow:hidden}.hb .fl{height:100%;border-radius:999px}
 
+/* ijtimoiy */
+.sub{display:grid;gap:14px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pair{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);font-size:14.5px}.pair:last-child{border-bottom:0}
+.pair b{font-weight:700}.pair .arr{color:var(--muted)}.pair .sp{flex:1}.pair time,.pair .mu{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.pair a{color:var(--muted);text-decoration:none;font-size:12.5px}
+.list{max-height:560px;overflow:auto;margin:0 -6px;padding:0 6px}
+.fun{display:grid;gap:10px}.fun .st{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:center;font-size:14px}
+.fun .tr{height:12px;border-radius:999px;background:var(--panel2);overflow:hidden}.fun .fl{height:100%;border-radius:999px;background:var(--accent)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
+.tag{font-size:11.5px;padding:1px 7px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.red{background:var(--redbg);color:var(--red);border-color:transparent}.tag.amb{background:var(--amberbg);color:var(--amber);border-color:transparent}
+details.dd{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:10px 14px}details.dd summary{cursor:pointer;font-weight:700}
+.prog{height:8px;border-radius:999px;background:var(--panel2);overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;background:var(--green);width:0;transition:width .3s}
 /* o'yinchilar */
 .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .tools .inp{flex:1;min-width:220px}
@@ -134,10 +147,10 @@ button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;transition:.25s;pointer-events:none}
 #toast.on{opacity:1;transform:translateX(-50%)}
 
-@media (max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}.grid2,.grid3{grid-template-columns:1fr}}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}.grid2,.grid3,.two{grid-template-columns:1fr}}
 @media (max-width:760px){
   .kpis{grid-template-columns:repeat(2,1fr)}.kpi .v{font-size:25px}
-  .pr{grid-template-columns:44px 1fr;row-gap:10px}
+  .pr{grid-template-columns:44px 1fr;row-gap:10px}.fun .st{grid-template-columns:110px 1fr auto}
   .pr .ph2,.pr .stats,.pr .when{grid-column:2}.pr .when{text-align:left}
 }
 </style>
@@ -154,6 +167,9 @@ let pass = "", data = null, tab = "dash", q = "", filt = "all", sortK = "seen_at
 try { pass = sessionStorage.getItem("galtak-admin") || ""; tab = sessionStorage.getItem("galtak-admin-tab") || "dash"; } catch (e) {}
 
 const now = () => Date.now() + skew;
+let SO = { friends: [], pending: [], chats: [], tried: {}, fcount: {}, msgs: {}, invsent: {}, reach: {} };
+const reachOf = p => SO.reach[p.tg_id]?.r || "";
+const triedOf = p => SO.tried[p.tg_id] || [];
 function ago(d) {
   if (!d) return "—";
   const s = Math.max(0, (now() - new Date(d)) / 1000);
@@ -188,7 +204,7 @@ async function load() {
     const j = await r.json();
     if (!r.ok) { try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} return loginView(j.error || "Xato"); }
     try { sessionStorage.setItem("galtak-admin", pass); } catch (e) {}
-    data = j; lastAt = Date.now(); if (j.now) skew = new Date(j.now) - Date.now();
+    data = j; SO = { ...SO, ...(j.social || {}) }; lastAt = Date.now(); if (j.now) skew = new Date(j.now) - Date.now();
     render();
     if (!timer) timer = setInterval(() => { if (!document.hidden) load(); else liveLabel(); }, 10000);
   } catch (e) { if (!data) loginView("Internet bilan muammo"); else liveLabel(true); }
@@ -231,6 +247,7 @@ function render() {
   const newToday = P.filter(p => new Date(p.created_at) > day).length;
   const withPhone = P.filter(p => p.phone).length;
   const live = data.live || [];
+  const blocked = P.filter(p => reachOf(p) === "blocked").length, checked = P.filter(p => reachOf(p)).length;
   $("#app").innerHTML = `
     <div class="bar">
       <div class="brand"><img src="img/logo.png" alt=""><b class="disp">G'altak <span>admin</span></b></div>
@@ -238,7 +255,7 @@ function render() {
       <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="pm">✉️ Xabar yuborish</button><button class="ibtn" id="bc">📢 Yangilanish xabari</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
     <div class="tabs">
-      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""]].map(([k, l, n]) =>
+      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["activity", "Faollik"]].map(([k, l, n]) =>
         `<button data-tab="${k}" aria-pressed="${tab === k}">${l}${n !== undefined && n !== "" ? `<i>${n}</i>` : ""}</button>`).join("")}
     </div>
     <div class="kpis">
@@ -248,6 +265,8 @@ function render() {
       ${kpi("📱 Raqami bor", withPhone, `${P.length ? Math.round(withPhone / P.length * 100) : 0}% · ${P.filter(p => !named(p)).length} tasi ismsiz`)}
       ${kpi("🏁 Bugun o'yinlar", data.games_today ?? 0, `jami ${data.games_done}`)}
       ${kpi("📨 Takliflar", data.invites_today ?? 0, `${data.invites_accepted ?? 0} tasi qabul qilindi`)}
+      ${kpi("🤝 Do'stliklar", SO.friends.length, `${SO.pending.length} ta so'rov javob kutmoqda`)}
+      ${kpi("🚫 Botni bloklagan", checked ? blocked : "—", checked ? `${checked} ta tekshirilgan · ${P.length - checked} tasi tekshirilmagan` : "«Faollik» bo'limida tekshiring")}
     </div>
     <div id="body"></div>`;
   liveLabel();
@@ -265,7 +284,7 @@ function render() {
     } catch (e) { alert("Internet bilan muammo"); }
     b.disabled = false; b.textContent = "📢 Yangilanish xabari";
   };
-  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else dashView();
+  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "activity") activityView(); else dashView();
 }
 // erkin xabar yuborish oynasi
 function postModal() {
@@ -368,9 +387,83 @@ function gamesView() {
     <section class="panel"><div class="ph"><h2>🏁 So'nggi 40 natija</h2></div>${feed()}</section></div>`;
 }
 
+// ---------- do'stlar / chatlar / faollik ----------
+const nameOf = (id, n) => (n && n.trim() ? n : "Ismsiz");
+function friendsView() {
+  const F = SO.friends, Pd = SO.pending;
+  // eng ko'p do'sti borlar
+  const top = Object.entries(SO.fcount).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([id, n]) => [data.players.find(p => p.tg_id === id), n]).filter(([p]) => p);
+  $("#body").innerHTML = `<div class="two">
+    <section class="panel"><div class="ph"><h2>🤝 Kim kim bilan do'st</h2><span class="sp"></span><small>${F.length} ta juftlik</small></div>
+      <input class="inp" id="fq" placeholder="🔍 Ism yoki @username" style="margin-bottom:10px"><div class="list" id="fl"></div></section>
+    <div class="sub">
+      <section class="panel"><div class="ph"><h2>⏳ Javob kutayotgan so'rovlar</h2><span class="sp"></span><small>${Pd.length} ta</small></div>
+        <div class="list" style="max-height:260px">${Pd.length ? Pd.map(x => `<div class="pair"><b>${esc(nameOf(0, x.a_name))}</b><span class="arr">→</span><b>${esc(nameOf(0, x.b_name))}</b><span class="sp"></span><time>${ago(x.created_at)}</time></div>`).join("") : `<div class="empty">Kutayotgan so'rov yo'q</div>`}</div></section>
+      <section class="panel"><div class="ph"><h2>⭐ Eng ko'p do'sti borlar</h2></div>
+        ${top.length ? top.map(([p, n]) => `<div class="pair"><b>${esc(named(p) ? p.name : "Ismsiz")}</b><span class="sp"></span><span class="mu">${n} ta do'st</span></div>`).join("") : `<div class="empty">Hali do'stlik yo'q</div>`}</section>
+    </div></div>`;
+  const draw = () => {
+    const q2 = $("#fq").value.toLowerCase().trim();
+    const L = F.filter(x => !q2 || [x.a_name, x.b_name, x.a_user, x.b_user].some(v => String(v || "").toLowerCase().includes(q2)));
+    $("#fl").innerHTML = L.map(x => `<div class="pair"><div><b>${esc(nameOf(0, x.a_name))}</b>${x.a_user ? ` <a href="https://t.me/${esc(x.a_user)}" target="_blank" rel="noopener">@${esc(x.a_user)}</a>` : ""}</div><span class="arr">↔</span>
+      <div><b>${esc(nameOf(0, x.b_name))}</b>${x.b_user ? ` <a href="https://t.me/${esc(x.b_user)}" target="_blank" rel="noopener">@${esc(x.b_user)}</a>` : ""}</div><span class="sp"></span><time title="${date(x.created_at)}">${ago(x.created_at)}</time></div>`).join("") || `<div class="empty">Hech narsa topilmadi</div>`;
+  };
+  $("#fq").oninput = draw; draw();
+}
+function chatsView() {
+  const C = SO.chats, total = C.reduce((a, c) => a + Number(c.msgs), 0);
+  $("#body").innerHTML = `<section class="panel"><div class="ph"><h2>💬 Do'stlar orasidagi chatlar</h2><span class="sp"></span><small>${C.length} ta suhbat · ${total} ta xabar</small></div>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">Maxfiylik uchun xabar matni ko'rsatilmaydi — faqat kim kim bilan yozishgani va nechta xabar ekani.</p>
+    <div class="list">${C.length ? C.map(c => `<div class="pair"><b>${esc(nameOf(0, c.a_name))}</b><span class="arr">↔</span><b>${esc(nameOf(0, c.b_name))}</b><span class="sp"></span>
+      ${Number(c.unread) ? `<span class="tag amb">${c.unread} o'qilmagan</span>` : ""}<span class="mu">${c.msgs} xabar</span><time title="${date(c.last_at)}">${ago(c.last_at)}</time></div>`).join("") : `<div class="empty">Hali hech kim yozishmagan</div>`}</div></section>`;
+}
+function activityView() {
+  const P = data.players, n = P.length || 1;
+  const withPhone = P.filter(p => p.phone).length, played = P.filter(p => triedOf(p).length).length, withFr = P.filter(p => (SO.fcount[p.tg_id] || 0) > 0).length, chatted = P.filter(p => (SO.msgs[p.tg_id] || 0) > 0).length;
+  const steps = [["Ro'yxatdan o'tdi", P.length], ["Raqam berdi", withPhone], ["O'yin sinadi", played], ["Do'sti bor", withFr], ["Chatda yozgan", chatted]];
+  const perGame = Object.keys(GAME).map(k => [k, P.filter(p => triedOf(p).includes(k))]);
+  const never = P.filter(p => !triedOf(p).length).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const act = P.filter(p => isOn(p) || now() - new Date(p.seen_at) < 864e5).length;
+  const chip = p => `<span class="chip ${p.playing ? "play" : ""}">${esc(named(p) ? p.name : "Ismsiz")}</span>`;
+  const counts = { blocked: 0, never: 0, gone: 0, ok: 0 }; P.forEach(p => { const r = reachOf(p); if (r) counts[r]++; });
+  $("#body").innerHTML = `<div class="two">
+    <div class="sub">
+      <section class="panel"><div class="ph"><h2>🧭 Yo'l: ro'yxatdan → o'yin → do'st</h2></div><div class="fun">${steps.map(([l, v]) => `<div class="st"><span>${l}</span><div class="tr"><div class="fl" style="width:${v / n * 100}%"></div></div><b>${v} <small class="muted">· ${Math.round(v / n * 100)}%</small></b></div>`).join("")}</div></section>
+      <section class="panel"><div class="ph"><h2>🎮 Qaysi o'yinni kimlar sinab ko'rdi</h2></div>
+        <div style="display:grid;gap:8px">${perGame.map(([k, L]) => `<details class="dd"><summary>${GAME[k][1]} ${GAME[k][0]} — ${L.length} kishi</summary><div class="chips" style="margin-top:10px">${L.map(chip).join("") || `<span class="muted">hali hech kim</span>`}</div></details>`).join("")}</div></section>
+    </div>
+    <div class="sub">
+      <section class="panel"><div class="ph"><h2>🟢 Aktivlik</h2></div>
+        <div class="fun"><div class="st"><span>Hozir onlayn</span><div class="tr"><div class="fl" style="width:${P.filter(isOn).length / n * 100}%"></div></div><b>${P.filter(isOn).length}</b></div>
+        <div class="st"><span>Bugun kirgan</span><div class="tr"><div class="fl" style="width:${act / n * 100}%"></div></div><b>${act}</b></div>
+        <div class="st"><span>Hozir o'ynayapti</span><div class="tr"><div class="fl" style="width:${P.filter(p => p.playing).length / n * 100}%"></div></div><b>${P.filter(p => p.playing).length}</b></div></div></section>
+      <section class="panel"><div class="ph"><h2>🚫 Botni bloklaganlar</h2></div>
+        <p class="muted" style="margin:0 0 10px;font-size:13px">Tugma har bir o'yinchiga yashirin «yozmoqda…» belgisi yuborib, bot xabar yubora olishini tekshiradi (hech qanday xabar chiqmaydi). Shundan keyin kim bloklasa, avtomatik yangilanib turadi.</p>
+        <div class="chips" style="margin-bottom:10px"><span class="chip">✅ yetadi: ${counts.ok}</span><span class="chip">🚫 bloklagan: ${counts.blocked}</span><span class="chip">✉️ botni ochmagan: ${counts.never}</span><span class="chip">❌ o'chgan: ${counts.gone}</span></div>
+        <button class="ibtn" id="rc">🔍 Hammasini tekshirish</button><div class="prog" id="rp" hidden><i></i></div><p class="foot" id="rm"></p>
+        ${counts.blocked ? `<div class="chips" style="margin-top:8px">${P.filter(p => reachOf(p) === "blocked").map(chip).join("")}</div>` : ""}</section>
+      <section class="panel"><div class="ph"><h2>😴 Hali hech narsa o'ynamaganlar</h2><span class="sp"></span><small>${never.length} kishi</small></div>
+        <div class="chips" style="max-height:220px;overflow:auto">${never.map(chip).join("") || `<span class="muted">hamma o'ynagan 🎉</span>`}</div></section>
+    </div></div>`;
+  $("#rc").onclick = async () => {
+    const btn = $("#rc"), pr = $("#rp"); btn.disabled = true; pr.hidden = false; let off = 0, tot = 1, bl = 0;
+    try {
+      while (off !== null) {
+        const r = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "reach", offset: off }) })).json();
+        if (!r.ok) throw new Error(r.error || "xato");
+        tot = r.total; bl += r.blocked; off = r.next; pr.firstElementChild.style.width = Math.min(100, (off === null ? tot : off) / tot * 100) + "%";
+        $("#rm").textContent = `Tekshirilmoqda… ${off === null ? tot : off}/${tot}`;
+      }
+      toast(`Tayyor — bloklaganlar: topilganlar yangilandi`); await load();
+    } catch (e) { alert("Tekshirishda xato: " + e.message); btn.disabled = false; }
+  };
+}
+
 // ---------- o'yinchilar ----------
 const FILTERS = [["all", "Hammasi", () => true], ["on", "Onlayn", isOn], ["play", "O'ynamoqda", p => p.playing], ["new", "Bugun yangi", p => now() - new Date(p.created_at) < 864e5],
-  ["nophone", "Raqamsiz", p => !p.phone], ["noname", "Ismsiz", p => !named(p)]];
+  ["nophone", "Raqamsiz", p => !p.phone], ["noname", "Ismsiz", p => !named(p)],
+  ["friends", "Do'sti bor", p => (SO.fcount[p.tg_id] || 0) > 0], ["notried", "O'ynamagan", p => !triedOf(p).length],
+  ["blocked", "Botni bloklagan", p => reachOf(p) === "blocked"], ["unreach", "Bot yozolmaydi", p => ["never", "gone"].includes(reachOf(p))]];
 const SORTS = [["seen_at", "Oxirgi kirgan"], ["created_at", "Yangi qo'shilgan"], ["rating", "Ball"], ["games", "O'yinlar soni"], ["name", "Ism (A–Z)"]];
 function rows() {
   const s = q.toLowerCase().replace(/\s/g, ""), f = FILTERS.find(x => x[0] === filt)[2];
@@ -390,6 +483,15 @@ function playersView() {
   document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filt = b.dataset.f; playersView(); });
   list();
 }
+const REACH_TXT = { blocked: ["🚫 botni bloklagan", "red"], never: ["✉️ bot yozolmaydi", "amb"], gone: ["❌ akkaunt o'chgan", "red"] };
+function tagsOf(p) {
+  const t = [], tr = triedOf(p), f = SO.fcount[p.tg_id] || 0, m = SO.msgs[p.tg_id] || 0;
+  t.push(tr.length ? `<span class="tag">🎮 sinagan: ${tr.map(g => GAME[g]?.[1] || g).join(" ")}</span>` : `<span class="tag amb">hali o'ynamagan</span>`);
+  if (f) t.push(`<span class="tag">👥 ${f} do'st</span>`);
+  if (m) t.push(`<span class="tag">💬 ${m} xabar</span>`);
+  const r = REACH_TXT[reachOf(p)]; if (r) t.push(`<span class="tag ${r[1]}">${r[0]}</span>`);
+  return t.join("");
+}
 function list() {
   const L = rows();
   $("#pl").innerHTML = L.map(p => {
@@ -397,7 +499,8 @@ function list() {
     return `<div class="pr">
       <div class="av" style="background:${avc(p.tg_id)}">${esc((nm || p.username || "?")[0].toUpperCase())}<span class="st ${st}" title="${st === "play" ? "o'ynamoqda" : st ? "onlayn" : "oflayn"}"></span></div>
       <div class="who"><b>${nm ? esc(nm) : `<span class="warn">Ism kiritilmagan</span>`}</b>
-        ${p.username ? `<a href="https://t.me/${esc(p.username)}" target="_blank" rel="noopener">@${esc(p.username)}</a>` : `<span class="muted" style="font-size:13.5px">username yo'q</span>`}</div>
+        ${p.username ? `<a href="https://t.me/${esc(p.username)}" target="_blank" rel="noopener">@${esc(p.username)}</a>` : `<span class="muted" style="font-size:13.5px">username yo'q</span>`}
+        <div class="tags">${tagsOf(p)}</div></div>
       <div class="ph2">${p.phone ? `<a class="phone" href="tel:${fphone(p.phone).replace(/\s/g, "")}">${fphone(p.phone)}</a>
         <button class="cp" data-cp="${fphone(p.phone).replace(/\s/g, "")}" title="Nusxalash">⧉</button>` : `<span class="warn bad">Raqam yuborilmagan</span>`}</div>
       <div class="stats"><div><b>${p.rating ?? 0}</b><span>ball</span></div><div><b>${p.games}</b><span>o'yin</span></div><div><b>${p.wins}</b><span>g'alaba</span></div></div>

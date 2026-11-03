@@ -1,5 +1,5 @@
 import { app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, profile, me, score, esc, toast,
-  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES, isBusy, MAX_SCORE } from "./core.js";
+  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES, isBusy, MAX_SCORE, goTab } from "./core.js";
 import { shashkaMenu, joinRoom, createPrivate as newShashka } from "./shashka.js";
 import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
@@ -7,7 +7,7 @@ import { kimMenu, createPrivate as newKim } from "./kim.js";
 import { shchMenu, createPrivate as newShch } from "./shch.js";
 import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
-import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen } from "./social.js";
+import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
 
 setupTelegram();
 
@@ -145,6 +145,19 @@ function onlineScreen() {
     const sh = app().querySelector("[data-share]"); if (sh) sh.onclick = shareApp;
   }
 }
+// tanlangan o'yin uchun do'stga taklif: xona ochiladi, taklif yuboriladi (o'yin qayta so'ralmaydi)
+async function startInvite(h, name, game) {
+  const timed = game === "soz" || game === "gugurt", secs = timed ? gameSeconds(game) : 0;
+  try {
+    const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch })[game](name);
+    const r = await api("invite", { h, game, room: room.id, seconds: secs });
+    if (r.ok) { haptic("ok"); return; }
+    toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "not_friend" ? "Avval do'stlik so'rovi yuboring"
+      : r.error === "wait" ? "Biroz kuting, keyin yana chaqiring" : "Taklif yuborilmadi");
+    back(); // kutish xonasini yopamiz
+  } catch (e) { toast(e.message); }
+}
+nav.inviteGame = startInvite;
 function pickGame(h, name) {
   document.getElementById("ov2")?.remove();
   const el = document.createElement("div");
@@ -163,16 +176,8 @@ function pickGame(h, name) {
   el.onclick = e => { if (e.target === el) el.remove(); };
   async function go(game) {
     el.remove();
-    const timed = game === "soz" || game === "gugurt";
-    if (timed) setGameSeconds(game, secs);
-    try {
-      const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch })[game](name);
-      const r = await api("invite", { h, game, room: room.id, seconds: timed ? secs : 0 });
-      if (r.ok) { haptic("ok"); return; }
-      toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "not_friend" ? "Avval do'stlik so'rovi yuboring"
-        : r.error === "wait" ? "Biroz kuting, keyin yana chaqiring" : "Taklif yuborilmadi");
-      back(); // kutish xonasini yopamiz
-    } catch (e) { toast(e.message); }
+    if (game === "soz" || game === "gugurt") setGameSeconds(game, secs);
+    startInvite(h, name, game);
   }
   draw();
   document.body.appendChild(el);
@@ -214,6 +219,7 @@ nav.leaderboard = leaderboard;
 
 // ---------- menyu ----------
 const menu = {
+  tab: "home",
   async render() {
     let top = null, online = null;
     const draw = () => {
@@ -280,8 +286,8 @@ const menu = {
       });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;
-      app().querySelector("[data-friends]").onclick = () => show(friendsScreen());
-      app().querySelector(".mini").onclick = () => show(profileScreen());
+      app().querySelector("[data-friends]").onclick = () => goTab("friends");
+      app().querySelector(".mini").onclick = () => goTab("profile");
       paintBadge();
     };
     draw();

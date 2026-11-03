@@ -429,3 +429,21 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .arch-ctl{display:grid;gap:12px;margin-top:12px}.arch-ctl.off{opacity:.55}
 .arch-ctl label{display:grid;gap:4px;font-size:14px;font-weight:600}.arch-ctl label span{display:flex;justify-content:space-between}
 .arch-ctl input[type=range]{width:100%;height:32px;accent-color:var(--sel)}
+
+/* pastki menyu */
+body.hastabs{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+#tabbar{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;justify-content:center;gap:4px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.12)}
+#tabbar button{flex:1;max-width:120px;display:grid;justify-items:center;gap:2px;padding:6px 4px;border-radius:14px;color:var(--muted);font-weight:600;font-size:11.5px;transition:background .15s,color .15s}
+#tabbar button.on{color:var(--ink);background:var(--bg)}
+#tabbar .ti{font-size:21px;line-height:1.1;position:relative}
+#tabbar .ei{font-style:normal;display:block;filter:grayscale(1);opacity:.7}
+#tabbar button.on .ei{filter:none;opacity:1}
+#tabbar .tb{position:absolute;top:-5px;right:-11px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--accent,#E8572A);color:#fff;font-size:10.5px;font-style:normal;display:grid;place-items:center}
+#tabbar .tb[hidden]{display:none}
+.chrow{width:100%;text-align:left;cursor:pointer}
+.chrow .nm small{display:block;max-width:56vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chmeta{display:grid;justify-items:end;gap:4px;font-size:11.5px;color:var(--muted)}
+.ondot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2FA673;margin-left:4px}
+@media (min-width:521px){#tabbar{max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:100%;border-radius:18px 18px 0 0;border:1px solid var(--line)}}
+body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
+.chmeta .bdg{position:static;margin:0}

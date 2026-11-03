@@ -11,6 +11,13 @@ export default async function handler(req, res) {
   const secret = process.env.WEBHOOK_SECRET;
   if (secret && req.headers["x-telegram-bot-api-secret-token"] !== secret) return res.status(401).end();
   const m = req.body?.message;
+  // o'yinchi botni bloklasa / qayta ochsa
+  const mc = req.body?.my_chat_member;
+  if (mc?.chat?.type === "private") {
+    const st = mc.new_chat_member?.status;
+    await rpc("g_mark_reach", { p_id: String(mc.chat.id), p_reach: st === "kicked" ? "blocked" : st === "member" ? "ok" : "gone" }).catch(() => {});
+    return res.status(200).json({ ok: true });
+  }
   try {
     const base = process.env.WEBAPP_URL || `https://${req.headers.host}/`;
     const playBtn = (text = "🎮 O'ynash", url = base) => ({ inline_keyboard: [[{ text, web_app: { url } }]] });

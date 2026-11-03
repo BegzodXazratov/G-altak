@@ -111,8 +111,35 @@ export function show(screen, push = true) {
   if (push && current) stack.push(current);
   current = screen;
   screen.render();
+  paintTabs(screen);
   window.scrollTo(0, 0);
   if (tg?.BackButton) stack.length ? tg.BackButton.show() : tg.BackButton.hide();
+}
+// ---------- pastki menyu: O'yin · Do'stlar · Chatlar · Profil ----------
+const TABS_UI = [["home", "🎮", "O'yin"], ["friends", "👥", "Do'stlar"], ["chats", "💬", "Chatlar"], ["profile", "👤", "Profil"]];
+export const tabBadge = { friends: 0, chats: 0 };
+export function paintTabs(screen = current) {
+  let el = document.getElementById("tabbar");
+  if (!screen?.tab) { el?.remove(); document.body.classList.remove("hastabs"); return; }
+  if (!el) {
+    el = document.createElement("nav"); el.id = "tabbar"; el.setAttribute("aria-label", "Asosiy menyu");
+    el.innerHTML = TABS_UI.map(([k, ic, l]) => `<button data-tab="${k}"><span class="ti"><i class="ei">${ic}</i><b class="tb" hidden></b></span><span class="tl">${l}</span></button>`).join("");
+    el.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { haptic("light"); goTab(b.dataset.tab); });
+    document.body.appendChild(el);
+  }
+  document.body.classList.add("hastabs");
+  el.querySelectorAll("[data-tab]").forEach(b => {
+    const k = b.dataset.tab, on = k === screen.tab, n = tabBadge[k] || 0, bd = b.querySelector(".tb");
+    b.classList.toggle("on", on); if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    bd.hidden = !n; bd.textContent = n > 9 ? "9+" : n;
+  });
+}
+export function goTab(name) {
+  if (current?.tab === name) return;
+  if (name === "home") { if (stack.length) home(); return; }
+  if (!stack.length && current?.tab === "home") stack.push(current);
+  stack.length = Math.min(stack.length, 1);
+  const make = nav.tabs?.[name]; if (make) show(make(), false);
 }
 export function back() {
   const prev = stack.pop();
@@ -186,7 +213,7 @@ export function waitScreen(room, { matching = false, icon = "🎮", invited = ""
         </div>`;
       bindBack();
       app().querySelector("[data-share]").onclick = () => shareInvite(room.id, shareText);
-      app().querySelector("[data-online]").onclick = () => nav.friends?.();
+      app().querySelector("[data-online]").onclick = () => nav.friends?.({ game: room.game });
       app().querySelector("[data-cancel]").onclick = () => back();
       timer = setInterval(async () => {
         if (matching) { dots = (dots + 1) % 4; const wt = document.getElementById("wt"); if (wt) wt.textContent = "Sizga mos raqib qidiryapmiz" + ".".repeat(dots); }

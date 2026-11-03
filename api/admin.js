@@ -1,6 +1,6 @@
 // Admin panel ma'lumotlari: parol (ADMIN_PASSWORD) bilan
 import crypto from "node:crypto";
-import { rpc } from "./_lib.js";
+import { rpc, noteReach } from "./_lib.js";
 import { broadcast } from "./broadcast.js";
 
 const same = (a, b) => {
@@ -20,7 +20,9 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "no-store");
     if (req.body?.action === "post") return res.status(200).json(await post(req.body, req.headers.host));
     if (req.body?.action === "broadcast") return res.status(200).json(await broadcast(req.headers.host));
-    res.status(200).json(await rpc("g_admin_players", {}));
+    if (req.body?.action === "reach") return res.status(200).json(await reachCheck(Number(req.body.offset) || 0, req.headers.host));
+    const [d, social] = await Promise.all([rpc("g_admin_players", {}), rpc("g_admin_social", {})]);
+    res.status(200).json({ ...d, social });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "server" });
@@ -49,9 +51,30 @@ async function post(b, host) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chat_id, text, ...(markup ? { reply_markup: markup } : {}) }),
       });
-      (await r.json()).ok ? sent++ : failed++;
+      const j = await r.json(); await noteReach(chat_id, j);
+      j.ok ? sent++ : failed++;
     } catch (e) { failed++; }
     await new Promise(r => setTimeout(r, 40));
   }
   return { ok: true, sent, failed };
+}
+
+// Botni bloklaganlarni aniqlash: har bir o'yinchiga "yozmoqda…" belgisi yuboriladi (xabar chiqmaydi), javobga qarab holat yoziladi.
+const tgCall = (m, body) => fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/${m}`, {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
+async function reachCheck(offset, host) {
+  const STEP = 90;
+  if (offset === 0) await tgCall("setWebhook", { url: `https://${host}/api/bot`,
+    secret_token: process.env.WEBHOOK_SECRET, allowed_updates: ["message", "my_chat_member"] }).catch(() => {});
+  const d = await rpc("g_admin_players", {});
+  const all = (d?.players || []).filter(p => p?.tg_id).sort((a, b) => String(a.tg_id).localeCompare(String(b.tg_id)));
+  const part = all.slice(offset, offset + STEP), c = { ok: 0, blocked: 0, never: 0, gone: 0 };
+  for (const p of part) {
+    try {
+      const j = await tgCall("sendChatAction", { chat_id: p.tg_id, action: "typing" });
+      const r = await noteReach(p.tg_id, j); if (r) c[r]++;
+    } catch (e) {}
+    await new Promise(r => setTimeout(r, 40));
+  }
+  return { ok: true, total: all.length, next: offset + STEP < all.length ? offset + STEP : null, ...c };
 }
