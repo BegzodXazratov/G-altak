@@ -104,11 +104,18 @@ function invitePopup(inv) {
   el.id = "invpop"; el.className = "invpop";
   el.innerHTML = `<div class="card"><div class="invic">${GICON[inv.game] || "🎮"}</div>
     <p><b>${esc(inv.from_name)}</b> sizni <b>${GNAME[inv.game] || "o'yin"}</b>ga chaqirmoqda!</p>
-    <div class="row"><button class="btn green" data-a="1">✅ Qabul qilish</button><button class="btn alt" data-a="0">Rad etish</button></div></div>`;
+    <div class="row"><button class="btn green" data-a="1">✅ Qabul qilish</button><button class="btn alt" data-a="0">Rad etish</button></div>
+    ${inv.from_h ? `<button class="linkbtn" data-blk>🚫 Bloklash</button>` : ""}</div>`;
   document.body.appendChild(el);
   haptic("ok");
   const close = () => el.remove();
   const t = setTimeout(close, 60000);
+  const blk = el.querySelector("[data-blk]");
+  if (blk) blk.onclick = async () => {
+    if (!confirm(`${inv.from_name} bloklansinmi? U sizni o'yinga chaqira, yoza va do'stlik so'rovi yubora olmaydi.`)) return;
+    clearTimeout(t); close();
+    try { await api("block", { h: inv.from_h }); await api("answer", { invite: inv.id, accept: false }).catch(() => {}); haptic("ok"); toast("Bloklandi 🚫"); } catch (e) { toast(e.message); }
+  };
   el.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
     clearTimeout(t); close();
     const accept = b.dataset.a === "1";
@@ -130,13 +137,14 @@ function onlineScreen() {
   async function load() { try { list = await api("online"); } catch (e) { list = list || []; } if (document.querySelector(".onl")) draw(); }
   function draw() {
     app().innerHTML = header("🟢 Onlayn o'yinchilar") + `
-      <p class="small muted" style="margin:0 4px 12px">Hozir ilovada turganlar. O'yinga faqat do'stlarni chaqirish mumkin: do'stlik so'rovi yuboring, qabul qilgach «Do'stlar» menyusidan birga o'ynaysiz.</p>
+      <p class="small muted" style="margin:0 4px 12px">Hozir ilovada turganlar. Istalgan o'yinchini o'yinga chaqirishingiz mumkin. Yozishish (chat) esa faqat do'stlar o'rtasida: <b>➕</b> tugmasi bilan do'stlik so'rovi yuboring.</p>
       <div class="onl">${list === null ? `<p class="muted">Yuklanmoqda…</p>` : list.length ? list.map(p => `
         <div class="onrow">${avatar(p, "sm")}
           <span class="nm">${esc(p.name)}<small>${level(p.rating).icon} ${p.rating} ball${p.fs === "friend" ? " · do'st" : ""}</small></span>
-          ${p.fs === "friend" ? (p.busy ? `<span class="busy">o'yinda</span>` : `<button class="pill" data-h="${esc(p.h)}" data-n="${esc(p.name)}">🎮 Taklif</button>`)
-            : p.fs === "sent" ? `<span class="busy">so'rov yuborildi</span>`
-            : `<button class="pill" data-fr="${esc(p.h)}">${p.fs === "got" ? "✅ Qabul qilish" : "➕ Do'stlik"}</button>`}</div>`).join("")
+          ${p.busy ? `<span class="busy">o'yinda</span>` : `<button class="pill" data-h="${esc(p.h)}" data-n="${esc(p.name)}">🎮 Taklif</button>`}
+          ${p.fs === "friend" ? ""
+            : p.fs === "sent" ? `<span class="busy">yuborildi</span>`
+            : `<button class="pill ghost" data-fr="${esc(p.h)}" aria-label="${p.fs === "got" ? "Do'stlikni qabul qilish" : "Do'stlik so'rovi yuborish"}">${p.fs === "got" ? "✅ Qabul" : "➕"}</button>`}</div>`).join("")
         : `<div class="card center"><p style="margin:0">Hozir hech kim onlayn emas 😴</p><p class="small muted">Do'stlaringizni chaqiring — havola yuboring.</p>
            <button class="btn" data-share>📨 Do'stni chaqirish</button></div>`}</div>`;
     bindBack();
@@ -152,7 +160,7 @@ async function startInvite(h, name, game) {
     const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch })[game](name);
     const r = await api("invite", { h, game, room: room.id, seconds: secs });
     if (r.ok) { haptic("ok"); return; }
-    toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "not_friend" ? "Avval do'stlik so'rovi yuboring"
+    toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "blocked_by_me" ? `${name} bloklangan — avval «Do'stlar» bo'limidan blokdan chiqaring`
       : r.error === "wait" ? "Biroz kuting, keyin yana chaqiring" : "Taklif yuborilmadi");
     back(); // kutish xonasini yopamiz
   } catch (e) { toast(e.message); }

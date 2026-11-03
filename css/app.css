@@ -447,3 +447,9 @@ body.hastabs{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 @media (min-width:521px){#tabbar{max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:100%;border-radius:18px 18px 0 0;border:1px solid var(--line)}}
 body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .chmeta .bdg{position:static;margin:0}
+
+/* v12: bloklash, ochiq takliflar */
+.onrow .pill.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:#E5484D;color:#fff}
+.linkbtn{margin-top:10px;background:none;border:0;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+.top .pill.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}

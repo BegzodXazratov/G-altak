@@ -70,18 +70,44 @@ export function profileScreen() {
   };
 }
 
+// ---------- bloklash / do'stlikdan chiqarish ----------
+function personSheet(p, done) {
+  document.getElementById("ov3")?.remove();
+  const el = document.createElement("div");
+  el.id = "ov3"; el.className = "overlay";
+  el.innerHTML = `<div class="card stack center"><h2 style="margin:0">${esc(p.name)}</h2>
+    <button class="btn alt" data-rm>Do'stlikdan chiqarish</button>
+    <button class="btn danger" data-bl>🚫 Bloklash</button>
+    <p class="small muted" style="margin:0">Bloklangan o'yinchi sizga yoza, o'yinga chaqira yoki do'stlik so'rovi yubora olmaydi va onlayn ro'yxatda ko'rinmaydi. Uni «Do'stlar» bo'limidan istalgan payt blokdan chiqarasiz.</p>
+    <button class="btn alt" data-x style="opacity:.7">Bekor qilish</button></div>`;
+  el.onclick = e => { if (e.target === el) el.remove(); };
+  el.querySelector("[data-x]").onclick = () => el.remove();
+  el.querySelector("[data-rm]").onclick = async () => {
+    if (!confirm(`${p.name} ni do'stlardan chiqarasizmi?`)) return;
+    el.remove();
+    try { await api("friend_remove", { h: p.h }); toast("Do'stlardan chiqarildi"); done?.("removed"); } catch (e) { toast(e.message); }
+  };
+  el.querySelector("[data-bl]").onclick = async () => {
+    if (!confirm(`${p.name} bloklansinmi?`)) return;
+    el.remove();
+    try { await api("block", { h: p.h }); haptic("ok"); toast("Bloklandi 🚫"); done?.("blocked"); } catch (e) { toast(e.message); }
+  };
+  document.body.appendChild(el);
+}
+
 // ---------- do'stlar ----------
 export function friendsScreen(ctx = null) {
-  let data = null, timer = null, alive = true;
+  let data = null, others = null, timer = null, alive = true;
   async function load() {
-    try { data = await api("friends"); social.friendsOnline = (data.friends || []).filter(f => f.online).length; } catch (e) { data = data || { friends: [], incoming: [], outgoing: [] }; }
+    try { data = await api("friends"); social.friendsOnline = (data.friends || []).filter(f => f.online).length; } catch (e) { data = data || { friends: [], incoming: [], outgoing: [], blocked: [] }; }
+    if (ctx) { try { others = (await api("online")).filter(p => p.fs !== "friend"); } catch (e) { others = others || []; } }
     if (alive && document.querySelector(".frs")) draw();
   }
   function draw() {
     const d = data;
     const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
     app().innerHTML = header(ctx ? "🎮 Kimni chaqiramiz?" : "👥 Do'stlar") + `<div class="frs">
-      ${ctx ? `<p class="small muted" style="margin:0 4px 10px">${esc(GN[ctx.game] || "O'yin")} uchun do'stingizni tanlang — o'yin qayta so'ralmaydi.</p>` : `<button class="btn" data-find>➕ Do'st qo'shish — onlayn o'yinchilar</button>`}
+      ${ctx ? `<p class="small muted" style="margin:0 4px 10px">${esc(GN[ctx.game] || "O'yin")} uchun o'yinchini tanlang — do'stingizni yoki onlayn turgan istalgan kishini.</p>` : `<button class="btn" data-find>➕ Do'st qo'shish — onlayn o'yinchilar</button>`}
       ${d === null ? `<p class="muted">Yuklanmoqda…</p>` : ""}
       ${!ctx && d?.incoming?.length ? `<h2 class="sect">Do'stlik so'rovlari</h2>${d.incoming.map(p => `
         <div class="onrow">${avatar(p, "sm")}<span class="nm">${esc(p.name)}<small>do'st bo'lishni xohlaydi</small></span>
@@ -92,9 +118,17 @@ export function friendsScreen(ctx = null) {
             <span class="nm">${esc(f.name)}<small>${f.online ? (f.busy ? "🎮 o'ynamoqda" : "🟢 onlayn") : "oflayn"} · ${level(f.rating).icon} ${f.rating}</small></span>
             ${ctx ? "" : `<button class="pill chatb" data-chat="${esc(f.h)}">💬${f.unread ? `<b class="bdg">${f.unread}</b>` : ""}</button>`}
             ${f.online && !f.busy ? `<button class="pill ok" data-inv="${esc(f.h)}">🎮 Taklif</button>` : ""}
-            ${ctx ? "" : `<button class="pill" data-more="${esc(f.h)}" aria-label="Boshqa">⋯</button>`}</div>`).join("")
-          : `<div class="card center"><p style="margin:0">Hali do'stingiz yo'q 🙂</p><p class="small muted">«Do'st qo'shish» orqali onlayn o'yinchilarga so'rov yuboring yoki reytingdan toping.</p></div>`}
-        ${d.outgoing?.length ? `<p class="small muted" style="margin:10px 4px 0">Javob kutilmoqda: ${d.outgoing.map(p => esc(p.name)).join(", ")}</p>` : ""}` : ""}
+            ${ctx ? "" : `<button class="pill ghost" data-more="${esc(f.h)}" aria-label="Boshqa">⋯</button>`}</div>`).join("")
+          : `<div class="card center"><p style="margin:0">Hali do'stingiz yo'q 🙂</p><p class="small muted">Do'st bo'lmasangiz ham onlayn o'yinchini o'yinga chaqirishingiz mumkin. Do'stlik esa yozishish (chat) uchun kerak: «Do'st qo'shish» orqali so'rov yuboring.</p></div>`}
+        ${d.outgoing?.length ? `<p class="small muted" style="margin:10px 4px 0">Javob kutilmoqda: ${d.outgoing.map(p => esc(p.name)).join(", ")}</p>` : ""}
+        ${ctx ? `<h2 class="sect">Onlayn o'yinchilar${others ? ` · ${others.length}` : ""}</h2>
+          ${others === null ? `<p class="muted">Yuklanmoqda…</p>` : others.length ? others.map(p => `
+            <div class="onrow">${avatar(p, "sm")}<span class="nm">${esc(p.name)}<small>${p.busy ? "🎮 o'ynamoqda" : "🟢 onlayn"} · ${level(p.rating).icon} ${p.rating}</small></span>
+              ${p.busy ? "" : `<button class="pill ok" data-oinv="${esc(p.h)}">🎮 Taklif</button>`}</div>`).join("")
+            : `<p class="small muted" style="margin:0 4px">Hozir boshqa onlayn o'yinchi yo'q.</p>`}` : ""}
+        ${!ctx && d.blocked?.length ? `<h2 class="sect">Bloklanganlar · ${d.blocked.length}</h2>${d.blocked.map(p => `
+          <div class="onrow">${avatar(p, "sm")}<span class="nm">${esc(p.name)}<small>🚫 bloklangan</small></span>
+            <button class="pill ghost" data-unb="${esc(p.h)}">Blokdan chiqarish</button></div>`).join("")}` : ""}` : ""}
     </div>`;
     bindBack();
     const byH = h => d.friends.find(f => f.h === h);
@@ -103,10 +137,11 @@ export function friendsScreen(ctx = null) {
     app().querySelectorAll("[data-dec]").forEach(b => b.onclick = () => answer(b.dataset.dec, false));
     app().querySelectorAll("[data-chat]").forEach(b => b.onclick = () => show(chatScreen(byH(b.dataset.chat))));
     app().querySelectorAll("[data-inv]").forEach(b => b.onclick = () => ctx ? nav.inviteGame?.(b.dataset.inv, byH(b.dataset.inv).name, ctx.game) : nav.pick?.(b.dataset.inv, byH(b.dataset.inv).name));
-    app().querySelectorAll("[data-more]").forEach(b => b.onclick = async () => {
-      const f = byH(b.dataset.more);
-      if (!confirm(`${f.name} ni do'stlardan chiqarasizmi?`)) return;
-      try { await api("friend_remove", { h: f.h }); toast("Do'stlardan chiqarildi"); load(); } catch (e) { toast(e.message); }
+    app().querySelectorAll("[data-more]").forEach(b => b.onclick = () => personSheet(byH(b.dataset.more), load));
+    app().querySelectorAll("[data-oinv]").forEach(b => b.onclick = () => { const p = others.find(x => x.h === b.dataset.oinv); nav.inviteGame?.(p.h, p.name, ctx.game); });
+    app().querySelectorAll("[data-unb]").forEach(b => b.onclick = async () => {
+      const p = d.blocked.find(x => x.h === b.dataset.unb);
+      try { await api("unblock", { h: p.h }); haptic("ok"); toast(`${p.name} blokdan chiqarildi`); load(); } catch (e) { toast(e.message); }
     });
   }
   async function answer(h, accept) {
@@ -153,6 +188,7 @@ export async function addFriend(h) {
     const r = await api("friend_add", { h });
     if (r.error === "already") toast("Siz allaqachon do'stsiz 🙂");
     else if (r.error === "wait") toast("Bugun juda ko'p so'rov yubordingiz — ertaga davom eting");
+    else if (r.error === "blocked_by_me") toast("Bu o'yinchi bloklangan — «Do'stlar» bo'limidan blokdan chiqaring");
     else if (r.error) toast("So'rov yuborilmadi");
     else if (r.accepted) { toast("Endi do'stsiz 🤝"); haptic("ok"); }
     else { toast("So'rov yuborildi ✅"); haptic("ok"); }
@@ -192,7 +228,7 @@ export function chatScreen(friend) {
       const r = await api("chat_send", { h: friend.h, text });
       if (r.error === "contact") toast("Telefon raqam, username yoki havola yozish mumkin emas");
       else if (r.error === "wait") toast("Biroz sekinroq yozing 🙂");
-      else if (r.error === "not_friend") toast("Bu o'yinchi endi do'stingiz emas");
+      else if (r.error === "not_friend") toast("Bu o'yinchi bilan chat yopilgan");
       else if (r.error) toast("Xabar yuborilmadi");
       else { inp.value = ""; await pull(); haptic("light"); }
     } catch (e) { toast(e.message); }
@@ -201,11 +237,12 @@ export function chatScreen(friend) {
   return {
     render() {
       alive = true;
-      app().innerHTML = header(`${esc(friend.avatar || "")} ${esc(friend.name)}`) + `
+      app().innerHTML = header(`${esc(friend.avatar || "")} ${esc(friend.name)}`, `<button class="pill ghost" data-cmore aria-label="Boshqa">⋯</button>`) + `
         <div class="chat"><div class="msgs"></div>
           <div class="cbar"><input class="inp" id="cmsg" maxlength="300" placeholder="Xabar yozing…" autocomplete="off"><button class="btn" data-send aria-label="Yuborish">➤</button></div>
-          <p class="small muted" style="margin:6px 4px 0">Faqat o'yin haqida gaplashing. Raqam, username va havola yuborib bo'lmaydi.</p></div>`;
+          <p class="small muted" style="margin:6px 4px 0">Faqat o'yin haqida gaplashing. Raqam, username va havola yuborib bo'lmaydi. Noo'rin yozgan odamni ⋯ orqali bloklang.</p></div>`;
       bindBack();
+      app().querySelector("[data-cmore]").onclick = () => personSheet(friend, () => back());
       app().querySelector("[data-send]").onclick = send;
       app().querySelector("#cmsg").onkeydown = e => { if (e.key === "Enter") send(); };
       draw(); pull(true);

@@ -114,6 +114,12 @@ export default async function handler(req, res) {
       case "friend_remove":
         out = await rpc("g_friend_remove", { p_id: id, p_h: String(b.h || "") });
         break;
+      case "block":
+        out = await rpc("g_block", { p_id: id, p_h: String(b.h || "") });
+        break;
+      case "unblock":
+        out = await rpc("g_unblock", { p_id: id, p_h: String(b.h || "") });
+        break;
       case "chat_get":
         out = await rpc("g_chat_get", { p_id: id, p_h: String(b.h || ""), p_after: Number(b.after) || 0 });
         break;
