@@ -3,11 +3,13 @@ import { verifyInitData, rpc, fullName } from "./_lib.js";
 import { isWord, pathWord } from "./_soz.js";
 import { checkSolution } from "../js/gugurt-engine.js";
 import { makeShch, makeKim } from "./_shch.js";
+import { initArch, applyShot } from "../js/arch-engine.js";
+import { initState as chessInit, findMove, applyMove as chessApply } from "../js/chess-engine.js";
 import { APP_VERSION } from "../js/version.js";
 
-const GAMES = ["shashka", "soz", "gugurt", "kim", "shch"];
+const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch"];
 // yangi o'yinlarda boshlang'ich holatni server o'zi yaratadi (mijoz maxfiy ma'lumot yoki maqsadlarni o'zgartira olmaydi)
-const initState = b => b.game === "kim" ? makeKim() : b.game === "shch" ? makeShch(b.count) : (b.state || {});
+const initState = b => b.game === "arch" ? initArch() : b.game === "chess" ? chessInit() : b.game === "kim" ? makeKim() : b.game === "shch" ? makeShch(b.count) : (b.state || {});
 
 export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
 
@@ -70,7 +72,7 @@ export default async function handler(req, res) {
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
         out = await rpc("g_invite", { p_from: id, p_to_h: String(b.h || ""), p_game: b.game, p_room: String(b.room || "") });
         if (out?.ok) {
-          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot" };
+          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
           const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
           const sent = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -151,9 +153,32 @@ export default async function handler(req, res) {
         out = await rpc("g_room_join", { p_id: String(b.id || ""), p_player: id, p_name: name });
         if (out?.status === "playing") await closeInvites(b.id, "accepted", "✅ O'yin boshlandi");
         break;
-      case "move":
+      case "move": {
+        const rm = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
+        if (!rm || rm.error || rm.game !== "shashka") return res.status(200).json({ error: "bad_game" });
         out = await rpc("g_room_move", { p_id: b.id, p_player: id, p_version: b.version, p_state: b.state });
         break;
+      }
+      case "ashot": {
+        const rm = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
+        if (!rm || rm.error || rm.game !== "arch") return res.status(200).json({ error: "bad_game" });
+        if (rm.version !== b.version) return res.status(200).json({ error: "stale", ...rm });
+        if (rm.status !== "playing" || !rm.state?.hp || rm.state.winner) return res.status(200).json({ error: "not_playing" });
+        const ang = Number(b.angle), pw = Number(b.power);
+        if (!(ang >= 5 && ang <= 85 && pw >= 10 && pw <= 100)) return res.status(200).json({ error: "illegal" });
+        out = await rpc("g_room_move", { p_id: rm.id, p_player: id, p_version: rm.version, p_state: applyShot(rm.state, rm.state.turn, ang, pw) });
+        break;
+      }
+      case "cmove": {
+        const rm = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
+        if (!rm || rm.error || rm.game !== "chess") return res.status(200).json({ error: "bad_game" });
+        if (rm.version !== b.version) return res.status(200).json({ error: "stale", ...rm });
+        if (rm.status !== "playing" || !rm.state?.board) return res.status(200).json({ error: "not_playing" });
+        const m = findMove(rm.state, Number(b.from), Number(b.to), Number(b.promo) || 0);
+        if (!m) return res.status(200).json({ error: "illegal" });
+        out = await rpc("g_room_move", { p_id: rm.id, p_player: id, p_version: rm.version, p_state: chessApply(rm.state, m) });
+        break;
+      }
       case "resign":
         out = await rpc("g_room_resign", { p_id: b.id, p_player: id });
         break;
@@ -169,7 +194,7 @@ export default async function handler(req, res) {
         out = await rpc("g_soz_finish", { p_id: b.id });
         break;
       case "rematch": {
-        const old = ["kim", "shch"].includes(b.game) ? { ...b } : null;
+        const old = ["kim", "shch", "chess", "arch"].includes(b.game) ? { ...b } : null;
         out = await rpc("g_room_rematch", { p_id: b.id, p_player: id, p_name: name, p_state: old ? initState(old) : (b.state || {}) });
         break;
       }

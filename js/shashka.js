@@ -74,6 +74,8 @@ export async function joinRoom(code) {
   if (r.game === "soz") { const m = await import("./soz.js"); return m.openSozRoom(r); }
   if (r.game === "gugurt") { const m = await import("./gugurt.js"); return m.openGugRoom(r); }
   if (r.game === "kim") { const m = await import("./kim.js"); return m.openKimRoom(r); }
+  if (r.game === "arch") { const m = await import("./arch.js"); return m.openArchRoom(r); }
+  if (r.game === "chess") { const m = await import("./chess.js"); return m.openChessRoom(r); }
   if (r.game === "shch") { const m = await import("./shch.js"); return m.openShchRoom(r); }
   if (isMe(r.p1) && r.status === "waiting") return show(waitingScreen(r, false));
   show(gameScreen({ mode: "online", room: r, mySide: isMe(r.p1) ? 1 : -1 }));

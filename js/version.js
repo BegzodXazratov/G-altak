@@ -1,10 +1,12 @@
 // Har yangilanishda APP_VERSION oshiriladi: eski versiyadagi o'yinchilar ilovadan chiqariladi,
 // /api/broadcast esa botdan hammaga NEWS matnini yuboradi (har versiya uchun bir marta).
-export const APP_VERSION = "10";
-export const NEWS = `🎮 G'altak'da 2 ta yangi o'yin!
+export const APP_VERSION = "11";
+export const NEWS = `🎮 G'altak yangilandi — 2 ta yangi o'yin va ko'p qulayliklar!
 
-• 🔢 Kim topadi? — raqibning 5 xonali yashirin sonini birinchi topgan yutadi
-• 🧮 SH-chyot — kataklardagi sonlarni qo'shib, o'zingizga berilgan sonlarni toping
-• Ikkalasini ham do'stingiz yoki tasodifiy raqib bilan o'ynash mumkin
+• ♞ Shaxmat — to'liq qoidalar, do'st yoki tasodifiy raqib bilan, kompyuter bilan ham
+• 🏹 Kamonchi — burchak va kuchni topib, raqibning 5 jonini oling
+• 🔢 Kim topadi? va 🧮 SH-chyot
+• 👤 Profil: ism va stiker, 👥 do'stlar va ular bilan chat
+• Ball chegarasi endi 1000, shashkada yurishga 1 daqiqa
 
 Qayta kiring va sinab ko'ring 👑`;

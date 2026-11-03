@@ -5,6 +5,8 @@ import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
 import { kimMenu, createPrivate as newKim } from "./kim.js";
 import { shchMenu, createPrivate as newShch } from "./shch.js";
+import { chessMenu, createPrivate as newChess } from "./chess.js";
+import { archMenu, createPrivate as newArch } from "./arch.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen } from "./social.js";
 
 setupTelegram();
@@ -75,8 +77,8 @@ function enter() {
 nav.askName = () => show(registerScreen(), false);
 
 // ---------- onlayn holat va takliflar ----------
-const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot" };
-const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "🧮" };
+const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
+const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "🧮", chess: "♞", arch: "🏹" };
 let presence = null;
 const seenInv = new Set();
 function startPresence() {
@@ -164,7 +166,7 @@ function pickGame(h, name) {
     const timed = game === "soz" || game === "gugurt";
     if (timed) setGameSeconds(game, secs);
     try {
-      const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch })[game](name);
+      const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch })[game](name);
       const r = await api("invite", { h, game, room: room.id, seconds: timed ? secs : 0 });
       if (r.ok) { haptic("ok"); return; }
       toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "not_friend" ? "Avval do'stlik so'rovi yuboring"
@@ -233,6 +235,16 @@ const menu = {
             <h2>Shashka</h2><p>Tasodifiy raqib, do'st yoki kompyuter bilan</p>
             <span class="art" aria-hidden="true">⚫</span>
           </button>
+          <button class="game g-chess" data-go="chess">
+            <span class="tag">Strategiya</span>
+            <h2>Shaxmat</h2><p>Klassik shaxmat: do'st, tasodifiy raqib yoki kompyuter</p>
+            <span class="art" aria-hidden="true">♞</span>
+          </button>
+          <button class="game g-arch" data-go="arch">
+            <span class="tag">Aniqlik · 1 vs 1</span>
+            <h2>Kamonchi</h2><p>Burchak va kuchni topib, raqibning 5 jonini oling</p>
+            <span class="art" aria-hidden="true">🏹</span>
+          </button>
           <button class="game g-soz" data-go="soz">
             <span class="tag">So'z · 1–3 daqiqa</span>
             <h2>Topqir</h2><p>Harflardan o'zbekcha so'zlarni raqibdan tezroq toping</p>
@@ -263,6 +275,8 @@ const menu = {
         if (g === "gugurt") show(gugurtMenu());
         if (g === "kim") show(kimMenu());
         if (g === "shch") show(shchMenu());
+        if (g === "chess") show(chessMenu());
+        if (g === "arch") show(archMenu());
       });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;
