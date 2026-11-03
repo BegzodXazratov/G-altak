@@ -103,6 +103,7 @@ export function toast(msg) {
 export const nav = {}; // boshqa modullar uchun: nav.leaderboard(game)
 let current = null;
 const stack = [];
+export const currentAct = () => current?.act || "";
 export const isBusy = () => !!current?.busy; // o'yin yoki kutish ekrani — taklif oynalari chiqmaydi
 export function show(screen, push = true) {
   document.getElementById("quip")?.classList.remove("on");

@@ -182,7 +182,7 @@ function kimGame(opt) {
   }
 
   return {
-    busy: true,
+    busy: true, act: "kim:online",
     render() {
       alive = true; render();
       clk = setInterval(tickClock, 300);

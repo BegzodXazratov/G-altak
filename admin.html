@@ -167,7 +167,15 @@ let pass = "", data = null, tab = "dash", q = "", filt = "all", sortK = "seen_at
 try { pass = sessionStorage.getItem("galtak-admin") || ""; tab = sessionStorage.getItem("galtak-admin-tab") || "dash"; } catch (e) {}
 
 const now = () => Date.now() + skew;
-let SO = { friends: [], pending: [], chats: [], tried: {}, fcount: {}, msgs: {}, invsent: {}, reach: {} };
+let SO = { acts: {}, friends: [], pending: [], chats: [], tried: {}, fcount: {}, msgs: {}, invsent: {}, reach: {} };
+const MODE = { online: "onlayn", ai: "kompyuter bilan", local: "bitta telefonda", solo: "yolg'iz mashq" };
+// o'yinchi hozir nima qilyapti: onlayn juftlikdami yoki yolg'iz (kompyuter / mashq / bitta telefon)
+function doing(p) {
+  const a = SO.acts[p.tg_id];
+  if (a) { const [g, m] = a.split(":"); return { icon: GAME[g]?.[1] || "🎮", name: GAME[g]?.[0] || g, mode: MODE[m] || m, vs: m === "online" ? p.pvs : "", solo: m !== "online" }; }
+  if (p.playing) return { icon: GAME[p.pgame]?.[1] || "🎮", name: GAME[p.pgame]?.[0] || "o'ynamoqda", mode: "onlayn", vs: p.pvs, solo: false };
+  return null;
+}
 const reachOf = p => SO.reach[p.tg_id]?.r || "";
 const triedOf = p => SO.tried[p.tg_id] || [];
 function ago(d) {
@@ -243,7 +251,7 @@ function liveSub(g) {
 // ---------- ko'rinish ----------
 function render() {
   const P = data.players, day = now() - 864e5;
-  const online = P.filter(isOn), playing = P.filter(p => p.playing);
+  const online = P.filter(isOn), playing = P.filter(p => doing(p));
   const newToday = P.filter(p => new Date(p.created_at) > day).length;
   const withPhone = P.filter(p => p.phone).length;
   const live = data.live || [];
@@ -333,9 +341,9 @@ function liveCards(limit) {
 }
 
 function onlineChips() {
-  const on = data.players.filter(isOn).sort((a, b) => b.playing - a.playing);
+  const on = data.players.filter(isOn).sort((a, b) => !!doing(b) - !!doing(a));
   if (!on.length) return `<div class="empty">Hozir hech kim ilovada emas</div>`;
-  return `<div class="chips">${on.map(p => `<span class="chip ${p.playing ? "play" : ""}"><span class="dot"></span>${esc(named(p) ? p.name : "Ismsiz")}${p.playing ? `<i>${GAME[p.pgame]?.[1] || "🎮"} ${GAME[p.pgame]?.[0] || "o'ynamoqda"}${p.pvs ? ` · ${esc(p.pvs)} bilan` : ""}</i>` : ""}</span>`).join("")}</div>`;
+  return `<div class="chips">${on.map(p => `<span class="chip ${doing(p) ? "play" : ""}"><span class="dot"></span>${esc(named(p) ? p.name : "Ismsiz")}${(d => d ? `<i>${d.icon} ${d.name} · ${d.vs ? esc(d.vs) + " bilan" : d.mode}</i>` : "")(doing(p))}</span>`).join("")}</div>`;
 }
 
 function chart() {
@@ -436,7 +444,7 @@ function activityView() {
       <section class="panel"><div class="ph"><h2>🟢 Aktivlik</h2></div>
         <div class="fun"><div class="st"><span>Hozir onlayn</span><div class="tr"><div class="fl" style="width:${P.filter(isOn).length / n * 100}%"></div></div><b>${P.filter(isOn).length}</b></div>
         <div class="st"><span>Bugun kirgan</span><div class="tr"><div class="fl" style="width:${act / n * 100}%"></div></div><b>${act}</b></div>
-        <div class="st"><span>Hozir o'ynayapti</span><div class="tr"><div class="fl" style="width:${P.filter(p => p.playing).length / n * 100}%"></div></div><b>${P.filter(p => p.playing).length}</b></div></div></section>
+        <div class="st"><span>Hozir o'ynayapti</span><div class="tr"><div class="fl" style="width:${P.filter(p => doing(p)).length / n * 100}%"></div></div><b>${P.filter(p => doing(p)).length}</b></div></div></section>
       <section class="panel"><div class="ph"><h2>🚫 Botni bloklaganlar</h2></div>
         <p class="muted" style="margin:0 0 10px;font-size:13px">Tugma har bir o'yinchiga yashirin «yozmoqda…» belgisi yuborib, bot xabar yubora olishini tekshiradi (hech qanday xabar chiqmaydi). Shundan keyin kim bloklasa, avtomatik yangilanib turadi.</p>
         <div class="chips" style="margin-bottom:10px"><span class="chip">✅ yetadi: ${counts.ok}</span><span class="chip">🚫 bloklagan: ${counts.blocked}</span><span class="chip">✉️ botni ochmagan: ${counts.never}</span><span class="chip">❌ o'chgan: ${counts.gone}</span></div>
@@ -460,7 +468,7 @@ function activityView() {
 }
 
 // ---------- o'yinchilar ----------
-const FILTERS = [["all", "Hammasi", () => true], ["on", "Onlayn", isOn], ["play", "O'ynamoqda", p => p.playing], ["new", "Bugun yangi", p => now() - new Date(p.created_at) < 864e5],
+const FILTERS = [["all", "Hammasi", () => true], ["on", "Onlayn", isOn], ["play", "O'ynamoqda", p => !!doing(p)], ["new", "Bugun yangi", p => now() - new Date(p.created_at) < 864e5],
   ["nophone", "Raqamsiz", p => !p.phone], ["noname", "Ismsiz", p => !named(p)],
   ["friends", "Do'sti bor", p => (SO.fcount[p.tg_id] || 0) > 0], ["notried", "O'ynamagan", p => !triedOf(p).length],
   ["blocked", "Botni bloklagan", p => reachOf(p) === "blocked"], ["unreach", "Bot yozolmaydi", p => ["never", "gone"].includes(reachOf(p))]];
@@ -495,7 +503,7 @@ function tagsOf(p) {
 function list() {
   const L = rows();
   $("#pl").innerHTML = L.map(p => {
-    const nm = named(p) ? p.name : "", st = p.playing ? "play" : isOn(p) ? "on" : "";
+    const nm = named(p) ? p.name : "", st = doing(p) ? "play" : isOn(p) ? "on" : "";
     return `<div class="pr">
       <div class="av" style="background:${avc(p.tg_id)}">${esc((nm || p.username || "?")[0].toUpperCase())}<span class="st ${st}" title="${st === "play" ? "o'ynamoqda" : st ? "onlayn" : "oflayn"}"></span></div>
       <div class="who"><b>${nm ? esc(nm) : `<span class="warn">Ism kiritilmagan</span>`}</b>
@@ -504,7 +512,7 @@ function list() {
       <div class="ph2">${p.phone ? `<a class="phone" href="tel:${fphone(p.phone).replace(/\s/g, "")}">${fphone(p.phone)}</a>
         <button class="cp" data-cp="${fphone(p.phone).replace(/\s/g, "")}" title="Nusxalash">⧉</button>` : `<span class="warn bad">Raqam yuborilmagan</span>`}</div>
       <div class="stats"><div><b>${p.rating ?? 0}</b><span>ball</span></div><div><b>${p.games}</b><span>o'yin</span></div><div><b>${p.wins}</b><span>g'alaba</span></div></div>
-      <div class="when"><b>${st === "play" ? `${GAME[p.pgame]?.[1] || "🎮"} ${GAME[p.pgame]?.[0] || "o'ynamoqda"}` : st ? "🟢 onlayn" : ago(p.seen_at)}</b><span title="${date(p.created_at)}">qo'shildi: ${ago(p.created_at)}</span></div>
+      <div class="when"><b>${(d => d ? `${d.icon} ${d.name}` : st ? "🟢 onlayn" : ago(p.seen_at))(doing(p))}</b><span title="${date(p.created_at)}">qo'shildi: ${ago(p.created_at)}</span></div>
     </div>`;
   }).join("") || `<div class="empty">Hech kim topilmadi</div>`;
   $("#cnt").textContent = `${L.length} ta o'yinchi ko'rsatilmoqda`;

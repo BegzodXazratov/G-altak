@@ -323,7 +323,7 @@ function gameScreen(opt) {
         }, 1100);
       }
     },
-    busy: true,
+    busy: true, act: `shashka:${opt.mode}`,
     leave() { alive = false; clearInterval(poll); clearInterval(clk); poll = null; },
   };
 }

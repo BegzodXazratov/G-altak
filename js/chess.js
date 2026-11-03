@@ -194,7 +194,7 @@ function gameScreen(opt) {
   function restart() { if (opt.mode === "online") return; st = initState(); sel = -1; thinking = false; render(); aiTurn(); }
 
   return {
-    busy: true,
+    busy: true, act: `chess:${opt.mode}`,
     render() {
       alive = true; render(); aiTurn();
       if (opt.mode === "online") {

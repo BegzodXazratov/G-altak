@@ -1,5 +1,5 @@
 import { app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, profile, me, score, esc, toast,
-  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES, isBusy, MAX_SCORE, goTab } from "./core.js";
+  header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES, isBusy, MAX_SCORE, goTab, currentAct } from "./core.js";
 import { shashkaMenu, joinRoom, createPrivate as newShashka } from "./shashka.js";
 import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
@@ -86,7 +86,7 @@ function startPresence() {
   const ping = async () => {
     if (document.hidden) return;
     try {
-      const r = await api("ping");
+      const r = await api("ping", { act: currentAct() });
       applyPing(r);
       (r.declined || []).forEach(n => toast(`${n} taklifni rad etdi`));
       if (r.busy || isBusy()) return; // o'yin paytida takliflar xalaqit bermaydi

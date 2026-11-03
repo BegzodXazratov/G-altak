@@ -177,7 +177,7 @@ function shchGame(opt) {
   }
 
   return {
-    busy: true,
+    busy: true, act: "shch:online",
     render() {
       alive = true; render();
       tick = setInterval(async () => {

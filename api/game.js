@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         break;
       }
       case "ping":
-        out = await rpc("g_ping", { p_id: id });
+        [out] = await Promise.all([rpc("g_ping", { p_id: id }), rpc("g_set_act", { p_id: id, p_act: String(b.act || "") }).catch(() => {})]);
         break;
       case "online":
         out = await rpc("g_online", { p_id: id });

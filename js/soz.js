@@ -357,7 +357,7 @@ function sozGame(opt) {
         }, 1000);
       }
     },
-    busy: true,
+    busy: true, act: `soz:${opt.room ? "online" : "solo"}`,
     leave() { alive = false; clearInterval(poll); clearInterval(tick); poll = null; },
   };
 }

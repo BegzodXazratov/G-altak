@@ -21,8 +21,8 @@ export default async function handler(req, res) {
     if (req.body?.action === "post") return res.status(200).json(await post(req.body, req.headers.host));
     if (req.body?.action === "broadcast") return res.status(200).json(await broadcast(req.headers.host));
     if (req.body?.action === "reach") return res.status(200).json(await reachCheck(Number(req.body.offset) || 0, req.headers.host));
-    const [d, social] = await Promise.all([rpc("g_admin_players", {}), rpc("g_admin_social", {})]);
-    res.status(200).json({ ...d, social });
+    const [d, social, acts] = await Promise.all([rpc("g_admin_players", {}), rpc("g_admin_social", {}), rpc("g_admin_acts", {})]);
+    res.status(200).json({ ...d, social: { ...social, acts } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "server" });

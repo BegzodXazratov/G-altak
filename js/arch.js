@@ -226,7 +226,7 @@ function gameScreen(opt) {
   function restart() { if (opt.mode === "online") return; st = initArch(); shown = null; anim = false; render(); aiTurn(); }
 
   return {
-    busy: true,
+    busy: true, act: `arch:${opt.mode}`,
     render() {
       alive = true; render(); aiTurn();
       if (opt.mode === "online") {
