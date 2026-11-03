@@ -176,7 +176,7 @@ export default async function handler(req, res) {
         if (rm.version !== b.version) return res.status(200).json({ error: "stale", ...rm });
         if (rm.status !== "playing" || !rm.state?.hp || rm.state.winner) return res.status(200).json({ error: "not_playing" });
         const ang = Number(b.angle), pw = Number(b.power);
-        if (!(ang >= 5 && ang <= 85 && pw >= 10 && pw <= 100)) return res.status(200).json({ error: "illegal" });
+        if (!(ang >= -50 && ang <= 85 && pw >= 10 && pw <= 100)) return res.status(200).json({ error: "illegal" });
         out = await rpc("g_room_move", { p_id: rm.id, p_player: id, p_version: rm.version, p_state: applyShot(rm.state, rm.state.turn, ang, pw) });
         break;
       }
