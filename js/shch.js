@@ -48,7 +48,7 @@ export async function createPrivate(invited = "") {
   return room;
 }
 function shchWaiting(room, matching, invited = "") {
-  return waitScreen(room, { matching, invited, icon: "➕", shareText: "SH-chyotda bellashamizmi? ➕",
+  return waitScreen(room, { matching, invited, icon: "🧮", shareText: "SH-chyotda bellashamizmi? 🧮",
     onStart: r => show(shchGame({ room: r }), false) });
 }
 

@@ -76,7 +76,7 @@ nav.askName = () => show(registerScreen(), false);
 
 // ---------- onlayn holat va takliflar ----------
 const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot" };
-const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "➕" };
+const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "🧮" };
 let presence = null;
 const seenInv = new Set();
 function startPresence() {
@@ -245,8 +245,8 @@ const menu = {
           </button>
           <button class="game g-shch" data-go="shch">
             <span class="tag">Hisob · 3–5 daqiqa</span>
-            <h2>SH-chyot</h2><p>Kataklardagi sonlarni qo'shib, o'zingizga berilgan sonlarni toping</p>
-            <span class="art" aria-hidden="true">➕</span>
+            <h2>SH-chyot</h2><p>Kataklardagi sonlarni qo'shib, maqsad sonlarni toping</p>
+            <span class="art" aria-hidden="true">🧮</span>
           </button>
           <button class="game g-gug" data-go="gugurt">
             <span class="tag">Mantiq · 1–3 daqiqa</span>

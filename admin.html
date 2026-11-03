@@ -148,7 +148,7 @@ button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const GAME = { shashka: ["Shashka", "⚫"], soz: ["Topqir", "🔤"], gugurt: ["Gugurt", "🔥"], kim: ["Kim topadi?", "🔢"], shch: ["SH-chyot", "➕"] };
+const GAME = { shashka: ["Shashka", "⚫"], soz: ["Topqir", "🔤"], gugurt: ["Gugurt", "🔥"], kim: ["Kim topadi?", "🔢"], shch: ["SH-chyot", "🧮"] };
 const AVC = ["#E8572A", "#1F6F4E", "#5B3DB8", "#C98410", "#2A7FB8", "#B8456E", "#4E8A2A"];
 let pass = "", data = null, tab = "dash", q = "", filt = "all", sortK = "seen_at", timer = null, lastAt = 0, skew = 0;
 try { pass = sessionStorage.getItem("galtak-admin") || ""; tab = sessionStorage.getItem("galtak-admin-tab") || "dash"; } catch (e) {}
