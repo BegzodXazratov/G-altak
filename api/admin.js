@@ -29,10 +29,13 @@ export default async function handler(req, res) {
   }
 }
 
-// Erkin xabar: adminning o'zi yozgan matn — hammaga, faqat onlayn yoki bitta Telegram ID'ga (sinov uchun)
+// Erkin xabar: matn va/yoki rasm — hammaga, faqat onlayn yoki bitta Telegram ID'ga (sinov uchun)
 async function post(b, host) {
   const text = String(b.text || "").trim();
-  if (!text || text.length > 3500) return { ok: false, error: "Matn 1–3500 belgi bo'lsin" };
+  const img = parseImage(b.image);
+  if (b.image && !img) return { ok: false, error: "Rasm JPG, PNG yoki WEBP bo'lsin (4 MB gacha)" };
+  if (!text && !img) return { ok: false, error: "Matn yoki rasm kiriting" };
+  if (text.length > 3500) return { ok: false, error: "Matn 3500 belgidan oshmasin" };
   const btn = String(b.btn || "").trim().slice(0, 40), url = String(b.url || "").trim();
   if (url && !/^https:\/\//i.test(url)) return { ok: false, error: "Havola https:// bilan boshlansin" };
   const d = await rpc("g_admin_players", {});
@@ -44,19 +47,40 @@ async function post(b, host) {
   if (!ids.length) return { ok: false, error: "Qabul qiluvchi topilmadi" };
   if (b.dry) return { ok: true, count: ids.length };
   const markup = btn ? { inline_keyboard: [[url ? { text: btn, url } : { text: btn, web_app: { url: `https://${host}/` } }]] } : undefined;
-  let sent = 0, failed = 0;
-  for (const chat_id of ids) {
-    try {
-      const r = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id, text, ...(markup ? { reply_markup: markup } : {}) }),
-      });
-      const j = await r.json(); await noteReach(chat_id, j);
-      j.ok ? sent++ : failed++;
-    } catch (e) { failed++; }
-    await new Promise(r => setTimeout(r, 40));
+  const mk = o => ({ ...o, ...(markup ? { reply_markup: markup } : {}) });
+  const tgJson = (m, body) => fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/${m}`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json());
+  // rasm: birinchi yuborishda yuklanadi, keyin Telegram file_id bilan (tez va tejamkor). Sarlavha 1024 belgigacha — uzun matn alohida xabar bo'ladi.
+  let fileId = null; const cap = img && text.length <= 1024;
+  const sendOne = async chat_id => {
+    let j;
+    if (img) {
+      if (!fileId) {
+        const fd = new FormData(); fd.append("chat_id", chat_id); fd.append("photo", new Blob([img.buf], { type: img.mime }), "photo." + img.ext);
+        if (cap) fd.append("caption", text); if (markup && (cap || !text)) fd.append("reply_markup", JSON.stringify(markup));
+        j = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendPhoto`, { method: "POST", body: fd }).then(r => r.json());
+        const ph = j?.result?.photo; if (j.ok && ph?.length) fileId = ph[ph.length - 1].file_id;
+      } else j = await tgJson("sendPhoto", { chat_id, photo: fileId, ...(cap ? { caption: text } : {}), ...(markup && (cap || !text) ? { reply_markup: markup } : {}) });
+      if (j.ok && !cap && text) j = await tgJson("sendMessage", mk({ chat_id, text }));
+    } else j = await tgJson("sendMessage", mk({ chat_id, text }));
+    await noteReach(chat_id, j);
+    return j.ok;
+  };
+  let sent = 0, failed = 0, i = 0;
+  if (img && ids.length > 1) { (await sendOne(ids[0]).catch(() => false)) ? sent++ : failed++; i = 1; } // file_id olish uchun birinchisi alohida
+  for (; i < ids.length; i += 10) {
+    const r = await Promise.all(ids.slice(i, i + 10).map(id => sendOne(id).catch(() => false)));
+    r.forEach(ok => ok ? sent++ : failed++);
+    await new Promise(r => setTimeout(r, 400)); // Telegram: sekundiga ~30 xabar
   }
   return { ok: true, sent, failed };
+}
+function parseImage(v) {
+  const m = /^data:(image\/(jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(v || ""));
+  if (!m) return null;
+  const buf = Buffer.from(m[3], "base64");
+  if (!buf.length || buf.length > 4 * 1024 * 1024) return null;
+  return { buf, mime: m[1], ext: m[2] === "jpeg" ? "jpg" : m[2] };
 }
 
 // Botni bloklaganlarni aniqlash: har bir o'yinchiga "yozmoqda…" belgisi yuboriladi (xabar chiqmaydi), javobga qarab holat yoziladi.

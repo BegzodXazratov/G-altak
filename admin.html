@@ -302,7 +302,9 @@ function postModal() {
   const fld = "width:100%;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit";
   el.innerHTML = `<div style="background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;max-width:480px;width:100%;max-height:92vh;overflow:auto;display:grid;gap:10px">
     <h3 style="margin:0">✉️ Botdan xabar yuborish</h3>
-    <textarea id="pt" rows="6" maxlength="3500" placeholder="Xabar matni…" style="${fld};resize:vertical"></textarea>
+    <textarea id="pt" rows="6" maxlength="3500" placeholder="Xabar matni (rasm bo'lsa — ixtiyoriy, 1024 belgigacha rasm tagida chiqadi)…" style="${fld};resize:vertical"></textarea>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="ibtn" id="pf" type="button">🖼 Rasm qo'shish</button><input type="file" id="pfi" accept="image/jpeg,image/png,image/webp" hidden>
+      <span id="pfn" class="muted" style="font-size:13px"></span><img id="pfp" alt="" style="display:none;max-height:56px;border-radius:8px;margin-left:auto"><button class="ibtn" id="pfx" type="button" style="display:none">✕</button></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="pb" maxlength="40" placeholder="Tugma yozuvi (ixtiyoriy)" style="${fld}"><input id="pu" placeholder="Havola https://… (bo'sh = ilovani ochadi)" style="${fld}"></div>
     <select id="pa" style="${fld}"><option value="all">Hamma o'yinchiga</option><option value="online">Faqat hozir onlayn</option><option value="one">Bitta Telegram ID'ga (sinov)</option></select>
     <input id="pi" placeholder="Telegram ID (faqat sinov uchun)" style="${fld};display:none" inputmode="numeric">
@@ -311,8 +313,24 @@ function postModal() {
   const g = id => el.querySelector(id);
   g("#pa").onchange = () => g("#pi").style.display = g("#pa").value === "one" ? "" : "none";
   g("#px").onclick = () => el.remove();
+  let image = "";
+  // rasmni brauzerning o'zida kichraytiramiz (eng uzun tomon 1280px, JPEG) — tez yuboriladi
+  const shrink = file => new Promise((ok, no) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { const k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+      c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.85)); };
+    im.onerror = () => no(new Error("Rasm ochilmadi")); im.src = url; });
+  g("#pf").onclick = () => g("#pfi").click();
+  g("#pfi").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try { image = await shrink(f); g("#pfp").src = image; g("#pfp").style.display = ""; g("#pfx").style.display = ""; g("#pfn").textContent = f.name.slice(0, 24); }
+    catch (er) { alert(er.message); }
+  };
+  g("#pfx").onclick = () => { image = ""; g("#pfi").value = ""; g("#pfp").style.display = "none"; g("#pfx").style.display = "none"; g("#pfn").textContent = ""; };
   g("#ps").onclick = async () => {
-    const body = { password: pass, action: "post", text: g("#pt").value, btn: g("#pb").value, url: g("#pu").value, audience: g("#pa").value, tg_id: g("#pi").value };
+    const body = { password: pass, action: "post", text: g("#pt").value, btn: g("#pb").value, url: g("#pu").value, audience: g("#pa").value, tg_id: g("#pi").value, image };
     const call = async extra => (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, ...extra }) })).json();
     const btn = g("#ps"); btn.disabled = true;
     try {
