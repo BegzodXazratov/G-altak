@@ -1,6 +1,7 @@
 // Qo'shimcha bepul testlar: xotira, reaksiya, diqqat, tez hisob, hissiy aql, shaxsiyat, so'z boyligi, mantiq.
 // Hammasi telefonning o'zida ishlaydi. Natijalar o'yin-kulgi uchun, IQ ball emas.
 import { app, show, header, bindBack, toast, esc, back } from "./core.js";
+import { genLogic, genWords } from "./iqbank.js";
 import { iqScreen, getBest, setBest, shareText, shuffle, ri, tickH, noteH } from "./iqui.js";
 
 /* ---------- umumiy ko'rinishlar ---------- */
@@ -25,7 +26,7 @@ function result(a, o) {
       ${o.newBest ? `<p class="center" style="margin:6px 0 0;font-weight:700;color:var(--green)">🎉 Yangi rekord!</p>` : ""}
     </section>
     ${o.bars ? `<div class="card">${o.bars.map(b => `<div class="iq-sbar"><div><span>${esc(b.n)}</span><b>${b.pct}%</b></div><div class="t"><i style="width:${b.pct}%"></i></div>${b.d ? `<small class="muted">${esc(b.d)}</small>` : ""}</div>`).join("")}</div>` : ""}
-    <div class="hint" style="background:rgba(91,91,240,.08);color:var(--ink)">${esc(o.note || "Bu o'yin-kulgi uchun test. Rasmiy o'lchov yoki tashxis emas.")}</div>
+    <div class="hint" style="background:rgba(242,179,61,.14);color:var(--ink)">${esc(o.note || "Bu o'yin-kulgi uchun test. Rasmiy o'lchov yoki tashxis emas.")}</div>
     <div class="stack" style="margin-top:12px">
       <button class="btn" data-again>Qayta urinish</button>
       <button class="btn alt" data-share>📨 Do'stlarga yuborish</button>
@@ -233,7 +234,7 @@ function mathTest() {
 // mode "points": har variantda p ball bor, javob to'g'ri/noto'g'ri deb ko'rsatilmaydi
 // mode "right":  bitta to'g'ri javob (c) va izoh (e) ko'rsatiladi
 function quizScreen(cfg) {
-  const items = cfg.mode === "right" ? shuffle(cfg.items).slice(0, cfg.count || cfg.items.length) : cfg.items;
+  const items = typeof cfg.items === "function" ? cfg.items() : cfg.mode === "right" ? shuffle(cfg.items).slice(0, cfg.count || cfg.items.length) : cfg.items;
   let i = 0, total = 0, locked = false; const tags = {};
   return iqScreen({
     busy: true,
@@ -304,13 +305,13 @@ const WORDS = [
   { q: "“Zukko” odam qanday bo'ladi?", o: ["O'tkir zehnli", "Juda kuchli", "Juda sekin", "Jim"], c: 0, e: "Zukko: tez fikrlaydigan, o'tkir zehnli." },
 ];
 const wordTest = () => quizScreen({
-  mode: "right", items: WORDS, title: "So'z boyligi", ico: "📚", sub: "Ma'no va o'xshashlik", best: () => getBest("words") != null ? getBest("words") + " / 10" : null,
-  intro: ["10 ta savol: so'zlarning ma'nodoshi, qarama-qarshisi va o'xshashlik topshiriqlari.", "Har javobdan keyin qisqa izoh chiqadi, shunda o'rganib ham borasiz."],
+  mode: "right", items: () => genWords(12), title: "So'z boyligi", ico: "📚", sub: "Ma'no va o'xshashlik", best: () => getBest("words") != null ? getBest("words") + " ball" : null,
+  intro: ["12 ta savol: ma'nodosh, qarama-qarshi ma'no, toq so'z va o'xshashlik topshiriqlari.", "Har safar savollar yangi, ko'rganlaringiz takrorlanmaydi. Har javobdan keyin qisqa izoh chiqadi."],
   finish(a, r) {
-    const t = r.total, nb = setBest("words", t);
-    const lv = t >= 9 ? ["Ona tilining bilimdoni 📖", "So'z boyligingiz juda boy."] : t >= 7 ? ["Yaxshi", "So'z zaxirangiz yaxshi, ko'p kitob o'qiganga o'xshaysiz."] : t >= 5 ? ["O'rtacha", "Ko'proq o'qish so'z boyligini tez oshiradi."] : ["Boshlang'ich", "Kuniga 10 daqiqa kitob o'qish yaxshi boshlanish."];
-    result(a, { id: "words", title: "So'z boyligi", ico: "📚", kicker: "To'g'ri javoblar", big: t + "/10", level: lv[0], text: lv[1], newBest: nb.better,
-      again: r.again, share: `So'z boyligi testida ${t}/10 oldim. Sen necha olasan?` });
+    const t = r.total, n = r.count, nb = setBest("words", t), f = t / n;
+    const lv = f >= .85 ? ["Ona tilining bilimdoni 📖", "So'z boyligingiz juda boy."] : f >= .65 ? ["Yaxshi", "So'z zaxirangiz yaxshi, ko'p kitob o'qiganga o'xshaysiz."] : f >= .4 ? ["O'rtacha", "Ko'proq o'qish so'z boyligini tez oshiradi."] : ["Boshlang'ich", "Kuniga 10 daqiqa kitob o'qish yaxshi boshlanish."];
+    result(a, { id: "words", title: "So'z boyligi", ico: "📚", kicker: "To'g'ri javoblar", big: t + "/" + n, level: lv[0], text: lv[1], newBest: nb.better,
+      again: r.again, share: `So'z boyligi testida ${t}/${n} oldim. Sen necha olasan?` });
   },
 });
 
@@ -327,14 +328,14 @@ const LOGIC = [
   { q: "Bir ishni 2 usta 6 kunda bitiradi. Xuddi shu ishni 4 usta (bir xil tezlikda) necha kunda bitiradi?", o: ["2", "3", "4", "12"], c: 1, e: "Ustalar soni 2 barobar ko'paysa, vaqt 2 barobar kamayadi: 6 / 2 = 3 kun." },
 ];
 const logicTest = () => quizScreen({
-  mode: "right", items: LOGIC, count: 8, title: "Mantiq topishmoqlari", ico: "🧩", sub: "Fikrlab ko'ring", best: () => getBest("logic") != null ? getBest("logic") + " / 8" : null,
-  intro: ["8 ta qisqa topishmoq: sonlar, mantiq va hiyla savollar.", "Har safar savollar aralashib tushadi. Javobdan keyin izoh chiqadi."],
+  mode: "right", items: () => genLogic(10), title: "Mantiq topishmoqlari", ico: "🧩", sub: "Fikrlab ko'ring", best: () => getBest("logic") != null ? getBest("logic") + " ball" : null,
+  intro: ["10 ta savol: sonlar qatori, yosh va ish masalalari, soat, kunlar, mantiq va hiyla savollar.", "Har safar savollar yangi. Javobdan keyin yechim izohi chiqadi."],
   finish(a, r) {
-    const t = r.total, nb = setBest("logic", t);
-    const lv = t >= 7 ? ["Mantiq ustasi 🧠", "Topishmoqlarni tez va aniq yechasiz."] : t >= 5 ? ["Yaxshi", "Mantiqiy fikrlashingiz yaxshi."] : t >= 3 ? ["O'rtacha", "Qiyin savollarda izohlarni o'qib chiqing, keyingi safar osonlashadi."] : ["Boshlang'ich", "Bunday savollar mashq bilan oson bo'ladi. Qayta urinib ko'ring."];
-    result(a, { id: "logic", title: "Mantiq topishmoqlari", ico: "🧩", kicker: "To'g'ri javoblar", big: t + "/8", level: lv[0], text: lv[1], newBest: nb.better,
+    const t = r.total, n = r.count, nb = setBest("logic", t), f = t / n;
+    const lv = f >= .8 ? ["Mantiq ustasi 🧠", "Topishmoqlarni tez va aniq yechasiz."] : f >= .6 ? ["Yaxshi", "Mantiqiy fikrlashingiz yaxshi."] : f >= .35 ? ["O'rtacha", "Qiyin savollarda izohlarni o'qib chiqing, keyingi safar osonlashadi."] : ["Boshlang'ich", "Bunday savollar mashq bilan oson bo'ladi. Qayta urinib ko'ring."];
+    result(a, { id: "logic", title: "Mantiq topishmoqlari", ico: "🧩", kicker: "To'g'ri javoblar", big: t + "/" + n, level: lv[0], text: lv[1], newBest: nb.better,
       note: "Bu qisqa o'yin, IQ ball emas. IQ oralig'i uchun asosiy testni topshiring.",
-      again: r.again, share: `Mantiq topishmoqlarida ${t}/8 oldim. Sen necha olasan?` });
+      again: r.again, share: `Mantiq topishmoqlarida ${t}/${n} oldim. Sen necha olasan?` });
   },
 });
 
@@ -384,10 +385,10 @@ function bigTest() {
 
 /* ---------- katalog ---------- */
 export const TESTS = [
-  { id: "memory", ico: "🔢", name: "Xotira", sub: "Raqamlar qatori", t: "2 daq", c: "#E6E9FF", make: memoryTest, fmt: v => v },
-  { id: "logic", ico: "🧩", name: "Mantiq topishmoqlari", sub: "8 ta savol", t: "3 daq", c: "#E3F5EC", make: logicTest, fmt: v => v + "/8" },
-  { id: "words", ico: "📚", name: "So'z boyligi", sub: "10 ta savol", t: "2 daq", c: "#FFF0D6", make: wordTest, fmt: v => v + "/10" },
-  { id: "math", ico: "➕", name: "Tez hisob", sub: "60 soniya", t: "1 daq", c: "#E0F1FB", make: mathTest, fmt: v => v },
-  { id: "focus", ico: "🔍", name: "Diqqat", sub: "Farqni toping", t: "1 daq", c: "#EFE6FB", make: attentionTest, fmt: v => v },
-  { id: "react", ico: "⚡", name: "Reaksiya", sub: "Qancha tezsiz?", t: "1 daq", c: "#FFF4C9", make: reactionTest, fmt: v => v + " ms" },
+  { id: "memory", ico: "🔢", name: "Xotira", sub: "Raqamlar qatori", t: "2 daq", c: "#E8572A", make: memoryTest, fmt: v => v },
+  { id: "logic", ico: "🧩", name: "Mantiq topishmoqlari", sub: "10 ta savol", t: "3 daq", c: "#1F6F4E", make: logicTest, fmt: v => v + " ball" },
+  { id: "words", ico: "📚", name: "So'z boyligi", sub: "12 ta savol", t: "2 daq", c: "#C98410", make: wordTest, fmt: v => v + " ball" },
+  { id: "math", ico: "➕", name: "Tez hisob", sub: "60 soniya", t: "1 daq", c: "#2A7FB8", make: mathTest, fmt: v => v },
+  { id: "focus", ico: "🔍", name: "Diqqat", sub: "Farqni toping", t: "1 daq", c: "#5B3FA8", make: attentionTest, fmt: v => v },
+  { id: "react", ico: "⚡", name: "Reaksiya", sub: "Qancha tezsiz?", t: "1 daq", c: "#F2B33D", make: reactionTest, fmt: v => v + " ms" },
 ];
