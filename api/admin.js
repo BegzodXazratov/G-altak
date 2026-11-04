@@ -22,6 +22,16 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "no-store");
     if (req.body?.action === "post") return res.status(200).json(await post(req.body, req.headers.host));
     if (req.body?.action === "broadcast") return res.status(200).json(await broadcast(req.headers.host));
+    if (req.body?.action === "stars") { // Telegram'dagi haqiqiy Stars balansi va tranzaksiyalar
+      const [bal, tx] = await Promise.all([tgCall("getMyStarBalance", {}), tgCall("getStarTransactions", { offset: 0, limit: 100 })]);
+      return res.status(200).json({ balance: bal?.ok ? bal.result : null, balErr: bal?.ok ? null : bal?.description, tx: tx?.ok ? tx.result?.transactions || [] : [], txErr: tx?.ok ? null : tx?.description });
+    }
+    if (req.body?.action === "refund") { // to'lovni qaytarish (Stars foydalanuvchiga qaytadi)
+      const uid = Number(req.body.user_id), cid = String(req.body.charge_id || "");
+      if (!uid || !cid) return res.status(400).json({ ok: false, error: "user_id va charge_id kerak" });
+      const r = await tgCall("refundStarPayment", { user_id: uid, telegram_payment_charge_id: cid });
+      return res.status(200).json({ ok: !!r.ok, error: r.ok ? null : r.description });
+    }
     if (req.body?.action === "iq") {
       const [ov, pays, users] = await Promise.all([iqdb.rpc("iq_admin_overview", {}), iqdb.rpc("iq_admin_payments", { p_limit: 50 }), iqdb.rpc("iq_admin_users", { p_limit: 30 })]);
       return res.status(200).json({ ov, pays, users });

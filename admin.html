@@ -400,12 +400,20 @@ async function iqView() {
   try { j = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "iq" }) })).json(); }
   catch (e) { body.innerHTML = `<section class="panel"><p class="muted">Internet bilan muammo</p></section>`; return; }
   if (tab !== "iq") return;
+  let st = null; try { st = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "stars" }) })).json(); } catch (e) {}
   const o = j.ov;
   if (!o) { body.innerHTML = `<section class="panel"><p class="muted">IQ ma'lumotlari olinmadi. Vercel'da IQ_API_SECRET to'g'ri qo'yilganini tekshiring.</p></section>`; return; }
   const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "—";
   const k = (l, v, s) => `<div class="panel kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s || ""}</div></div>`;
   const fun = [["Testni boshlagan", o.started, 100], ["Oxirigacha yetgan", o.finished, o.started ? o.finished / o.started * 100 : 0], ["Batafsil uchun to'lagan", o.payers, o.finished ? o.payers / o.finished * 100 : 0]];
+  const bal = st?.balance ? (Number(st.balance.amount || 0) + (st.balance.nanostar_amount ? st.balance.nanostar_amount / 1e9 : 0)) : null;
+  const txs = (st?.tx || []).filter(t => t.source && t.source.type === "user");
   body.innerHTML = `
+    <section class="panel" style="margin-bottom:14px"><div class="ph"><h2>⭐ Botning Stars balansi (Telegram'dan)</h2></div>
+      <div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap"><div class="v disp" style="font-size:34px;font-weight:800">${bal === null ? "—" : Math.round(bal * 100) / 100} ⭐</div>
+      <span class="muted" style="font-size:13px">${bal === null ? esc(st?.balErr || "Balans olinmadi") : "Hozir hisobdagi Stars. Pulga chiqarish: Fragment orqali, kamida 1000 ⭐, 21 kundan keyin."}</span></div>
+      <p class="muted" style="font-size:13px;margin:10px 0 0">Stars chiqarish: Telegram'da botingiz profili → Balance, yoki BotFather → /mybots → bot → Balance. Telegram Stars'ni faqat Fragment/TON orqali chiqarishga ruxsat beradi, buni dasturdan qilib bo'lmaydi.</p>
+      ${txs.length ? `<div style="margin-top:12px">${txs.slice(0, 15).map(t => `<div class="hb" style="display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:14px;margin:8px 0"><span>${esc(t.source.user?.first_name || "Foydalanuvchi")} <small class="muted">ID ${t.source.user?.id}</small><br><small class="muted">${date(t.date * 1000)} · ${esc(t.id.slice(0, 18))}…</small></span><span style="display:flex;gap:10px;align-items:center"><b>+${t.amount} ⭐</b><button class="ibtn" data-refund="${esc(t.id)}" data-uid="${t.source.user?.id}">↩ Qaytarish</button></span></div>`).join("")}</div>` : `<p class="muted" style="margin:10px 0 0">${st?.txErr ? esc(st.txErr) : "Telegram tranzaksiyalari hozircha yo'q."}</p>`}</section>
     <div class="kpis">
       ${k("⭐ Jami tushum", o.pay_stars, `${o.pay_n} ta to'lov · ${o.payers} kishi`)}
       ${k("⭐ Bugun (24 soat)", o.pay_stars_24h, `${o.pay_n_24h} ta to'lov`)}
@@ -425,6 +433,12 @@ async function iqView() {
     </div>
     <section class="panel" style="margin-top:14px"><div class="ph"><h2>👥 So'nggi IQ foydalanuvchilari</h2></div>
       ${(j.users || []).length ? `<table class="t" style="width:100%;font-size:13.5px;border-collapse:collapse"><tr class="muted"><td>Ism</td><td>IQ</td><td>Testlar</td><td>⭐</td><td>Oxirgi kirish</td></tr>${(j.users).map(u => `<tr><td style="padding:6px 4px">${esc(u.name || "—")}${u.username ? ` <small class="muted">@${esc(u.username)}</small>` : ""}</td><td>${u.iq ?? "—"}</td><td>${u.tests}</td><td>${u.stars || ""}</td><td class="muted">${u.last_seen ? ago(u.last_seen) : ""}</td></tr>`).join("")}</table>` : `<p class="muted">Hozircha yo'q.</p>`}</section>`;
+  body.querySelectorAll("[data-refund]").forEach(b => b.onclick = async () => {
+    if (!confirm("Bu to'lov foydalanuvchiga ⭐ bilan qaytarilsinmi? Qaytarib bo'lmaydi.")) return;
+    b.disabled = true;
+    try { const r = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "refund", user_id: b.dataset.uid, charge_id: b.dataset.refund }) })).json(); alert(r.ok ? "Qaytarildi" : (r.error || "Xato")); } catch (e) { alert("Internet bilan muammo"); }
+    iqView();
+  });
 }
 
 function dashView() {
