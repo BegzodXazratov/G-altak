@@ -2,7 +2,8 @@
 import { app, show as coreShow, header, bindBack, toast, esc, tg, haptic, botUsername, back } from "./core.js";
 import { iqScreen, getBest } from "./iqui.js";
 import { TESTS } from "./iqx.js";
-const show = (s, p) => coreShow(iqScreen(s), p);
+let iqScroll = 0, iqBack = false;
+const show = (s, p) => { if (p !== false && document.querySelector(".iqh")) { iqScroll = window.scrollY; iqBack = true; } coreShow(iqScreen(s), p); };
 
 const S = { sid: null, sections: [], si: 0, qi: 0, answers: {}, ms: {}, qEnter: 0, deadline: 0, total: 0, timer: null, result: null, paid: false, detail: null, name: "", nextAt: null, price: 30 };
 const dev = new URLSearchParams(location.search).get("dev");
@@ -73,7 +74,7 @@ export function iqTab() {
           <div class="iqmain">
             <div><b>Mantiq darajasi (IQ)</b><p>Shakllar, sonlar, so'zlar va fazoviy fikrlash. Savollar osondan qiyinga, har safar yangi.</p>
               <div class="chips"><span>🧩 Shakllar</span><span>🔢 Sonlar</span><span>📚 So'zlar</span><span>🎲 Fazo</span></div></div>
-            <div class="cta"><button class="btn" data-start2>${st?.last ? "Natija" : "Boshlash"}</button><button class="btn alt" data-demo>⚡ 3 savolda sinab ko'rish</button></div>
+            <div class="cta">${st?.last ? `<button class="btn" data-start2>📊 Natijani ko'rish</button><button class="btn alt" data-retake>🔄 Qayta topshirish${st.next_at && Date.parse(st.next_at) > Date.now() ? ` · ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan` : ""}</button>` : `<button class="btn" data-start2>Boshlash</button>`}<button class="btn alt" data-demo>⚡ 3 savolda sinab ko'rish</button></div>
           </div>
 
           <h2 class="iqs">Boshqa testlar <small>bepul, 1–3 daqiqa</small></h2>
@@ -107,15 +108,19 @@ export function iqTab() {
             <p>Tuzilishi mashhur aql testlari (Raven matritsalari, Cattell CFIT, Wechsler) tamoyillariga o'xshatib qurilgan: savollar osondan qiyinga, har bo'limga alohida vaqt, natija 100 o'rtacha va 15 og'ish shkalasida hisoblanadi. Savollar har safar yangidan yaratiladi.</p>
             <p><b>Halol ogohlantirish:</b> bu rasmiy, ilmiy tekshirilgan IQ testi emas. Normalar hozircha taxminiy. Natija tibbiy yoki psixologik tashxis emas.</p></details>`;
         const q = s => app().querySelector(s);
-        const go = async () => { if (st?.last) { S.sid = st.last.id; S.nextAt = st.next_at; await openResult(true); } else show(practiceScreen()); };
-        q("[data-start]").onclick = go; q("[data-start2]").onclick = go;
+        const seeLast = async () => { S.sid = st.last.id; S.nextAt = st.next_at; await openResult(true, true); };
+        const retake = () => { if (st?.next_at && Date.parse(st.next_at) > Date.now()) return toast(`Qayta topshirish ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan keyin mumkin`); show(practiceScreen()); };
+        const go = () => (st?.last ? seeLast() : show(practiceScreen()));
+        q("[data-start]").onclick = go; q("[data-start2]").onclick = go; if (q("[data-retake]")) q("[data-retake]").onclick = retake;
         q("[data-demo]").onclick = () => show(demoScreen());
         q("[data-top]").onclick = () => show(topScreen());
         q("[data-facts]").onclick = () => show(factsScreen());
         app().querySelectorAll("[data-t]").forEach(b => b.onclick = () => show(TESTS.find(t => t.id === b.dataset.t).make()));
       };
-      draw(null);
-      try { const st = await iqApi("status"); S.price = st.price || 30; S.bot = st.bot; draw(st); } catch (e) { /* tashqarida yoki xato: asosiy ekran qoladi */ }
+      const keep = iqBack ? iqScroll : 0; iqBack = false;
+      const restore = () => { if (keep) { window.scrollTo(0, keep); requestAnimationFrame(() => window.scrollTo(0, keep)); setTimeout(() => window.scrollTo(0, keep), 120); } };
+      draw(S.status || null); restore();
+      try { const st = await iqApi("status"); S.status = st; S.price = st.price || 30; S.bot = st.bot; const y = window.scrollY; draw(st); window.scrollTo(0, keep ? Math.max(y, keep) : y); } catch (e) { /* tashqarida yoki xato: asosiy ekran qoladi */ }
     },
   });
 }
@@ -238,10 +243,10 @@ async function finishTest() {
 }
 
 /* ---------- natija ---------- */
-async function openResult(existing) {
+async function openResult(existing, push = false) {
   const j = await iqApi("result", { session_id: S.sid });
   Object.assign(S, { result: j.result, paid: j.paid, detail: j.detail, name: j.name || "", bot: j.bot || S.bot });
-  show(resultScreen(existing), false);
+  show(resultScreen(existing), push);
 }
 function resultScreen(existing) {
   return {
