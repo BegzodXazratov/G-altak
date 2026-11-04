@@ -1,5 +1,8 @@
 // IQ testlar bo'limi (G'altak ichida). Savollar serverda yaratiladi, javoblar serverda tekshiriladi.
-import { app, show, header, bindBack, toast, esc, tg, haptic, botUsername, back } from "./core.js";
+import { app, show as coreShow, header, bindBack, toast, esc, tg, haptic, botUsername, back } from "./core.js";
+import { iqScreen, getBest } from "./iqui.js";
+import { TESTS } from "./iqx.js";
+const show = (s, p) => coreShow(iqScreen(s), p);
 
 const S = { sid: null, sections: [], si: 0, qi: 0, answers: {}, ms: {}, qEnter: 0, deadline: 0, total: 0, timer: null, result: null, paid: false, detail: null, name: "", nextAt: null, price: 30 };
 const dev = new URLSearchParams(location.search).get("dev");
@@ -14,7 +17,7 @@ async function iqApi(action, body = {}) {
 const tick = () => { try { tg?.HapticFeedback?.selectionChanged(); } catch (e) {} };
 
 /* ---------- SVG shakllar ---------- */
-const FILL = ["#ffffff", "#b9ae9c", "#1F1A16"], INK = "#1F1A16";
+const FILL = ["#ffffff", "#b8c0e0", "#1B2140"], INK = "#1B2140";
 function shapeSVG(s, x, y, r, f, rot) {
   const fill = FILL[f], st = `stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"`;
   const tr = rot ? ` transform="rotate(${rot * 90} ${x} ${y})"` : "";
@@ -25,30 +28,39 @@ function shapeSVG(s, x, y, r, f, rot) {
 const POS = { 1: [[30, 30, 17]], 2: [[19, 30, 11], [41, 30, 11]], 3: [[30, 18, 10], [18, 41, 10], [42, 41, 10]] };
 function cellSVG(c) {
   let inner = "";
-  if (c === null) inner = `<text x="30" y="40" text-anchor="middle" font-size="30" font-weight="800" fill="#E8572A">?</text>`;
+  if (c === null) inner = `<text x="30" y="40" text-anchor="middle" font-size="30" font-weight="800" fill="#5B5BF0">?</text>`;
   else POS[c.n].forEach(p => { inner += shapeSVG(c.s, p[0], p[1], p[2], c.f, c.r); });
-  return `<svg viewBox="0 0 60 60"><rect x="1" y="1" width="58" height="58" rx="9" fill="#F4EEE3" stroke="${c === null ? "#E8572A" : "#d9ccb6"}" stroke-width="${c === null ? 2.5 : 1.5}"/>${inner}</svg>`;
+  return `<svg viewBox="0 0 60 60"><rect x="1" y="1" width="58" height="58" rx="9" fill="#F1F3FF" stroke="${c === null ? "#5B5BF0" : "#cfd5ee"}" stroke-width="${c === null ? 2.5 : 1.5}"/>${inner}</svg>`;
 }
 function gridSVG(g) {
   const n = g.length, u = 60 / n; let s = "";
-  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) s += `<rect x="${c * u + 1}" y="${r * u + 1}" width="${u - 2}" height="${u - 2}" rx="3" fill="${g[r][c] ? INK : "#fff"}" stroke="#bfb29c" stroke-width="1"/>`;
-  return `<svg viewBox="0 0 60 60"><rect x="0" y="0" width="60" height="60" rx="8" fill="#F4EEE3"/>${s}</svg>`;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) s += `<rect x="${c * u + 1}" y="${r * u + 1}" width="${u - 2}" height="${u - 2}" rx="3" fill="${g[r][c] ? INK : "#fff"}" stroke="#c4cbe6" stroke-width="1"/>`;
+  return `<svg viewBox="0 0 60 60"><rect x="0" y="0" width="60" height="60" rx="8" fill="#F1F3FF"/>${s}</svg>`;
 }
 const EX = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) EX.push({ s: 0, n: c + 1, f: r === 0 ? 0 : r === 1 ? 1 : 2, r: 0 });
 
 /* ---------- asosiy tab ---------- */
 export function iqTab() {
-  return {
+  return iqScreen({
     tab: "iq",
     async render() {
       const draw = (st) => {
         const h = st?.history || [];
         const best = h.length ? Math.max(...h.map(x => x.iq)) : null;
+        const FAQ = [
+          ["Test qancha vaqt oladi?", "Asosiy test taxminan 20 daqiqa: 4 bo'lim, 31 savol. Har bo'limning o'z vaqti bor. Qolgan testlar 1–3 daqiqa."],
+          ["IQ natijasi qanchalik aniq?", "Bu rasmiy ilmiy test emas. Natija aniq son emas, taxminiy oraliq sifatida beriladi. Normalar foydalanuvchilar natijalari bilan asta-sekin aniqlashtiriladi."],
+          ["Bepul nima, pullik nima?", "IQ oralig'i, daraja va foiz (100 kishidan nechtasidan yuqori ekaningiz) bepul. Batafsil tahlil (bo'limlar bo'yicha ball, kuchli va zaif tomonlar, xatolar izohi) " + S.price + " ⭐."],
+          ["Testni qayta topshirsam bo'ladimi?", "Ha, 7 kundan keyin va boshqa savollar bilan. Mashq natijani biroz oshiradi, lekin aqlning o'sishi degani emas."],
+          ["Qolgan testlar IQ beradimi?", "Yo'q. Xotira, EQ, shaxsiyat va boshqalar o'yin-kulgi uchun va faqat qiziqarli profil beradi. IQ oralig'ini faqat asosiy test beradi."],
+        ];
         app().innerHTML = `
-          <section class="iq-hero">
-            <span class="tag">Mantiq · 20 daqiqa</span>
-            <h1>IQ testlar</h1>
-            <p>4 bo'lim, 31 savol. IQ oralig'i va darajangiz bepul. O'yin-kulgi uchun.</p>
+          <section class="iqh">
+            <span class="tag">🧠 Mantiq · bepul boshlang</span>
+            <h1>O'zingizni <em>sinab</em> ko'ring</h1>
+            <p>IQ testi va yana 8 ta qiziqarli test. Natija bir zumda, hammasi o'zbek tilida.</p>
+            <button class="btn" data-start>${st?.last ? "📊 Oxirgi natijani ko'rish" : "🧠 IQ testini boshlash"}</button>
+            ${st?.last && st.next_at ? `<small>Qayta topshirish: ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan keyin</small>` : `<small>4 bo'lim · 31 savol · ~20 daqiqa</small>`}
             <span class="art" aria-hidden="true">🧠</span>
           </section>
           <div class="iq-stats">
@@ -56,29 +68,56 @@ export function iqTab() {
             <div><b>${h.length ? h[0].iq : "—"}</b><small>Oxirgi IQ</small></div>
             <div><b>${h.length}</b><small>Testlar</small></div>
           </div>
-          <div class="stack">
-            ${st?.last ? `<button class="btn" data-last>📊 Oxirgi natijani ko'rish</button>
-              <p class="small muted center" style="margin:-4px 0 0">${st.next_at ? `Qayta topshirish: ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan keyin` : ""}</p>`
-              : `<button class="btn" data-start>🧠 Testni boshlash</button>`}
-            <button class="btn alt" data-demo>⚡ Avval 3 ta savolda sinab ko'ring</button>
-            <button class="btn alt" data-top>🏆 IQ reytingi</button>
-            <button class="btn alt" data-facts>📊 IQ haqida: grafika va faktlar</button>
+
+          <h2 class="iqs">Asosiy test</h2>
+          <div class="iqmain">
+            <div><b>Mantiq darajasi (IQ)</b><p>Shakllar, sonlar, so'zlar va fazoviy fikrlash. Savollar osondan qiyinga, har safar yangi.</p>
+              <div class="chips"><span>🧩 Shakllar</span><span>🔢 Sonlar</span><span>📚 So'zlar</span><span>🎲 Fazo</span></div></div>
+            <div class="cta"><button class="btn" data-start2>${st?.last ? "Natija" : "Boshlash"}</button><button class="btn alt" data-demo>⚡ 3 savolda sinab ko'rish</button></div>
           </div>
-          ${h.length > 1 ? `<h2 class="sect">Natijalaringiz tarixi</h2><div class="card iq-hist">${h.slice(0, 8).map(x => `<div><span>${new Date(x.at).toLocaleDateString("uz-UZ")}</span><i style="width:${Math.max(8, Math.min(100, (x.iq - 55) / 90 * 100))}%"></i><b>${x.iq}</b></div>`).join("")}<p class="small muted" style="margin:10px 0 0">Mashq natijani biroz oshiradi, bu aqlning o'sishi degani emas.</p></div>` : ""}
-          <details class="card" style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">Test haqida (nimaga asoslangan)</summary>
-            <p class="small muted" style="margin-top:8px">Tuzilishi mashhur aql testlari (Raven matritsalari, Cattell CFIT, Wechsler) tamoyillariga o'xshatib qurilgan: savollar osondan qiyinga, har bo'limga alohida vaqt, natija 100 o'rtacha va 15 og'ish shkalasida hisoblanadi. Savollar har safar yangidan yaratiladi.</p>
-            <p class="small muted"><b>Halol ogohlantirish:</b> bu rasmiy, ilmiy tekshirilgan IQ testi emas. Normalar hozircha taxminiy. Natija aniq son emas, oraliq sifatida ko'rsatiladi.</p></details>`;
+
+          <h2 class="iqs">Boshqa testlar <small>bepul, 1–3 daqiqa</small></h2>
+          <div class="iqgrid">${TESTS.map(t => { const bv = getBest(t.id); return `<button class="iqt" data-t="${t.id}" style="--c:${t.c}"><span class="e">${t.ico}</span><b>${t.name}</b><small>${t.sub} · ${t.t}</small>${bv != null ? `<i>Rekord: ${esc(String(t.fmt(bv)))}</i>` : `<i class="new">Yangi</i>`}</button>`; }).join("")}</div>
+
+          <h2 class="iqs">Qanday ishlaydi</h2>
+          <div class="iqsteps">
+            <div><span>1</span><b>Testni tanlang</b><p>Asosiy IQ testi yoki tezkor testlardan istalgani.</p></div>
+            <div><span>2</span><b>Savollarga javob bering</b><p>Har bo'limda vaqt bor. Hammasiga ulgurmaslik normal.</p></div>
+            <div><span>3</span><b>Natijani oling</b><p>IQ oralig'i, daraja va o'rningiz bir zumda chiqadi.</p></div>
+          </div>
+
+          <h2 class="iqs">Natijada nima olasiz</h2>
+          <div class="iqwhat">
+            <div class="free"><b>Bepul</b><ul><li>IQ oralig'i</li><li>Daraja nomi</li><li>100 kishidan nechtasidan yuqoriligingiz</li><li>Do'stlarga yuborish</li></ul></div>
+            <div class="paid"><b>${S.price} ⭐</b><ul><li>4 bo'lim bo'yicha ball</li><li>Kuchli va zaif tomonlar</li><li>Xatolaringiz izohi</li><li>Savolga sarflangan vaqt</li></ul></div>
+          </div>
+
+          <h2 class="iqs">Bilib oling</h2>
+          <div class="iqlinks">
+            <button class="iql" data-facts><span>📊</span><div><b>IQ nima?</b><small>Grafika va qiziqarli faktlar</small></div></button>
+            <button class="iql" data-top><span>🏆</span><div><b>IQ reytingi</b><small>Eng yuqori natijalar</small></div></button>
+          </div>
+
+          ${h.length > 1 ? `<h2 class="iqs">Natijalaringiz tarixi</h2><div class="card iq-hist">${h.slice(0, 8).map(x => `<div><span>${new Date(x.at).toLocaleDateString("uz-UZ")}</span><i style="width:${Math.max(8, Math.min(100, (x.iq - 55) / 90 * 100))}%"></i><b>${x.iq}</b></div>`).join("")}<p class="small muted" style="margin:10px 0 0">Mashq natijani biroz oshiradi, bu aqlning o'sishi degani emas.</p></div>` : ""}
+
+          <h2 class="iqs">Ko'p so'raladigan savollar</h2>
+          <div class="iqfaq">${FAQ.map(f => `<details><summary>${esc(f[0])}</summary><p>${esc(f[1])}</p></details>`).join("")}</div>
+
+          <details class="iqfaq1"><summary>Test haqida (nimaga asoslangan)</summary>
+            <p>Tuzilishi mashhur aql testlari (Raven matritsalari, Cattell CFIT, Wechsler) tamoyillariga o'xshatib qurilgan: savollar osondan qiyinga, har bo'limga alohida vaqt, natija 100 o'rtacha va 15 og'ish shkalasida hisoblanadi. Savollar har safar yangidan yaratiladi.</p>
+            <p><b>Halol ogohlantirish:</b> bu rasmiy, ilmiy tekshirilgan IQ testi emas. Normalar hozircha taxminiy. Natija tibbiy yoki psixologik tashxis emas.</p></details>`;
         const q = s => app().querySelector(s);
-        q("[data-start]")?.addEventListener("click", () => show(practiceScreen()));
-        q("[data-last]")?.addEventListener("click", async () => { S.sid = st.last.id; S.nextAt = st.next_at; await openResult(true); });
+        const go = async () => { if (st?.last) { S.sid = st.last.id; S.nextAt = st.next_at; await openResult(true); } else show(practiceScreen()); };
+        q("[data-start]").onclick = go; q("[data-start2]").onclick = go;
         q("[data-demo]").onclick = () => show(demoScreen());
         q("[data-top]").onclick = () => show(topScreen());
         q("[data-facts]").onclick = () => show(factsScreen());
+        app().querySelectorAll("[data-t]").forEach(b => b.onclick = () => show(TESTS.find(t => t.id === b.dataset.t).make()));
       };
       draw(null);
       try { const st = await iqApi("status"); S.price = st.price || 30; S.bot = st.bot; draw(st); } catch (e) { /* tashqarida yoki xato: asosiy ekran qoladi */ }
     },
-  };
+  });
 }
 
 /* ---------- mashq ---------- */
@@ -259,9 +298,24 @@ async function payFlow() {
           try { const k = await iqApi("result", { session_id: S.sid }); if (k.paid) { Object.assign(S, { paid: true, detail: k.detail }); show(detailScreen(), false); return; } } catch (e) {}
         }
         toast("To'lov tekshirilmoqda, birozdan keyin qayta oching");
-      } else if (st === "failed") toast("To'lov amalga oshmadi");
+      } else if (st === "failed" || st === "cancelled") starsHelp(st === "failed");
     });
-  } catch (e) { toast("Xatolik. Qayta urinib ko'ring"); }
+  } catch (e) { starsHelp(true); }
+}
+// To'lov bekor bo'lsa yoki yulduz yetmasa: @starpaybot'ga o'tish taklifi
+function starsHelp(failed) {
+  document.getElementById("iq-sheet")?.remove();
+  const d = document.createElement("div"); d.id = "iq-sheet"; d.className = "iq-sheet";
+  d.innerHTML = `<div class="iq-sheet-box"><h3>${failed ? "To'lov amalga oshmadi" : "To'lov bekor qilindi"}</h3>
+    <p>Yulduzchangiz (⭐) yetarli bo'lmagan bo'lishi mumkin. Rasmiy hamkorimiz <b>@starpaybot</b> orqali ${S.price} ⭐ xarid qiling, keyin shu yerga qaytib, “Batafsil natija” tugmasini yana bosing.</p>
+    <button class="btn" data-spb>⭐ @starpaybot ga o'tish</button>
+    <button class="btn alt" data-retry>Qayta urinib ko'rish</button>
+    <button class="btn alt" data-x>Yopish</button></div>`;
+  document.body.appendChild(d);
+  d.querySelector("[data-spb]").onclick = () => { d.remove(); tg?.openTelegramLink ? tg.openTelegramLink("https://t.me/starpaybot") : window.open("https://t.me/starpaybot"); };
+  d.querySelector("[data-retry]").onclick = () => { d.remove(); payFlow(); };
+  d.querySelector("[data-x]").onclick = () => d.remove();
+  d.onclick = e => { if (e.target === d) d.remove(); };
 }
 function detailScreen() {
   return {
