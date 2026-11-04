@@ -52,13 +52,13 @@ export function iqTab() {
           ["IQ natijasi qanchalik aniq?", "Bu rasmiy ilmiy test emas. Natija aniq son emas, taxminiy oraliq sifatida beriladi. Normalar foydalanuvchilar natijalari bilan asta-sekin aniqlashtiriladi."],
           ["Bepul nima, pullik nima?", "IQ oralig'i, daraja va foiz (100 kishidan nechtasidan yuqori ekaningiz) bepul. Batafsil tahlil (bo'limlar bo'yicha ball, kuchli va zaif tomonlar, xatolar izohi) " + S.price + " ⭐."],
           ["Testni qayta topshirsam bo'ladimi?", "Ha, 7 kundan keyin va boshqa savollar bilan. Mashq natijani biroz oshiradi, lekin aqlning o'sishi degani emas."],
-          ["Qolgan testlar IQ beradimi?", "Yo'q. Xotira, EQ, shaxsiyat va boshqalar o'yin-kulgi uchun va faqat qiziqarli profil beradi. IQ oralig'ini faqat asosiy test beradi."],
+          ["Qolgan testlar IQ beradimi?", "Yo'q. Xotira, mantiq topishmoqlari, tezlik va boshqalar o'yin-kulgi uchun va faqat qiziqarli profil beradi. IQ oralig'ini faqat asosiy test beradi."],
         ];
         app().innerHTML = `
           <section class="iqh">
             <span class="tag">🧠 Mantiq · bepul boshlang</span>
             <h1>O'zingizni <em>sinab</em> ko'ring</h1>
-            <p>IQ testi va yana 8 ta qiziqarli test. Natija bir zumda, hammasi o'zbek tilida.</p>
+            <p>IQ testi va yana 6 ta qiziqarli test. Natija bir zumda, hammasi o'zbek tilida.</p>
             <button class="btn" data-start>${st?.last ? "📊 Oxirgi natijani ko'rish" : "🧠 IQ testini boshlash"}</button>
             ${st?.last && st.next_at ? `<small>Qayta topshirish: ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan keyin</small>` : `<small>4 bo'lim · 31 savol · ~20 daqiqa</small>`}
             <span class="art" aria-hidden="true">🧠</span>

@@ -386,10 +386,8 @@ function bigTest() {
 export const TESTS = [
   { id: "memory", ico: "🔢", name: "Xotira", sub: "Raqamlar qatori", t: "2 daq", c: "#E6E9FF", make: memoryTest, fmt: v => v },
   { id: "logic", ico: "🧩", name: "Mantiq topishmoqlari", sub: "8 ta savol", t: "3 daq", c: "#E3F5EC", make: logicTest, fmt: v => v + "/8" },
-  { id: "eq", ico: "💗", name: "Hissiy aql (EQ)", sub: "10 vaziyat", t: "2 daq", c: "#FFE6EF", make: eqTest, fmt: v => v + "/30" },
   { id: "words", ico: "📚", name: "So'z boyligi", sub: "10 ta savol", t: "2 daq", c: "#FFF0D6", make: wordTest, fmt: v => v + "/10" },
   { id: "math", ico: "➕", name: "Tez hisob", sub: "60 soniya", t: "1 daq", c: "#E0F1FB", make: mathTest, fmt: v => v },
   { id: "focus", ico: "🔍", name: "Diqqat", sub: "Farqni toping", t: "1 daq", c: "#EFE6FB", make: attentionTest, fmt: v => v },
   { id: "react", ico: "⚡", name: "Reaksiya", sub: "Qancha tezsiz?", t: "1 daq", c: "#FFF4C9", make: reactionTest, fmt: v => v + " ms" },
-  { id: "big", ico: "🪞", name: "Shaxsiyat", sub: "5 ta jihat", t: "2 daq", c: "#FFE9DC", make: bigTest, fmt: v => v },
 ];
