@@ -5,7 +5,7 @@ import { TESTS } from "./iqx.js";
 let iqScroll = 0, iqBack = false;
 const show = (s, p) => { if (p !== false && document.querySelector(".iqh")) { iqScroll = window.scrollY; iqBack = true; } coreShow(iqScreen(s), p); };
 
-const S = { sid: null, sections: [], si: 0, qi: 0, answers: {}, ms: {}, qEnter: 0, deadline: 0, total: 0, timer: null, result: null, paid: false, detail: null, name: "", nextAt: null, price: 30 };
+const S = { sid: null, sections: [], si: 0, qi: 0, answers: {}, ms: {}, qEnter: 0, deadline: 0, total: 0, timer: null, result: null, paid: false, detail: null, name: "", price: 30 };
 const dev = new URLSearchParams(location.search).get("dev");
 
 async function iqApi(action, body = {}) {
@@ -52,7 +52,7 @@ export function iqTab() {
           ["Test qancha vaqt oladi?", "Asosiy test taxminan 20 daqiqa: 4 bo'lim, 31 savol. Har bo'limning o'z vaqti bor. Qolgan testlar 1–3 daqiqa."],
           ["IQ natijasi qanchalik aniq?", "Bu rasmiy ilmiy test emas. Natija aniq son emas, taxminiy oraliq sifatida beriladi. Normalar foydalanuvchilar natijalari bilan asta-sekin aniqlashtiriladi."],
           ["Bepul nima, pullik nima?", "IQ oralig'i, daraja va foiz (100 kishidan nechtasidan yuqori ekaningiz) bepul. Batafsil tahlil (bo'limlar bo'yicha ball, kuchli va zaif tomonlar, xatolar izohi) " + S.price + " ⭐."],
-          ["Testni qayta topshirsam bo'ladimi?", "Ha, 7 kundan keyin va boshqa savollar bilan. Mashq natijani biroz oshiradi, lekin aqlning o'sishi degani emas."],
+          ["Testni qayta topshirsam bo'ladimi?", "Ha. Har kuni 2 ta bepul urinish bor, 3-urinishdan boshlab har bir test " + (S.today?.price || 20) + " ⭐. Savollar har safar yangi. Mashq natijani biroz oshiradi, lekin aqlning o'sishi degani emas."],
           ["Qolgan testlar IQ beradimi?", "Yo'q. Xotira, mantiq topishmoqlari, tezlik va boshqalar o'yin-kulgi uchun va faqat qiziqarli profil beradi. IQ oralig'ini faqat asosiy test beradi."],
         ];
         app().innerHTML = `
@@ -61,7 +61,7 @@ export function iqTab() {
             <h1>O'zingizni <em>sinab</em> ko'ring</h1>
             <p>IQ testi va yana 6 ta qiziqarli test. Natija bir zumda, hammasi o'zbek tilida.</p>
             <button class="btn" data-start>${st?.last ? "📊 Oxirgi natijani ko'rish" : "🧠 IQ testini boshlash"}</button>
-            ${st?.last && st.next_at ? `<small>Qayta topshirish: ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan keyin</small>` : `<small>4 bo'lim · 31 savol · ~20 daqiqa</small>`}
+            <small>${todayLine(st)}</small>
             <span class="art" aria-hidden="true">🧠</span>
           </section>
           <div class="iq-stats">
@@ -74,7 +74,7 @@ export function iqTab() {
           <div class="iqmain">
             <div><b>Mantiq darajasi (IQ)</b><p>Shakllar, sonlar, so'zlar va fazoviy fikrlash. Savollar osondan qiyinga, har safar yangi.</p>
               <div class="chips"><span>🧩 Shakllar</span><span>🔢 Sonlar</span><span>📚 So'zlar</span><span>🎲 Fazo</span></div></div>
-            <div class="cta">${st?.last ? `<button class="btn" data-start2>📊 Natijani ko'rish</button><button class="btn alt" data-retake>🔄 Qayta topshirish${st.next_at && Date.parse(st.next_at) > Date.now() ? ` · ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan` : ""}</button>` : `<button class="btn" data-start2>Boshlash</button>`}<button class="btn alt" data-demo>⚡ 3 savolda sinab ko'rish</button></div>
+            <div class="cta">${st?.last ? `<button class="btn" data-start2>📊 Natijani ko'rish</button><button class="btn alt" data-retake>🔄 Qayta topshirish${retakeTag(st)}</button>` : `<button class="btn" data-start2>Boshlash</button>`}<button class="btn alt" data-demo>⚡ 3 savolda sinab ko'rish</button></div>
           </div>
 
           <h2 class="iqs">Boshqa testlar <small>bepul, 1–3 daqiqa</small></h2>
@@ -108,9 +108,9 @@ export function iqTab() {
             <p>Tuzilishi mashhur aql testlari (Raven matritsalari, Cattell CFIT, Wechsler) tamoyillariga o'xshatib qurilgan: savollar osondan qiyinga, har bo'limga alohida vaqt, natija 100 o'rtacha va 15 og'ish shkalasida hisoblanadi. Savollar har safar yangidan yaratiladi.</p>
             <p><b>Halol ogohlantirish:</b> bu rasmiy, ilmiy tekshirilgan IQ testi emas. Normalar hozircha taxminiy. Natija tibbiy yoki psixologik tashxis emas.</p></details>`;
         const q = s => app().querySelector(s);
-        const seeLast = async () => { S.sid = st.last.id; S.nextAt = st.next_at; await openResult(true, true); };
-        const retake = () => { if (st?.next_at && Date.parse(st.next_at) > Date.now()) return toast(`Qayta topshirish ${new Date(st.next_at).toLocaleDateString("uz-UZ")} dan keyin mumkin`); show(practiceScreen()); };
-        const go = () => (st?.last ? seeLast() : show(practiceScreen()));
+        const seeLast = async () => { S.sid = st.last.id; await openResult(true, true); };
+        const retake = () => startFlow();
+        const go = () => (st?.last ? seeLast() : startFlow());
         q("[data-start]").onclick = go; q("[data-start2]").onclick = go; if (q("[data-retake]")) q("[data-retake]").onclick = retake;
         q("[data-demo]").onclick = () => show(demoScreen());
         q("[data-top]").onclick = () => show(topScreen());
@@ -120,7 +120,7 @@ export function iqTab() {
       const keep = iqBack ? iqScroll : 0; iqBack = false;
       const restore = () => { if (keep) { window.scrollTo(0, keep); requestAnimationFrame(() => window.scrollTo(0, keep)); setTimeout(() => window.scrollTo(0, keep), 120); } };
       draw(S.status || null); restore();
-      try { const st = await iqApi("status"); S.status = st; S.price = st.price || 30; S.bot = st.bot; const y = window.scrollY; draw(st); window.scrollTo(0, keep ? Math.max(y, keep) : y); } catch (e) { /* tashqarida yoki xato: asosiy ekran qoladi */ }
+      try { const st = await iqApi("status"); S.status = st; S.price = st.price || 30; S.bot = st.bot; if (st.today) S.today = st.today; const y = window.scrollY; draw(st); window.scrollTo(0, keep ? Math.max(y, keep) : y); } catch (e) { /* tashqarida yoki xato: asosiy ekran qoladi */ }
     },
   });
 }
@@ -148,11 +148,54 @@ async function startTest() {
   app().innerHTML = `<div class="iq-wait"><div class="spin"></div><p>Savollar tayyorlanmoqda…</p></div>`;
   try {
     const j = await iqApi("start");
-    if (j.existing) { S.sid = j.session_id; S.nextAt = j.next_at; return openResult(true); }
+    if (j.today) S.today = j.today;
     Object.assign(S, { sid: j.session_id, sections: j.sections, si: 0, answers: {}, ms: {} });
     try { tg?.enableClosingConfirmation(); } catch (e) {}
     show(introScreen(), false);
-  } catch (e) { toast(e.code === 401 ? "Telegram ichida oching" : "Xatolik. Birozdan keyin qayta urining"); back(); }
+  } catch (e) {
+    if (e.code === 402) { back(); return payRetry(); }
+    toast(e.code === 401 ? "Telegram ichida oching" : "Xatolik. Birozdan keyin qayta urining"); back();
+  }
+}
+// Test boshlash: bugungi urinish bor bo'lsa mashq ekrani, yo'q bo'lsa to'lov taklifi
+function startFlow() {
+  const t = S.today;
+  if (t && t.left <= 0) return payRetry();
+  show(practiceScreen());
+}
+const todayLine = (st) => { const t = st?.today; if (!t || t.left >= 900) return "4 bo'lim · 31 savol · ~20 daqiqa"; return t.left > 0 ? `Bugun yana ${t.left} ta bepul urinish · 31 savol · ~20 daqiqa` : `Bugungi bepul urinishlar tugadi · keyingisi ${t.price} ⭐`; };
+const retakeTag = (st) => { const t = st?.today; if (!t || t.left >= 900) return ""; return t.left > 0 ? ` · ${t.left} ta bepul` : ` · ${t.price} ⭐`; };
+// 3-urinishdan boshlab: Stars to'lovi
+function payRetry() {
+  const price = S.today?.price || S.price2;
+  document.getElementById("iq-sheet")?.remove();
+  const d = document.createElement("div"); d.id = "iq-sheet"; d.className = "iq-sheet";
+  d.innerHTML = `<div class="iq-sheet-box"><h3>Bugungi bepul urinishlar tugadi</h3>
+    <p>Har kuni 2 ta test bepul. Qo'shimcha test topshirish: <b>${price} ⭐</b>. Ertaga yana 2 ta bepul urinish ochiladi.</p>
+    <button class="btn" data-pay>${price} ⭐ to'lab topshirish</button>
+    <p class="small" style="margin:0">⭐ yetmasa, <a href="https://t.me/starpaybot" data-spb style="color:var(--accent)">@starpaybot</a> orqali xarid qiling</p>
+    <button class="btn alt" data-x>Yopish</button></div>`;
+  document.body.appendChild(d);
+  d.querySelector("[data-x]").onclick = () => d.remove();
+  d.onclick = e => { if (e.target === d) d.remove(); };
+  d.querySelector("[data-spb]").onclick = e => { e.preventDefault(); tg?.openTelegramLink ? tg.openTelegramLink("https://t.me/starpaybot") : window.open("https://t.me/starpaybot"); };
+  d.querySelector("[data-pay]").onclick = async () => {
+    try {
+      const j = await iqApi("invoice_retry");
+      if (j.free) { d.remove(); S.today = j.today; return show(practiceScreen()); }
+      if (!tg?.openInvoice) return toast("To'lov faqat Telegram ichida ishlaydi");
+      tg.openInvoice(j.link, async st => {
+        if (st === "paid") {
+          d.remove(); toast("To'lov qabul qilindi ✅");
+          for (let i = 0; i < 10; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            try { const k = await iqApi("status"); S.status = k; if (k.today && k.today.left > 0) { S.today = k.today; return show(practiceScreen()); } } catch (e) {}
+          }
+          toast("To'lov tekshirilmoqda, birozdan keyin qayta oching");
+        } else if (st === "failed") toast("To'lov amalga oshmadi");
+      });
+    } catch (e) { toast("Xatolik. Qayta urinib ko'ring"); }
+  };
 }
 
 /* ---------- bo'lim kirishi ---------- */
@@ -264,7 +307,7 @@ function resultScreen(existing) {
         </section>
         <div class="hint" style="background:rgba(242,179,61,.14);color:var(--ink)">${r.provisional ? "Natija taxminiy: test hali yangi, normalar birinchi foydalanuvchilar natijalari bilan aniqlashtirilmoqda. " : ""}Bu o'yin-kulgi uchun mantiq testi. Rasmiy IQ testi yoki tibbiy/psixologik tashxis emas.</div>
         <div class="stack" data-pay></div>
-        <p class="small muted center" style="margin-top:10px">${existing && S.nextAt ? `Siz testni yaqinda topshirgansiz. Qayta urinish: ${new Date(S.nextAt).toLocaleDateString("uz-UZ")} dan keyin.` : "Qayta topshirish 7 kundan keyin mumkin."}</p>`;
+        <div class="stack" style="margin-top:10px"><button class="btn alt" data-again>🔄 Qayta topshirish</button><p class="small muted center" style="margin:0">Har kuni 2 ta bepul urinish, keyingisi ${S.today?.price || 20} ⭐. Savollar har safar yangi.</p></div>`;
       bindBack();
       const a = app();
       const t0 = performance.now(), el = a.querySelector("[data-iq]");
@@ -281,6 +324,7 @@ function resultScreen(existing) {
         pay.querySelector("[data-pay-btn]").onclick = payFlow;
         pay.querySelector("[data-spb]").onclick = e => { e.preventDefault(); tg?.openTelegramLink ? tg.openTelegramLink("https://t.me/starpaybot") : window.open("https://t.me/starpaybot"); };
       }
+      a.querySelector("[data-again]").onclick = () => startFlow();
       pay.querySelector("[data-share]").onclick = async () => {
         const bot = link || (await botUsername().then(b => b ? `https://t.me/${b}` : ""));
         const text = `Men mantiq testida "${r.level}" daraja oldim (IQ taxminan ${r.lo}–${r.hi}). Sen ham sinab ko'r!`;
@@ -403,7 +447,7 @@ function factsScreen() {
       [70, 85, 100, 115, 130].forEach(v => { svg += `<text x="${X(v)}" y="${B + 16}" text-anchor="middle" fill="#7A6F63" font-size="11">${v}</text>`; });
       svg += `<text x="${X(100)}" y="${T - 2}" text-anchor="middle" fill="#1F1A16" font-size="11" font-weight="700">68% shu yerda</text>`;
       const F = [["Oddiy odam (o'rtacha)", 100, "norma"], ["Stephen Hawking", 160, "o'zi aytgan taxminiy ball"], ["Albert Einstein", 160, "hech qachon test topshirmagan, taxmin"], ["Terens Tao", 225, "bolalikdagi baho, bahsli"], ["Marilyn vos Savant", 228, "bolalikdagi eski usul, bahsli"]];
-      const facts = [["📜", "Hammasi maktabdan boshlangan", "1905-yilda fransuz Alfred Bine maktabda yordam kerak bolalarni topish uchun birinchi testni tuzgan. \"IQ\" so'zini nemis olimi Vilgelm Shtern 1912-yilda kiritgan."], ["📈", "Flinn effekti", "20-asr davomida dunyoda test ballari o'n yilda o'rtacha taxminan 3 ball ko'tarilgan. Shuning uchun testlarning normasi yangilab turiladi."], ["🏋️", "Mashq natijani oshiradi", "Bir xil turdagi savollarni ko'p yechsangiz ball ko'tariladi, lekin bu aqlning o'zi o'sganini anglatmaydi. Shuning uchun qayta topshirish 7 kundan keyin."], ["🎨", "IQ hamma narsani o'lchamaydi", "Ijodkorlik, hissiy aql, mehnatsevarlik, odamlar bilan til topishish testda ko'rinmaydi, muvaffaqiyatda esa ular ham katta rol o'ynaydi."], ["👥", "Mensa klubi", "Dunyodagi eng ommabop yuqori IQ klubiga qabul talabi: aholining eng yuqori 2 foizi ichida bo'lish."], ["🎲", "Tavakkal bosish ham ~75 beradi", "Javoblar 4–6 variantli, taxmin bilan bir qismini topish mumkin. Shuning uchun bu test 80 dan pastni aniq ajratmaydi."]];
+      const facts = [["📜", "Hammasi maktabdan boshlangan", "1905-yilda fransuz Alfred Bine maktabda yordam kerak bolalarni topish uchun birinchi testni tuzgan. \"IQ\" so'zini nemis olimi Vilgelm Shtern 1912-yilda kiritgan."], ["📈", "Flinn effekti", "20-asr davomida dunyoda test ballari o'n yilda o'rtacha taxminan 3 ball ko'tarilgan. Shuning uchun testlarning normasi yangilab turiladi."], ["🏋️", "Mashq natijani oshiradi", "Bir xil turdagi savollarni ko'p yechsangiz ball ko'tariladi, lekin bu aqlning o'zi o'sganini anglatmaydi. Shuning uchun kuniga 2 ta bepul urinish, keyingilari pullik."], ["🎨", "IQ hamma narsani o'lchamaydi", "Ijodkorlik, hissiy aql, mehnatsevarlik, odamlar bilan til topishish testda ko'rinmaydi, muvaffaqiyatda esa ular ham katta rol o'ynaydi."], ["👥", "Mensa klubi", "Dunyodagi eng ommabop yuqori IQ klubiga qabul talabi: aholining eng yuqori 2 foizi ichida bo'lish."], ["🎲", "Tavakkal bosish ham ~75 beradi", "Javoblar 4–6 variantli, taxmin bilan bir qismini topish mumkin. Shuning uchun bu test 80 dan pastni aniq ajratmaydi."]];
       app().innerHTML = `${header("IQ nima?")}
         <p class="muted">Intellekt koeffitsienti: mantiqiy fikrlash darajangizni boshqalar bilan solishtiradigan ball. 100 o'rtacha, odamlarning ko'pchiligi shu atrofda.</p>
         <div class="card"><h2 style="font-size:16px;margin-bottom:8px">Odamlar IQ bo'yicha qanday taqsimlangan</h2><svg viewBox="0 0 320 190" style="width:100%;height:auto">${svg}</svg>

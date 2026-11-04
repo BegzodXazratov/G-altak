@@ -16,6 +16,7 @@ function call(fn, a) {
     case 'iq_broadcast_batch': return Object.values(S.users).filter((u) => u.chat_ok && !u.blocked && u.tg_id > (a.p_after || 0)).map((u) => u.tg_id).sort((x, y) => x - y).slice(0, a.p_limit || 20);
     case 'iq_history': return Object.values(S.sessions).filter((x) => x.tg_id === a.p_tg && x.finished_at).map((x) => ({ id: x.id, iq: x.iq, lo: x.ci_lo, hi: x.ci_hi, at: x.finished_at, raw: x.raw }));
     case 'iq_top': { const best = {}; Object.values(S.sessions).filter((x) => x.finished_at).forEach((x) => { const b = best[x.tg_id] || (best[x.tg_id] = { id: String(x.tg_id), name: x.tg_name || "O'yinchi", iq: 0, tests: 0 }); b.iq = Math.max(b.iq, x.iq); b.tests++; }); return Object.values(best).sort((m, n) => n.iq - m.iq); }
+    case 'iq_day_usage': return { used: Object.values(S.sessions).filter((x) => x.tg_id === a.p_tg).length, credits: S.pays.filter((x) => x.tg_id === a.p_tg && String(x.payload).startsWith('retry:')).length };
     case 'iq_norm': return S.norms[S.norms.length - 1];
     case 'iq_finish_session': { const s = S.sessions[a.p_id]; if (!s || s.finished_at) return false; Object.assign(s, { finished_at: new Date().toISOString(), raw: a.p_raw, by_section: a.p_by, iq: a.p_iq, ci_lo: a.p_lo, ci_hi: a.p_hi, answers: a.p_answers, flags: a.p_flags, norm_version: a.p_norm }); return true; }
     case 'iq_record_payment': if (!S.pays.find((p) => p.charge_id === a.p_charge)) S.pays.push({ charge_id: a.p_charge, tg_id: a.p_tg, stars: a.p_stars, payload: a.p_payload }); return null;
