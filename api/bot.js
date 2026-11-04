@@ -1,6 +1,9 @@
 // Telegram webhook: /start → o'yinlarni ochadigan tugma; /start r_KOD → do'st chaqirgan xona;
 // kontakt yuborilsa — o'yinchi akkauntiga telefon raqami yoziladi.
 import { rpc, fullName } from "./_lib.js";
+import { createRequire } from "node:module";
+const iqRpc = (fn, a) => createRequire(import.meta.url)("./_iq/db.cjs").rpc(fn, a);
+const tgCall = (method, body) => fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 const send = (chat_id, text, extra = {}) => fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id, text, ...extra }),
@@ -10,6 +13,23 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(200).send("ok");
   const secret = process.env.WEBHOOK_SECRET;
   if (secret && req.headers["x-telegram-bot-api-secret-token"] !== secret) return res.status(401).end();
+  // IQ testlar: Stars to'lovi (faqat "detail:" yuklamasi qabul qilinadi)
+  const pc = req.body?.pre_checkout_query;
+  if (pc) {
+    const ok = typeof pc.invoice_payload === "string" && pc.invoice_payload.startsWith("detail:") && pc.currency === "XTR";
+    await tgCall("answerPreCheckoutQuery", ok ? { pre_checkout_query_id: pc.id, ok: true } : { pre_checkout_query_id: pc.id, ok: false, error_message: "To'lovni tasdiqlab bo'lmadi" }).catch(() => {});
+    return res.status(200).json({ ok: true });
+  }
+  const sp = req.body?.message?.successful_payment;
+  if (sp && req.body.message.from) {
+    const mm = req.body.message;
+    try {
+      await iqRpc("iq_record_payment", { p_tg: mm.from.id, p_charge: sp.telegram_payment_charge_id, p_stars: sp.total_amount, p_payload: sp.invoice_payload });
+      const base0 = process.env.WEBAPP_URL || `https://${req.headers.host}/`;
+      await tgCall("sendMessage", { chat_id: mm.chat.id, text: "To'lov qabul qilindi ✅ Batafsil IQ natijangiz ochildi. «IQ» bo'limini oching.", reply_markup: { inline_keyboard: [[{ text: "🧠 Natijani ochish", web_app: { url: base0 } }]] } });
+    } catch (e) { console.error("iq pay", e); }
+    return res.status(200).json({ ok: true });
+  }
   const m = req.body?.message;
   // o'yinchi botni bloklasa / qayta ochsa
   const mc = req.body?.my_chat_member;

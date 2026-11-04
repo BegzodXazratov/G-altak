@@ -117,7 +117,7 @@ export function show(screen, push = true) {
   if (tg?.BackButton) stack.length ? tg.BackButton.show() : tg.BackButton.hide();
 }
 // ---------- pastki menyu: O'yin · Do'stlar · Chatlar · Profil ----------
-const TABS_UI = [["home", "🎮", "O'yin"], ["friends", "👥", "Do'stlar"], ["chats", "💬", "Chatlar"], ["profile", "👤", "Profil"]];
+const TABS_UI = [["home", "🎮", "O'yin"], ["iq", "🧠", "IQ"], ["friends", "👥", "Do'stlar"], ["chats", "💬", "Chatlar"], ["profile", "👤", "Profil"]];
 export const tabBadge = { friends: 0, chats: 0 };
 export function paintTabs(screen = current) {
   let el = document.getElementById("tabbar");
