@@ -263,7 +263,7 @@ function render() {
       <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="pm">✉️ Xabar yuborish</button><button class="ibtn" id="bc">📢 Yangilanish xabari</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
     <div class="tabs">
-      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["activity", "Faollik"]].map(([k, l, n]) =>
+      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["activity", "Faollik"], ["iq", "🧠 IQ va ⭐"]].map(([k, l, n]) =>
         `<button data-tab="${k}" aria-pressed="${tab === k}">${l}${n !== undefined && n !== "" ? `<i>${n}</i>` : ""}</button>`).join("")}
     </div>
     <div class="kpis">
@@ -292,7 +292,7 @@ function render() {
     } catch (e) { alert("Internet bilan muammo"); }
     b.disabled = false; b.textContent = "📢 Yangilanish xabari";
   };
-  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "activity") activityView(); else dashView();
+  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else dashView();
 }
 // erkin xabar yuborish oynasi
 function postModal() {
@@ -390,6 +390,41 @@ function byGame() {
   const B = data.by_game || {}, tot = Math.max(1, ...Object.values(B));
   return `<div class="bars">${Object.keys(GAME).map(k => `<div class="hb"><div class="top"><span>${GAME[k][1]} ${GAME[k][0]}</span><b>${B[k] || 0}</b></div>
     <div class="tr"><div class="fl" style="width:${(B[k] || 0) / tot * 100}%;background:var(--${k})"></div></div></div>`).join("")}</div>`;
+}
+
+// ---------- IQ testlar va Stars to'lovlari ----------
+async function iqView() {
+  const body = $("#body");
+  body.innerHTML = `<section class="panel"><p class="muted">Yuklanmoqda…</p></section>`;
+  let j;
+  try { j = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "iq" }) })).json(); }
+  catch (e) { body.innerHTML = `<section class="panel"><p class="muted">Internet bilan muammo</p></section>`; return; }
+  if (tab !== "iq") return;
+  const o = j.ov;
+  if (!o) { body.innerHTML = `<section class="panel"><p class="muted">IQ ma'lumotlari olinmadi. Vercel'da IQ_API_SECRET to'g'ri qo'yilganini tekshiring.</p></section>`; return; }
+  const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "—";
+  const k = (l, v, s) => `<div class="panel kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s || ""}</div></div>`;
+  const fun = [["Testni boshlagan", o.started, 100], ["Oxirigacha yetgan", o.finished, o.started ? o.finished / o.started * 100 : 0], ["Batafsil uchun to'lagan", o.payers, o.finished ? o.payers / o.finished * 100 : 0]];
+  body.innerHTML = `
+    <div class="kpis">
+      ${k("⭐ Jami tushum", o.pay_stars, `${o.pay_n} ta to'lov · ${o.payers} kishi`)}
+      ${k("⭐ Bugun (24 soat)", o.pay_stars_24h, `${o.pay_n_24h} ta to'lov`)}
+      ${k("⭐ Oxirgi 7 kun", o.pay_stars_7d, "Stars")}
+      ${k("💳 To'lov konversiyasi", pct(o.payers, o.finished), "tugatganlardan to'laganlar")}
+      ${k("🧠 Tugatilgan testlar", o.finished, `+${o.finished_24h} so'nggi 24 soatda · 7 kunda ${o.finished_7d}`)}
+      ${k("📊 O'rtacha IQ", o.avg_iq ?? "—", `${o.invalid} ta shubhali (tez yoki bir xil javob)`)}
+      ${k("👥 IQ foydalanuvchilari", o.users, `+${o.users_24h} bugun · 7 kunda +${o.users_7d}`)}
+      ${k("🚫 Bloklagan", o.blocked, `${o.chat_ok} tasiga xabar yuborsa bo'ladi`)}
+    </div>
+    <div class="grid2">
+      <section class="panel"><div class="ph"><h2>Voronka</h2></div>
+        ${fun.map(f => `<div class="hb"><div class="top"><span>${f[0]}</span><b>${f[1]} · ${Math.round(f[2])}%</b></div><div class="tr"><div class="fl" style="width:${Math.max(2, Math.min(100, f[2]))}%;background:var(--accent)"></div></div></div>`).join("")}
+        <p class="muted" style="font-size:12.5px;margin:10px 0 0">Stars to'lovlari Telegram orqali keladi. Pulga aylantirish: Fragment orqali (kamida 1000 ⭐, 21 kun ushlanadi).</p></section>
+      <section class="panel"><div class="ph"><h2>⭐ So'nggi to'lovlar</h2></div>
+        ${(j.pays || []).length ? (j.pays).map(p => `<div class="hb" style="display:flex;justify-content:space-between;gap:10px;font-size:14px;margin:8px 0"><span>${esc(p.name || "Ism yo'q")}${p.username ? ` <small class="muted">@${esc(p.username)}</small>` : ""}<br><small class="muted">${date(p.created_at)} · ID ${p.tg_id}</small></span><b>${p.stars} ⭐</b></div>`).join("") : `<p class="muted">Hozircha to'lov yo'q.</p>`}</section>
+    </div>
+    <section class="panel" style="margin-top:14px"><div class="ph"><h2>👥 So'nggi IQ foydalanuvchilari</h2></div>
+      ${(j.users || []).length ? `<table class="t" style="width:100%;font-size:13.5px;border-collapse:collapse"><tr class="muted"><td>Ism</td><td>IQ</td><td>Testlar</td><td>⭐</td><td>Oxirgi kirish</td></tr>${(j.users).map(u => `<tr><td style="padding:6px 4px">${esc(u.name || "—")}${u.username ? ` <small class="muted">@${esc(u.username)}</small>` : ""}</td><td>${u.iq ?? "—"}</td><td>${u.tests}</td><td>${u.stars || ""}</td><td class="muted">${u.last_seen ? ago(u.last_seen) : ""}</td></tr>`).join("")}</table>` : `<p class="muted">Hozircha yo'q.</p>`}</section>`;
 }
 
 function dashView() {

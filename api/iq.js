@@ -17,6 +17,7 @@ export default async function handler(req, res) {
   const u = verifyInitData(b.initData || b.init_data, process.env.BOT_TOKEN);
   if (!u) return out(res, 401, { error: "auth" });
   try {
+    if (b.action === "status") rpc("iq_touch_user", { p_tg: u.id, p_name: u.first_name || "", p_username: u.username || "", p_chat: false }).catch(() => {});
     switch (b.action) {
       case "status": { // bosh sahifa: oxirgi natija, tarix, kutish muddati
         const [last, hist] = await Promise.all([rpc("iq_last_session", { p_tg: u.id }), rpc("iq_history", { p_tg: u.id })]);

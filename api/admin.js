@@ -2,6 +2,8 @@
 import crypto from "node:crypto";
 import { rpc, noteReach } from "./_lib.js";
 import { broadcast } from "./broadcast.js";
+import { createRequire } from "node:module";
+const iqdb = createRequire(import.meta.url)("./_iq/db.cjs");
 
 const same = (a, b) => {
   const x = Buffer.from(String(a || "")), y = Buffer.from(String(b || ""));
@@ -20,6 +22,10 @@ export default async function handler(req, res) {
     res.setHeader("Cache-Control", "no-store");
     if (req.body?.action === "post") return res.status(200).json(await post(req.body, req.headers.host));
     if (req.body?.action === "broadcast") return res.status(200).json(await broadcast(req.headers.host));
+    if (req.body?.action === "iq") {
+      const [ov, pays, users] = await Promise.all([iqdb.rpc("iq_admin_overview", {}), iqdb.rpc("iq_admin_payments", { p_limit: 50 }), iqdb.rpc("iq_admin_users", { p_limit: 30 })]);
+      return res.status(200).json({ ov, pays, users });
+    }
     if (req.body?.action === "reach") return res.status(200).json(await reachCheck(Number(req.body.offset) || 0, req.headers.host));
     const [d, social, acts] = await Promise.all([rpc("g_admin_players", {}), rpc("g_admin_social", {}), rpc("g_admin_acts", {})]);
     res.status(200).json({ ...d, social: { ...social, acts } });
@@ -89,7 +95,7 @@ const tgCall = (m, body) => fetch(`https://api.telegram.org/bot${process.env.BOT
 async function reachCheck(offset, host) {
   const STEP = 90;
   if (offset === 0) await tgCall("setWebhook", { url: `https://${host}/api/bot`,
-    secret_token: process.env.WEBHOOK_SECRET, allowed_updates: ["message", "my_chat_member"] }).catch(() => {});
+    secret_token: process.env.WEBHOOK_SECRET, allowed_updates: ["message", "pre_checkout_query", "my_chat_member"] }).catch(() => {});
   const d = await rpc("g_admin_players", {});
   const all = (d?.players || []).filter(p => p?.tg_id).sort((a, b) => String(a.tg_id).localeCompare(String(b.tg_id)));
   const part = all.slice(offset, offset + STEP), c = { ok: 0, blocked: 0, never: 0, gone: 0 };
