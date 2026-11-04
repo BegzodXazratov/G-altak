@@ -13,10 +13,10 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(200).send("ok");
   const secret = process.env.WEBHOOK_SECRET;
   if (secret && req.headers["x-telegram-bot-api-secret-token"] !== secret) return res.status(401).end();
-  // IQ testlar: Stars to'lovi (faqat "detail:" yuklamasi qabul qilinadi)
+  // IQ testlar: Stars to'lovi ("detail:" va "retry:" yuklamalari qabul qilinadi)
   const pc = req.body?.pre_checkout_query;
   if (pc) {
-    const ok = typeof pc.invoice_payload === "string" && pc.invoice_payload.startsWith("detail:") && pc.currency === "XTR";
+    const ok = typeof pc.invoice_payload === "string" && (pc.invoice_payload.startsWith("detail:") || pc.invoice_payload.startsWith("retry:")) && pc.currency === "XTR";
     await tgCall("answerPreCheckoutQuery", ok ? { pre_checkout_query_id: pc.id, ok: true } : { pre_checkout_query_id: pc.id, ok: false, error_message: "To'lovni tasdiqlab bo'lmadi" }).catch(() => {});
     return res.status(200).json({ ok: true });
   }
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     try {
       await iqRpc("iq_record_payment", { p_tg: mm.from.id, p_charge: sp.telegram_payment_charge_id, p_stars: sp.total_amount, p_payload: sp.invoice_payload });
       const base0 = process.env.WEBAPP_URL || `https://${req.headers.host}/`;
-      await tgCall("sendMessage", { chat_id: mm.chat.id, text: "To'lov qabul qilindi ✅ Batafsil IQ natijangiz ochildi. «IQ» bo'limini oching.", reply_markup: { inline_keyboard: [[{ text: "🧠 Natijani ochish", web_app: { url: base0 } }]] } });
+      await tgCall("sendMessage", { chat_id: mm.chat.id, text: String(sp.invoice_payload).startsWith("retry:") ? "To'lov qabul qilindi ✅ Qo'shimcha urinish ochildi. «IQ» bo'limidan testni boshlang." : "To'lov qabul qilindi ✅ Batafsil IQ natijangiz ochildi. «IQ» bo'limini oching.", reply_markup: { inline_keyboard: [[{ text: "🧠 IQ bo'limini ochish", web_app: { url: base0 } }]] } });
     } catch (e) { console.error("iq pay", e); }
     return res.status(200).json({ ok: true });
   }
