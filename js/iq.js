@@ -17,7 +17,7 @@ async function iqApi(action, body = {}) {
 const tick = () => { try { tg?.HapticFeedback?.selectionChanged(); } catch (e) {} };
 
 /* ---------- SVG shakllar ---------- */
-const FILL = ["#ffffff", "#b8c0e0", "#1B2140"], INK = "#1B2140";
+const FILL = ["#ffffff", "#b9ae9c", "#1F1A16"], INK = "#1F1A16";
 function shapeSVG(s, x, y, r, f, rot) {
   const fill = FILL[f], st = `stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"`;
   const tr = rot ? ` transform="rotate(${rot * 90} ${x} ${y})"` : "";
@@ -28,14 +28,14 @@ function shapeSVG(s, x, y, r, f, rot) {
 const POS = { 1: [[30, 30, 17]], 2: [[19, 30, 11], [41, 30, 11]], 3: [[30, 18, 10], [18, 41, 10], [42, 41, 10]] };
 function cellSVG(c) {
   let inner = "";
-  if (c === null) inner = `<text x="30" y="40" text-anchor="middle" font-size="30" font-weight="800" fill="#5B5BF0">?</text>`;
+  if (c === null) inner = `<text x="30" y="40" text-anchor="middle" font-size="30" font-weight="800" fill="#E8572A">?</text>`;
   else POS[c.n].forEach(p => { inner += shapeSVG(c.s, p[0], p[1], p[2], c.f, c.r); });
-  return `<svg viewBox="0 0 60 60"><rect x="1" y="1" width="58" height="58" rx="9" fill="#F1F3FF" stroke="${c === null ? "#5B5BF0" : "#cfd5ee"}" stroke-width="${c === null ? 2.5 : 1.5}"/>${inner}</svg>`;
+  return `<svg viewBox="0 0 60 60"><rect x="1" y="1" width="58" height="58" rx="9" fill="#F4EEE3" stroke="${c === null ? "#E8572A" : "#d9ccb6"}" stroke-width="${c === null ? 2.5 : 1.5}"/>${inner}</svg>`;
 }
 function gridSVG(g) {
   const n = g.length, u = 60 / n; let s = "";
-  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) s += `<rect x="${c * u + 1}" y="${r * u + 1}" width="${u - 2}" height="${u - 2}" rx="3" fill="${g[r][c] ? INK : "#fff"}" stroke="#c4cbe6" stroke-width="1"/>`;
-  return `<svg viewBox="0 0 60 60"><rect x="0" y="0" width="60" height="60" rx="8" fill="#F1F3FF"/>${s}</svg>`;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) s += `<rect x="${c * u + 1}" y="${r * u + 1}" width="${u - 2}" height="${u - 2}" rx="3" fill="${g[r][c] ? INK : "#fff"}" stroke="#bfb29c" stroke-width="1"/>`;
+  return `<svg viewBox="0 0 60 60"><rect x="0" y="0" width="60" height="60" rx="8" fill="#F4EEE3"/>${s}</svg>`;
 }
 const EX = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) EX.push({ s: 0, n: c + 1, f: r === 0 ? 0 : r === 1 ? 1 : 2, r: 0 });
 
