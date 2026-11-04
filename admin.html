@@ -393,14 +393,22 @@ function byGame() {
 }
 
 // ---------- IQ testlar va Stars to'lovlari ----------
+let IQC = null, IQSIG = "";
 async function iqView() {
   const body = $("#body");
-  body.innerHTML = `<section class="panel"><p class="muted">Yuklanmoqda…</p></section>`;
-  let j;
+  if (IQC) iqDraw(IQC.j, IQC.st); // oldingi ma'lumot bilan darrov chizamiz: miltillash yo'q
+  else body.innerHTML = `<section class="panel"><p class="muted">Yuklanmoqda…</p></section>`;
+  let j, st = null;
   try { j = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "iq" }) })).json(); }
-  catch (e) { body.innerHTML = `<section class="panel"><p class="muted">Internet bilan muammo</p></section>`; return; }
+  catch (e) { if (!IQC) body.innerHTML = `<section class="panel"><p class="muted">Internet bilan muammo</p></section>`; return; }
+  try { st = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "stars" }) })).json(); } catch (e) {}
   if (tab !== "iq") return;
-  let st = null; try { st = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "stars" }) })).json(); } catch (e) {}
+  const sig = JSON.stringify([j, st]);
+  IQC = { j, st };
+  if (sig !== IQSIG) { IQSIG = sig; iqDraw(j, st); } // faqat ma'lumot o'zgargandagina qayta chizamiz
+}
+function iqDraw(j, st) {
+  const body = $("#body");
   const o = j.ov;
   if (!o) { body.innerHTML = `<section class="panel"><p class="muted">IQ ma'lumotlari olinmadi. Vercel'da IQ_API_SECRET to'g'ri qo'yilganini tekshiring.</p></section>`; return; }
   const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "—";
