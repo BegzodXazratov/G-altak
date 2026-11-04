@@ -7,7 +7,17 @@
       "maxDuration": 60
     },
     "api/admin.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "api/_iq/**"
+    },
+    "api/iq.js": {
+      "includeFiles": "api/_iq/**"
+    },
+    "api/bot.js": {
+      "includeFiles": "api/_iq/**"
+    },
+    "api/setup.js": {
+      "includeFiles": "api/_iq/**"
     }
   },
   "headers": [
