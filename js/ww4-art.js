@@ -67,75 +67,97 @@ function mineArt(c, k, gy, x) {
   c.restore();
 }
 
+// ---------- qurol rasmlari (PNG) ----------
+const IMGS = {};
+for (const n of ["sword", "bow", "arrow", "spear", "helmet", "pick"]) {
+  const im = new Image(); im.src = new URL("../img/ww4/" + n + ".png", import.meta.url).href; IMGS[n] = im;
+}
+const ok = im => im && im.complete && im.naturalWidth > 0;
+// len — rasmning uzunligi (dunyo birligida), pf — ushlash joyi (0..1), ang — burchak (soat mili bo'yicha, radian)
+function wpn(c, name, px, py, len, ang, pf) {
+  const im = IMGS[name]; if (!ok(im)) return;
+  const h = len * im.naturalHeight / im.naturalWidth;
+  c.save(); c.translate(px, py); c.rotate(ang); c.drawImage(im, -pf * len, -h / 2, len, h); c.restore();
+}
+function helmet(c, x, y, h, acc) {
+  const im = IMGS.helmet; if (!ok(im)) return;
+  const w = h * im.naturalWidth / im.naturalHeight;
+  c.drawImage(im, x - w * 0.5, y - h, w, h);
+  c.strokeStyle = acc; c.lineWidth = 1.8; c.lineCap = "round";
+  c.beginPath(); c.moveTo(-1.5, -23); c.lineTo(-8, -20.5); c.stroke(); // jamoa belgisi: bo'yinbog'
+}
+
 // ---------- jangchilar ----------
 function drawMan(c, u, view, k, sx, gy) {
   const t = u.type, d = U[t], dir = u.team ? -1 : 1, sc = SCALE[t] * k;
   const ph = u.x * 0.11 + u.id, walk = u.mv ? Math.sin(ph) : 0;
-  const acc = ACC[u.team], accD = ACC_D[u.team];
-  const sw = u.atk ? Math.sin(view.t * 32) : 0;
+  const acc = ACC[u.team];
+  // hujum fazasi: s = 0 -> -1 (qurol ko'tarish) -> +1 (zarba) -> 0 (qaytish); va = harakat turi
+  const per = { miner: 1.2, soldier: 0.85, archer: 1.3, officer: 1.0, giant: 1.5 }[t];
+  let s = 0, va = 0, ph2 = 0;
+  if (u.atk) {
+    const q = view.t / per + u.id * 0.37; ph2 = q - Math.floor(q); va = (Math.floor(q) + u.id) % 3;
+    const e = x => x * x * (3 - 2 * x);
+    s = ph2 < 0.45 ? -e(ph2 / 0.45) : ph2 < 0.58 ? -1 + 2 * ((ph2 - 0.45) / 0.13) : 1 - e((ph2 - 0.58) / 0.42);
+  }
+  const melee = t !== "archer", lunge = melee ? Math.max(0, s) * (t === "giant" ? 4 : 3.2) - Math.max(0, -s) * 1.2 : -Math.max(0, s) * 1.5;
   c.save(); c.translate(sx, gy - (u.id % 5) * 1.2 * k + 3 * k); c.scale(dir * sc, sc);
+  c.translate(lunge, 0); c.rotate(s * (t === "giant" ? 0.16 : 0.1) * (va === 1 ? 0.4 : 1));
   c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = INK; c.fillStyle = INK;
   c.lineWidth = t === "giant" ? 2.6 : 2.1;
-  // soya
   c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(0, 0.5, 8, 2, 0, 0, 7); c.fill(); c.fillStyle = INK;
-  // oyoqlar, tana
   const hipY = -13, lg = walk * 8;
   line(c, 0, hipY, lg, 0); line(c, 0, hipY, -lg, 0);
   line(c, 0, hipY, 0, -24);
-  // bosh
-  c.beginPath(); c.arc(0, -28.5, 4.4, 0, 7); c.fill();
-  // belgi: jamoa bog'ichi
-  c.strokeStyle = acc; c.lineWidth = 1.8; c.beginPath(); c.arc(0, -28.5, 4.8, Math.PI * 1.15, Math.PI * 1.9); c.stroke();
-  c.strokeStyle = INK; c.lineWidth = t === "giant" ? 2.6 : 2.1;
+  const helmed = t === "soldier" || t === "officer" || t === "giant";
+  if (!helmed) {
+    c.beginPath(); c.arc(0, -28.5, 4.4, 0, 7); c.fill();
+    c.strokeStyle = acc; c.lineWidth = 1.8; c.beginPath(); c.arc(0, -28.5, 4.8, Math.PI * 1.15, Math.PI * 1.9); c.stroke();
+    c.strokeStyle = INK; c.lineWidth = 2.1;
+  } else { c.beginPath(); c.arc(0, -28.5, 3.9, 0, 7); c.fill(); }
   const shY = -22;
   if (t === "miner") {
-    const a = u.mining ? -0.9 + (sw + 1) * 0.55 : -0.5;
-    const hx = 8, hy = -18;
-    line(c, 0, shY, hx, hy); line(c, 0, shY, -3, -16);
-    const ex = hx + Math.cos(a) * 12, ey = hy + Math.sin(a) * 12;
-    c.strokeStyle = "#6b4a2a"; line(c, hx, hy, ex, ey);
-    c.strokeStyle = "#b9c2cc"; line(c, ex - Math.sin(a) * 5, ey + Math.cos(a) * 5, ex + Math.sin(a) * 5, ey - Math.cos(a) * 5);
+    const a = u.mining ? -0.9 + s * 1.5 : -0.7, hy = -18 - (u.mining ? Math.max(0, -s) * 4 : 0);
+    line(c, 0, shY, 8, hy); line(c, 0, shY, -3, -16);
+    wpn(c, "pick", 8, hy, 18, a, 0.16);
     if (u.carry) { c.fillStyle = "#ffd23f"; c.strokeStyle = INK; c.lineWidth = 1; c.beginPath(); c.arc(-6, -21, 4, 0, 7); c.fill(); c.stroke(); }
   } else if (t === "soldier") {
-    const ang = u.atk ? -0.6 + (sw + 1) * 0.9 : -0.35;
-    line(c, 0, shY, 8, -19); line(c, 0, shY, -4, -17);
-    const ex = 8 + Math.cos(ang) * 15, ey = -19 + Math.sin(ang) * 15;
-    c.strokeStyle = "#cfd6de"; c.lineWidth = 2; line(c, 8, -19, ex, ey);
-    c.strokeStyle = acc; line(c, 6, -19, 10, -19);
-    // dubulg'a
-    c.fillStyle = INK; c.beginPath(); c.arc(0, -29.5, 4.8, Math.PI, 0); c.fill();
+    let a = -0.85, hx = 8, hy = -19;
+    if (u.atk) {
+      if (va === 0) a = -0.9 + s * 1.5;                       // tepadan chopish
+      else if (va === 1) { a = -0.2 + s * 0.8; hy = -17 + s * 2; } // yon tomondan kesish
+      else { a = -0.12 - Math.max(0, -s) * 0.5; hx = 8 + s * 6; hy = -18; } // sanchish
+    }
+    line(c, 0, shY, hx, hy); line(c, 0, shY, -4 - s * 2, -17);
+    wpn(c, "sword", hx, hy, 25, a, 0.16);
+    helmet(c, 1.5, -24.5, 15, acc);
   } else if (t === "archer") {
-    const pull = u.atk ? 1 - Math.abs(sw) * 0.5 : 0;
-    c.strokeStyle = "#6b4a2a"; c.lineWidth = 1.8; c.beginPath(); c.arc(9, -21, 10, -1.25, 1.25); c.stroke();
-    c.strokeStyle = "#e7e0d0"; c.lineWidth = 0.9;
-    const bx = 9 + Math.cos(1.25) * 10, by1 = -21 - Math.sin(1.25) * 10 * 1, by2 = -21 + Math.sin(1.25) * 10;
-    c.beginPath(); c.moveTo(bx, by1); c.lineTo(bx - pull * 7, -21); c.lineTo(bx, by2); c.stroke();
-    c.strokeStyle = INK; c.lineWidth = 2.1; line(c, 0, shY, 13, -21); line(c, 0, shY, 2 - pull * 5, -21);
-    if (pull) { c.strokeStyle = "#cfd6de"; c.lineWidth = 1.2; line(c, bx - pull * 7, -21, bx + 8, -21); }
-    c.fillStyle = acc; c.beginPath(); c.arc(0, -33.2, 1.8, 0, 7); c.fill();
+    const pull = u.atk ? (ph2 < 0.6 ? Math.min(1, ph2 / 0.5) : 0) : 0;
+    line(c, 0, shY, 11, -21); line(c, 0, shY, 3 - pull * 3, -21);
+    const im = IMGS.bow;
+    if (ok(im)) { const H = 27, w = H * im.naturalWidth / im.naturalHeight; c.drawImage(im, 9.5, -21 - H / 2, w, H); }
+    if (pull) wpn(c, "arrow", 3 - pull * 3, -21, 15, 0, 0);
   } else if (t === "officer") {
-    // qalqon, nayza, shlem patlari
-    const ang = u.atk ? -0.5 + (sw + 1) * 0.8 : -0.2;
-    c.strokeStyle = INK; line(c, 0, shY, 9, -19); line(c, 0, shY, -3, -17);
-    const ex = 9 + Math.cos(ang) * 19, ey = -19 + Math.sin(ang) * 19;
-    c.strokeStyle = "#cfd6de"; c.lineWidth = 2; line(c, 9, -19, ex, ey);
+    let hx = 9, hy = -19, a = -0.4;
+    if (u.atk) {
+      if (va === 0) { hx = 9 + s * 6; a = -0.1; }                    // sanchish
+      else if (va === 1) { a = -0.55 + s * 1.0; hy = -21 + s * 2; }  // tepadan sanchish
+      else { a = -0.2 + s * 0.7; hx = 9 + s * 2; hy = -17; }         // supurish
+    }
+    line(c, 0, shY, hx, hy); line(c, 0, shY, -3, -17);
+    wpn(c, "spear", hx, hy, 46, a, 0.34);
     c.fillStyle = acc; c.strokeStyle = INK; c.lineWidth = 1.4;
-    c.beginPath(); c.moveTo(7, -29); c.lineTo(15, -27); c.lineTo(15, -16); c.lineTo(11, -9); c.lineTo(7, -16); c.closePath(); c.fill(); c.stroke();
-    c.fillStyle = INK; c.beginPath(); c.arc(0, -29.5, 5, Math.PI, 0); c.fill();
-    c.fillStyle = acc; c.beginPath(); c.moveTo(-2, -34.5); c.lineTo(2, -34.5); c.lineTo(0.5, -41); c.lineTo(-3, -38); c.closePath(); c.fill();
-    c.strokeStyle = "rgba(255,230,140,.0)";
+    c.beginPath(); c.moveTo(5, -27); c.lineTo(13, -25); c.lineTo(13, -15); c.lineTo(9, -8); c.lineTo(5, -15); c.closePath(); c.fill(); c.stroke();
+    helmet(c, 1.5, -24.5, 17.5, acc);
   } else if (t === "giant") {
     c.lineWidth = 3.2; line(c, 0, hipY, lg, 0); line(c, 0, hipY, -lg, 0); line(c, 0, hipY, 0, -24);
-    const ang = u.atk ? -1.3 + (sw + 1) * 1.15 : -0.55;
-    c.lineWidth = 2.8; line(c, 0, shY, 9, -18); line(c, 0, shY, -4, -17);
-    const ex = 9 + Math.cos(ang) * 17, ey = -18 + Math.sin(ang) * 17;
-    c.strokeStyle = "#6b4a2a"; c.lineWidth = 3.4; line(c, 9, -18, ex, ey);
-    c.strokeStyle = "#8a8f98"; c.lineWidth = 5.2; line(c, ex, ey, ex + Math.cos(ang) * 5, ey + Math.sin(ang) * 5);
-    c.fillStyle = INK; c.beginPath(); c.arc(0, -29.5, 5.2, Math.PI, 0); c.fill();
-    c.strokeStyle = acc; c.lineWidth = 2; line(c, -4, -33, -7, -37); line(c, 4, -33, 7, -37);
+    let a = -0.8, hy = -18;
+    if (u.atk) { a = va === 1 ? -0.3 + s * 1.0 : -1.0 + s * 1.9; hy = -18 - Math.max(0, -s) * (va === 1 ? 0 : 3); }
+    c.lineWidth = 2.8; line(c, 0, shY, 9, hy); line(c, 0, shY, -4, -17);
+    wpn(c, "sword", 9, hy, 34, a, 0.16);
+    helmet(c, 1.5, -24.5, 16, acc);
   }
   c.restore();
-  // jon chizig'i (zarar ko'rgan bo'lsa)
   const mh = d.hp;
   if (u.hp < mh - 0.5) {
     const bw = Math.max(20, 20 * SCALE[t]) * k * 0.62, bh = 3 * k, bx = sx - bw / 2, by = gy - 44 * k * SCALE[t] - 4 * k;
@@ -150,9 +172,11 @@ function drawFx(c, view, k, left, gy) {
     const age = view.t - f.t0; if (age < 0 || age > 0.6) continue;
     if (f.k === "a") {
       const dur = 0.28; if (age > dur) continue;
-      const p = age / dur, x = f.x2 + (f.x - f.x2) * p, y = -22 - Math.sin(p * Math.PI) * 22 * Math.min(1, Math.abs(f.x - f.x2) / 160);
-      const sx = (x - left) * k, sy = gy + y * k, dir = Math.sign(f.x - f.x2) || 1;
-      c.strokeStyle = "#f5efe0"; c.lineWidth = 1.5 * k; line(c, sx, sy, sx - dir * 9 * k, sy + (p < 0.5 ? 1 : -1) * 1.5 * k);
+      const arc = Math.min(1, Math.abs(f.x - f.x2) / 160), pos = p => ({ x: f.x2 + (f.x - f.x2) * p, y: -22 - Math.sin(p * Math.PI) * 22 * arc });
+      const p = age / dur, a = pos(p), b = pos(Math.min(1, p + 0.04)), dir = Math.sign(f.x - f.x2) || 1;
+      const sx = (a.x - left) * k, sy = gy + a.y * k;
+      const ang = Math.atan2((b.y - a.y), (b.x - a.x) || dir * 0.001);
+      if (ok(IMGS.arrow)) { c.save(); c.translate(sx, sy); c.rotate(ang + (dir < 0 ? 0 : 0)); const L = 17 * k, H = L * IMGS.arrow.naturalHeight / IMGS.arrow.naturalWidth; c.drawImage(IMGS.arrow, -L / 2, -H / 2, L, H); c.restore(); }
     } else if (f.k === "h") {
       if (age > 0.18) continue; const sx = (f.x - left) * k, sy = gy - 20 * k, r = (4 + age * 60) * k;
       c.strokeStyle = `rgba(255,${200 - age * 400 | 0},80,${1 - age / 0.18})`; c.lineWidth = 1.6 * k;
