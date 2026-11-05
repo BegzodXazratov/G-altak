@@ -1,6 +1,6 @@
 import { isMe, waitScreen, markJoining } from "./core.js";
 import { app, header, bindBack, show, home, api, read, toast, haptic, esc, load, save, scoreCard, ratingLine, refreshProfile, nav, sleep } from "./core.js";
-import { W, H, ROUNDS, GROUND, PW, BOW_Y, ANG_MIN, ANG_MAX, layout, rng, initArch, norm, arrowsLeft, applyShot, aiShot } from "./arch-engine.js";
+import { W, H, ROUNDS, GROUND, PW, BOW_Y, ANG_MIN, ANG_MAX, layout, rng, hazards, wallOn, HEART_SEC, initArch, norm, arrowsLeft, applyShot, aiShot } from "./arch-engine.js";
 
 const PULL_MAX = 28, MIN_POWER = 15; // sahna birligida: shuncha tortilsa — 100% kuch
 const COL = { p1: "#3aa0ff", p2: "#ff6a4d" };
@@ -184,6 +184,19 @@ function gameScreen(opt) {
     el.className = "tclk" + (t <= 15 ? " low" : "") + (st.turn === opt.mySide ? " mine" : "");
   };
   const el = id => document.getElementById(id);
+  let tSeq = -1, tStart = Date.now(), heartTm = null, forceHeart = false;
+  const elapsed = () => { if (st.seq !== tSeq) { tSeq = st.seq; tStart = Date.now(); } return (Date.now() - tStart) / 1000; };
+  const hazSvg = () => {
+    const H0 = hazards(st.seed, st.seq || 0), e = elapsed();
+    const walls = H0.walls.map((w, i) => `<rect class="wall" data-w="${i}" x="${w.x - w.hw}" y="${sy(w.y + w.h)}" width="${w.hw * 2}" height="${w.h}" rx=".5" style="animation-duration:${w.per}s;animation-delay:-${w.ph}s"/>`).join("");
+    const heart = H0.heart && (forceHeart || e < HEART_SEC) ? `<g id="heart" class="heart" transform="translate(${H0.heart.x} ${sy(H0.heart.y)})"><circle r="${H0.heart.r}" fill="#ff4d6d" opacity=".18"/><text text-anchor="middle" y="1.9" font-size="6">❤️</text></g>` : "";
+    return `<g id="haz">${walls}${heart}</g>`;
+  };
+  const armHeart = () => {
+    clearTimeout(heartTm); const H0 = hazards(st.seed, st.seq || 0); if (!H0.heart || forceHeart) return;
+    const left = HEART_SEC - elapsed(); if (left <= 0) return;
+    heartTm = setTimeout(() => { const h = el("heart"); if (h && !forceHeart) h.remove(); }, left * 1000);
+  };
 
   /* — kamonchi holati — */
   function poseOf(side) {
@@ -217,7 +230,8 @@ function gameScreen(opt) {
   }
   async function fly(last) {
     const arrow = el("arrow"), trail = el("trail"); if (!arrow || !last?.path) return;
-    const pts = last.path, total = pts.length - 1, MS = 26;
+    const pts = last.path, total = pts.length - 1, MS = 26, HZ = hazards(st.seed, st.seq || 0), wEls = HZ.walls.map((_, i) => document.querySelector(`[data-w="${i}"]`));
+    wEls.forEach(w => { if (w) { w.style.animation = 'none'; } });
     arrow.setAttribute("opacity", 1); sfx("shoot");
     const t0 = performance.now(), tr = [];
     for (;;) {
@@ -226,11 +240,13 @@ function gameScreen(opt) {
       const [x0, y0] = pts[i], [x1, y1] = pts[Math.min(total, i + 1)];
       const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k, th = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;
       arrow.setAttribute("transform", `translate(${x.toFixed(2)} ${sy(y)}) rotate(${(-th).toFixed(1)})`);
+      HZ.walls.forEach((w, i) => { if (wEls[i]) wEls[i].setAttribute('opacity', wallOn(w, f * 0.04) ? 0.95 : 0.12); });
       tr.push(`${x.toFixed(1)},${sy(y)}`); if (tr.length > 60) tr.shift();
       trail.setAttribute("points", tr.join(" "));
       if (f >= total) break; await frame();
     }
     arrow.setAttribute("opacity", 0); trail.setAttribute("points", "");
+    if (last.heart) { const h = el("heart"); if (h) h.remove(); sfx("hit"); toast("❤️ Jon topdingiz! +1 jon, +1 ball"); }
   }
   async function bloodBurst(x, y0, deg, dmg, floorY, feetX) {
     const fx = el("fx"); if (!fx) return;
@@ -263,7 +279,7 @@ function gameScreen(opt) {
   }
   async function showShot(prev, next) {
     const last = next.last, L = layout(st.seed); anim = true;
-    shown = prev; render();
+    shown = prev; forceHeart = !!last.heart; render(); forceHeart = false;
     await drawBack(last.by, last.angle, last.power);
     pullNow = null; drawActor(last.by);
     await fly(last);
@@ -291,7 +307,7 @@ function gameScreen(opt) {
     if (opt.mode === "online") {
       sending = true; render();
       try {
-        const r = await api("ashot", { id: room.id, version: room.version, angle: a, power: p });
+        const r = await api("ashot", { id: room.id, version: room.version, angle: a, power: p, el: Math.round(elapsed() * 10) / 10 });
         sending = false;
         if (r.error === "stale") { pullNow = null; room = r; setClock(r); if (r.state?.hp) { st = norm(r.state); seen = st.seq; } toast("O'yin yangilandi"); render(); }
         else if (r.error) { pullNow = null; toast("O'q otilmadi"); render(); }
@@ -299,7 +315,7 @@ function gameScreen(opt) {
       } catch (e) { sending = false; pullNow = null; toast("Internet bilan muammo — o'q otilmadi"); render(); }
       return;
     }
-    const prev = st, next = applyShot(st, me, a, p);
+    const prev = st, next = applyShot(st, me, a, p, elapsed());
     if (opt.mode === "ai" && next.winner === opt.human) api("aiwin", { game: "arch" }).catch(() => {});
     await showShot(prev, next);
     aiTurn();
@@ -383,7 +399,7 @@ function gameScreen(opt) {
       <div class="arch-hud"><div class="${cur === "p1" && !st.winner ? "on" : ""}"><b>${esc(n1)}</b><span id="hp1">${hudTxt(v, "p1")}</span></div><div class="wind">💨 ${wd}</div><div class="${cur === "p2" && !st.winner ? "on" : ""} r"><b>${esc(n2)}</b><span id="hp2">${hudTxt(v, "p2")}</span></div></div>
       <div id="play" class="arch-play">
       <svg id="scene" class="arch-scene" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-label="Kamonchi maydoni">
-        ${scenery(st.seed)}${flag("p1")}${flag("p2")}${miss}
+        ${scenery(st.seed)}${flag("p1")}${flag("p2")}${hazSvg()}${miss}
         <g id="act-p1" transform="translate(${L.x.p1} ${sy(L.top.p1)})"></g><g id="act-p2" transform="translate(${L.x.p2} ${sy(L.top.p2)})"></g>
         <polyline id="trail" points="" fill="none" stroke="#fff" stroke-width=".22" opacity=".4"/>
         <g id="arrow" opacity="0">${arrowShape(7)}</g>
@@ -393,7 +409,7 @@ function gameScreen(opt) {
         <div class="pad-r"><span>Burchak <b id="va">—</b></span><div class="pwr"><i id="pw" style="width:0%"></i></div><span>Kuch <b id="vp">—</b></span></div></div>
       </div>
       ${st.winner && !shown && !anim || room?.status === "done" && !anim ? endOverlay() : ""}`;
-    bindBack(); drawActors();
+    bindBack(); drawActors(); armHeart();
     if (can) bindDrag();
     const sb = app().querySelector("[data-snd]"); if (sb) sb.onclick = () => { snd = !snd; save("arch-snd", snd ? "1" : "0"); sb.textContent = snd ? "🔊" : "🔇"; if (snd) audioInit(); };
     const rs = app().querySelector("[data-restart]"); if (rs) rs.onclick = restart;
@@ -446,7 +462,7 @@ function gameScreen(opt) {
       alive = true; render(); aiTurn();
       if (opt.mode === "online") {
         clk = setInterval(tickClock, 250);
-        poll = setInterval(async () => {
+        const pollFn = async () => {
           if (sending || anim || drag) return;
           try {
             const r = await read("g_room_get", { p_id: room.id });
@@ -456,9 +472,11 @@ function gameScreen(opt) {
             else { st = norm(r.state); render(); }
             if (r.status === "done") { refreshProfile(); render(); }
           } catch (e) {}
-        }, 1100);
+        };
+        const loop = () => { if (!alive) return; pollFn().finally(() => { poll = setTimeout(loop, st.turn === opt.mySide ? 1100 : 450); }); };
+        loop();
       }
     },
-    leave() { alive = false; dragEnd(); clearInterval(poll); clearInterval(clk); },
+    leave() { alive = false; dragEnd(); clearTimeout(poll); clearInterval(clk); clearTimeout(heartTm); },
   };
 }

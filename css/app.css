@@ -651,3 +651,8 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .ww-presets{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
 .ww-row{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:center;margin-top:6px;font-size:13.5px}.ww-row .seg button{padding:7px 2px;font-size:13px}
 .ww-rules p{margin:8px 0 0;font-size:14px;line-height:1.45}
+
+.arch-scene .wall{fill:#d9b26b;stroke:#6b4a22;stroke-width:.25;animation-name:wallp;animation-timing-function:steps(1,end);animation-iteration-count:infinite}
+@keyframes wallp{0%{opacity:.95}50%{opacity:.12}100%{opacity:.95}}
+.arch-scene .heart{animation:hbeat 1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes hbeat{50%{opacity:.7}}
