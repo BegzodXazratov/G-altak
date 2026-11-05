@@ -236,7 +236,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "action" });
     }
     // yangi mijoz (v2) ochgan xonada ID yashiriladi; eski mijoz qatnashsa — xona eski ko'rinishda qoladi
-    if (["create", "match", "join", "rematch", "room_send"].includes(b.action) && out?.id) {
+    if (["create", "match", "join", "rematch"].includes(b.action) && out?.id) {
       out = await rpc("g_room_mode", { p_id: out.id, p_player: id, p_legacy: b.v !== 2 });
     }
     res.status(200).json(out);
