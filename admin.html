@@ -153,6 +153,23 @@ details.dd{border:1px solid var(--line);border-radius:14px;background:var(--pane
   .pr{grid-template-columns:44px 1fr;row-gap:10px}.fun .st{grid-template-columns:110px 1fr auto}
   .pr .ph2,.pr .stats,.pr .when{grid-column:2}.pr .when{text-align:left}
 }
+
+/* guruh chati: ilovadagi kabi */
+.rc{display:flex;flex-direction:column;height:calc(100vh - 330px);min-height:420px;max-width:760px;margin:0 auto}
+.rcl{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px 4px 10px}
+.rcm{display:flex;gap:8px;align-items:flex-end;max-width:88%;align-self:flex-start}
+.rcm.adm{align-self:flex-end;flex-direction:row-reverse}
+.rcav{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.rcb{background:var(--panel2);border:1px solid var(--line);padding:8px 12px;border-radius:16px 16px 16px 4px;min-width:0;word-break:break-word;position:relative}
+.rcm.adm .rcb{background:var(--accent);color:#fff;border-color:transparent;border-radius:16px 16px 4px 16px}
+.rcn{font-size:12px;font-weight:700;opacity:.75;margin-bottom:2px}.rcm.adm .rcn{display:none}
+.rcq{font-size:12px;opacity:.85;border-left:3px solid var(--accent);padding:1px 8px;margin:2px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46ch}
+.rcm.adm .rcq{border-left-color:#fff}
+.rcf{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:3px;font-size:11px}
+.rcf time{opacity:.6}.rcf button{opacity:.65;font-size:11.5px;padding:0}.rcf button:hover{opacity:1;text-decoration:underline}
+.rcf .del,.rcf .blk{color:var(--red)}.rcm.adm .rcf .del{color:#fff}
+.rcbar{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:6px 10px;margin-top:8px}
+.rcin{display:flex;gap:8px;align-items:flex-end;margin-top:8px}.rcin textarea{flex:1;resize:none;max-height:120px}
 </style>
 </head>
 <body>
@@ -512,12 +529,14 @@ async function roomLoad() {
 }
 function roomView() {
   $("#body").innerHTML = `<section class="panel"><div class="ph"><h2>🗨️ O'yin chati</h2><span class="sp"></span><small id="rcount"></small></div>
-    <p class="muted" style="margin:0 0 12px;font-size:13px">Siz bu yerda «Admin (Rahnamo)» nomidan yozasiz. Savol ostidagi «Javob» ni bosing: javobingiz o'sha savolga ulanib chiqadi.</p>
+    <p class="muted" style="margin:0 0 10px;font-size:13px">Siz «Admin (Rahnamo)» nomidan yozasiz. Savol tagidagi «Javob» ni bossangiz, javobingiz o'sha savolga ulanadi.</p>
     <div id="rblocked"></div>
-    <div id="rlist" class="list" style="max-height:520px;overflow:auto"></div>
-    <div id="rtarget" class="muted" style="margin-top:12px;font-size:13px"></div>
-    <div style="display:flex;gap:8px;margin-top:6px"><textarea id="rtext" class="inp" rows="2" maxlength="600" placeholder="Admin (Rahnamo) nomidan yozing…" style="flex:1;resize:vertical"></textarea><button class="btn" id="rsend">Yuborish</button></div></section>`;
-  $("#rtext").value = roomDraft; $("#rtext").oninput = e => { roomDraft = e.target.value; };
+    <div class="rc"><div class="rcl" id="rlist"></div>
+      <div class="rcbar" id="rtarget" hidden></div>
+      <div class="rcin"><textarea id="rtext" class="inp" rows="1" maxlength="600" placeholder="Admin (Rahnamo) nomidan yozing…"></textarea><button class="btn" id="rsend">➤</button></div></div></section>`;
+  const ta = $("#rtext"); ta.value = roomDraft;
+  ta.oninput = e => { roomDraft = e.target.value; e.target.style.height = "auto"; e.target.style.height = Math.min(120, e.target.scrollHeight) + "px"; };
+  ta.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); roomSend(); } };
   $("#rsend").onclick = roomSend;
   roomList(); roomTarget();
   roomLoad(); clearInterval(roomTimer);
@@ -525,7 +544,8 @@ function roomView() {
 }
 function roomTarget() {
   const el = $("#rtarget"); if (!el) return;
-  el.innerHTML = roomReply ? `↩ Javob: <b>${esc(roomReply.name)}</b> — ${esc(roomReply.body.slice(0, 80))} <button class="ibtn" id="rclr" style="padding:3px 9px;font-size:12px">bekor</button>` : "Oddiy xabar (hech kimga javob emas)";
+  el.hidden = !roomReply;
+  el.innerHTML = roomReply ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">↩ <b>${esc(roomReply.name)}</b>: ${esc(roomReply.body.slice(0, 80))}</span><button id="rclr" aria-label="Bekor">✕</button>` : "";
   const c = $("#rclr"); if (c) c.onclick = () => { roomReply = null; roomTarget(); };
 }
 function roomList() {
@@ -535,14 +555,12 @@ function roomList() {
   if (bl) bl.innerHTML = B.length ? `<details class="dd" style="margin-bottom:10px"><summary>🚫 Bloklanganlar (${B.length})</summary><div class="chips" style="margin-top:10px">${B.map(b => `<span class="chip">${esc(b.name)} <button data-unb="${esc(b.tg_id)}" class="ibtn" style="padding:2px 8px;font-size:12px">Blokdan chiqarish</button></span>`).join("")}</div></details>` : "";
   const box = $("#rlist"); if (!box) return;
   const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80, first = !box.dataset.ok;
-  box.innerHTML = M.length ? M.map(m => `<div class="pair" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
-      <div style="flex:1;min-width:200px"><b>${esc(m.name)}</b>${m.admin ? ` <span class="tag">rahnamo</span>` : ""}${m.blocked ? ` <span class="tag amb">bloklangan</span>` : ""} <time class="mu" title="${date(m.at)}">${clock(m.at)}</time>
-        ${m.reply ? `<div class="muted" style="font-size:12px;border-left:3px solid var(--muted);padding-left:8px;margin:3px 0">↩ ${esc(m.reply.name)}: ${esc(m.reply.body)}</div>` : ""}
-        <div style="margin-top:2px;word-break:break-word">${esc(m.body)}</div></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="ibtn" data-rr="${m.id}" style="padding:5px 10px;font-size:13px">↩ Javob</button>
-        <button class="ibtn" data-rd="${m.id}" style="padding:5px 10px;font-size:13px">🗑 O'chirish</button>
-        ${m.admin || !m.tg_id || m.blocked ? "" : `<button class="ibtn" data-rb="${m.id}" style="padding:5px 10px;font-size:13px">🚫 Bloklash</button>`}</div></div>`).join("") : `<div class="empty">Hali hech kim yozmagan</div>`;
+  box.innerHTML = M.length ? M.map(m => `<div class="rcm ${m.admin ? "adm" : ""}">
+      ${m.admin ? "" : `<span class="rcav">${esc(m.avatar || (m.name || "?")[0] || "?")}</span>`}
+      <div class="rcb"><div class="rcn">${esc(m.name)}${m.blocked ? ` <span class="tag amb">bloklangan</span>` : ""}</div>
+        ${m.reply ? `<div class="rcq"><b>${esc(m.reply.name)}</b> ${esc(m.reply.body)}</div>` : ""}
+        <div>${esc(m.body)}</div>
+        <div class="rcf"><time title="${date(m.at)}">${clock(m.at)}</time><button data-rr="${m.id}">↩ Javob</button><button class="del" data-rd="${m.id}">O'chirish</button>${m.admin || !m.tg_id || m.blocked ? "" : `<button class="blk" data-rb="${m.id}">Bloklash</button>`}</div></div></div>`).join("") : `<div class="empty">Hali hech kim yozmagan</div>`;
   box.dataset.ok = "1";
   if (first && roomTop && !roomTop.end) box.scrollTop = roomTop.top; else if (atEnd || first) box.scrollTop = box.scrollHeight;
   box.onscroll = () => { roomTop = { top: box.scrollTop, end: box.scrollHeight - box.scrollTop - box.clientHeight < 80 }; };
@@ -565,7 +583,7 @@ async function roomSend() {
   const b = $("#rsend"); b.disabled = true;
   try {
     const r = await roomApi("room_post", { text: t, reply: roomReply?.id || 0 });
-    if (r.ok) { $("#rtext").value = ""; roomDraft = ""; roomReply = null; roomTarget(); await roomLoad(); const box = $("#rlist"); if (box) box.scrollTop = box.scrollHeight; }
+    if (r.ok) { $("#rtext").value = ""; $("#rtext").style.height = "auto"; roomDraft = ""; roomReply = null; roomTarget(); await roomLoad(); const box = $("#rlist"); if (box) box.scrollTop = box.scrollHeight; }
     else toast(r.error === "empty" ? "Matn yozing" : "Yuborilmadi");
   } catch (e) { toast("Internet bilan muammo"); }
   b.disabled = false;
