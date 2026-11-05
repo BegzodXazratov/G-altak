@@ -2,7 +2,7 @@
 // Xost (1-o'yinchi) telefonida o'yin hisoblanadi; mehmon buyruq yuboradi va ~3 marta/soniya holatni oladi.
 import { isMe, waitScreen, markJoining } from "./core.js";
 import { app, header, bindBack, show, home, api, read, toast, haptic, esc, load, save, scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
-import { newGame, step, command, snapshot, viewFromSnap, viewFromState, aiThink, DT, U, ARMY, POP_MAX, MINER_MAX, TIME_LIMIT, BASE_X, FLAG_MIN, FLAG_MAX } from "./ww4-engine.js";
+import { newGame, step, command, snapshot, viewFromSnap, viewFromState, aiThink, DT, U, ARMY, POP_MAX, MINER_MAX, TIME_LIMIT, BASE_X, FLAG_MIN, FLAG_MAX, W } from "./ww4-engine.js";
 import { drawScene, drawMini, VIEW_W, ASPECT, camLimit, ACC } from "./ww4-art.js";
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -149,7 +149,7 @@ function gameScreen(opt) {
           const w = r.result?.winner;
           const last = buf.length ? buf[buf.length - 1].view : null;
           if (last) { last.win = w === "p1" || w === "p2" || w === "draw" ? w : "p1"; }
-          else addSnap({ t: 1, g: [0, 0], b: [1, 1], u: [], q: [[], []], st: ["hold", "hold"], fl: [640, 1360], rw: [[0, 2, 0, 0], [0, 2, 0, 0]], pop: [0, 0], mc: [0, 0], w: w || "p1", fx: [] });
+          else addSnap({ t: 1, g: [0, 0], b: [1, 1], u: [], q: [[], []], st: ["hold", "hold"], fl: [960, 2040], rw: [[0, 2, 0, 0], [0, 2, 0, 0]], pop: [0, 0], mc: [0, 0], w: w || "p1", fx: [] });
         }
       }
     } catch (e) {}
@@ -287,7 +287,7 @@ function gameScreen(opt) {
     cv.onpointermove = e => { if (!d) return; const dx = e.clientX - d.x; if (Math.abs(dx) > 4) { d.moved = true; camAuto = false; } if (d.moved) cam = camLimit(d.c - dx / (cw / VIEW_W)); };
     cv.onpointerup = cv.onpointercancel = () => { d = null; };
     let md = false;
-    const mini = e => { const r = mv.getBoundingClientRect(); camAuto = false; cam = camLimit((e.clientX - r.left) / r.width * 2000); };
+    const mini = e => { const r = mv.getBoundingClientRect(); camAuto = false; cam = camLimit((e.clientX - r.left) / r.width * W); };
     mv.onpointerdown = e => { md = true; try { mv.setPointerCapture(e.pointerId); } catch (_) {} mini(e); };
     mv.onpointermove = e => { if (md) mini(e); };
     mv.onpointerup = mv.onpointercancel = () => { md = false; };
@@ -368,7 +368,7 @@ function gameScreen(opt) {
     if (online && !ended) {
       if (!confirm("Taslim bo'lasizmi? Reytingdan ochko yo'qotasiz.")) return;
       try { const r = await api("resign", { id: room.id }); finalRoom = r; } catch (e) { return toast(e.message); }
-      if (host) { if (!S.win) S.win = my === 0 ? "p2" : "p1"; } else { const last = buf[buf.length - 1]; if (last) last.view.win = "p1"; else addSnap({ t: 1, g: [0, 0], b: [1, 1], u: [], q: [[], []], st: ["hold", "hold"], fl: [640, 1360], rw: [[0, 2, 0, 0], [0, 2, 0, 0]], pop: [0, 0], mc: [0, 0], w: "p1", fx: [] }); }
+      if (host) { if (!S.win) S.win = my === 0 ? "p2" : "p1"; } else { const last = buf[buf.length - 1]; if (last) last.view.win = "p1"; else addSnap({ t: 1, g: [0, 0], b: [1, 1], u: [], q: [[], []], st: ["hold", "hold"], fl: [960, 2040], rw: [[0, 2, 0, 0], [0, 2, 0, 0]], pop: [0, 0], mc: [0, 0], w: "p1", fx: [] }); }
       return;
     }
     if (!online && !ended && !confirm("O'yindan chiqasizmi?")) return;

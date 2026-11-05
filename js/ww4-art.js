@@ -89,7 +89,7 @@ function helmet(c, x, y, h, acc) {
 
 // ---------- jangchilar ----------
 function drawMan(c, u, view, k, sx, gy) {
-  const t = u.type, d = U[t], dir = u.team ? -1 : 1, sc = SCALE[t] * k;
+  const t = u.type, d = U[t], dir = u.team ? -1 : 1, lane = (u.id * 7) % 6, sc = SCALE[t] * k * (0.93 + lane * 0.025);
   const ph = u.x * 0.11 + u.id, walk = u.mv ? Math.sin(ph) : 0;
   const acc = ACC[u.team];
   // hujum fazasi: s = 0 -> -1 (qurol ko'tarish) -> +1 (zarba) -> 0 (qaytish); va = harakat turi
@@ -101,7 +101,7 @@ function drawMan(c, u, view, k, sx, gy) {
     s = ph2 < 0.45 ? -e(ph2 / 0.45) : ph2 < 0.58 ? -1 + 2 * ((ph2 - 0.45) / 0.13) : 1 - e((ph2 - 0.58) / 0.42);
   }
   const melee = t !== "archer", lunge = melee ? Math.max(0, s) * (t === "giant" ? 4 : 3.2) - Math.max(0, -s) * 1.2 : -Math.max(0, s) * 1.5;
-  c.save(); c.translate(sx, gy - (u.id % 5) * 1.2 * k + 3 * k); c.scale(dir * sc, sc);
+  c.save(); c.translate(sx, gy + (lane * 4.6 - 9) * k); c.scale(dir * sc, sc);
   c.translate(lunge, 0); c.rotate(s * (t === "giant" ? 0.16 : 0.1) * (va === 1 ? 0.4 : 1));
   c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = INK; c.fillStyle = INK;
   c.lineWidth = t === "giant" ? 2.6 : 2.1;
@@ -205,7 +205,7 @@ export function drawScene(c, w, h, view, cam, my) {
     c.fillStyle = ACC[my]; c.beginPath(); c.moveTo(fx, gy - 46 * k); c.lineTo(fx + (my ? -18 : 18) * k, gy - 40 * k); c.lineTo(fx, gy - 33 * k); c.fill();
     c.strokeStyle = "rgba(255,255,255,.28)"; c.setLineDash([4 * k, 5 * k]); line(c, fx, gy - 4 * k, fx, 0); c.setLineDash([]);
   }
-  const us = view.units.slice().sort((a, b) => (a.id % 5) - (b.id % 5));
+  const us = view.units.slice().sort((a, b) => ((a.id * 7) % 6) - ((b.id * 7) % 6));
   for (const u of us) {
     const sx = (u.x - left) * k; if (sx < -50 * k || sx > w + 50 * k) continue;
     drawMan(c, u, view, k, sx, gy);

@@ -1,9 +1,9 @@
 // World War 4 — real vaqtli strategiya dvigateli. Sof JS: DOM yo'q, serverda ham, brauzerda ham ishlaydi.
 // Dunyo — bitta chiziq (chapdan o'ngga). 0-jamoa chapda, 1-jamoa o'ngda turadi.
 
-export const W = 2000;
-export const BASE_X = [130, 1870];
-export const MINE_X = [410, 1590];
+export const W = 3000;
+export const BASE_X = [130, 2870];
+export const MINE_X = [410, 2590];
 export const DT = 0.05;
 export const POP_MAX = 50, MINER_MAX = 12, QUEUE_MAX = 8, BASE_HP = 6000, TIME_LIMIT = 900;
 export const ROW_GAP = 55;
@@ -23,8 +23,8 @@ export const U = {
 };
 const AURA = 130, AURA_MUL = 1.2, AGGRO = 110, MINER_FLEE = 150;
 export const START_GOLD = 350;
-export const FLAG_MIN = 300, FLAG_MAX = 1700;
-const DEF_FLAG = [640, 1360];
+export const FLAG_MIN = 400, FLAG_MAX = 2600;
+const DEF_FLAG = [960, 2040];
 const DEF_ROWS = { soldier: 0, archer: 2, officer: 0, giant: 0 };
 
 export const popOf = (S, team) => {
@@ -151,6 +151,9 @@ function hit(S, from, to, officers, ranged) {
   S.fx.push({ k: ranged ? "a" : "h", x: to.x, x2: from.x, tm: from.team, t0: S.t });
 }
 
+// Jang uslubi: jangchilar bir xil emas — ba'zilari tez va oldinga otiladi, ba'zilari ehtiyotkor
+const spdK = u => (u.type === "soldier" ? [1.15, 1, 1.05, 0.9][u.id % 4] : u.type === "officer" ? [1, 0.92][u.id % 2] : u.type === "archer" ? [1, 1.08, 0.94][u.id % 3] : 1);
+
 function fight(S, u, foes, pl, officers, att, dt) {
   const d = U[u.type], dir = pl.dir, ranged = d.range > 60;
   // nishon tanlash
@@ -159,9 +162,11 @@ function fight(S, u, foes, pl, officers, att, dt) {
   for (const e of foes) {
     if (e.hp <= 0) continue;
     const dist = Math.abs(e.x - u.x) + (e.type === "miner" ? 40 : 0);
-    if (dist >= reach || dist >= bd) continue;
+    if (dist >= reach) continue;
+    const sc = dist + (ranged ? 0 : (((u.id * 17 + e.id * 7) % 5) * 14));
+    if (sc >= bd) continue;
     if (!ranged) { const a = att.get(e.id) || 0; if (a >= U[e.type].slots) continue; }
-    best = e; bd = dist;
+    best = e; bd = sc;
   }
   if (best) {
     att.set(best.id, (att.get(best.id) || 0) + 1);
@@ -174,7 +179,8 @@ function fight(S, u, foes, pl, officers, att, dt) {
           for (const e of foes) if (e !== best && e.hp > 0 && Math.abs(e.x - best.x) <= d.splash && n++ < d.splashN) e.hp -= dmgOf(u, officers) * 0.5 * (U[e.type].md || 1);
         }
       }
-    } else if (!ranged) { u.x += Math.sign(dx) * Math.min(dist - d.range + 1, d.spd * dt); u.mv = true; }
+    } else if (!ranged) { u.x += Math.sign(dx) * Math.min(dist - d.range + 1, d.spd * spdK(u) * dt); u.mv = true; }
+    if (ranged && dist < 70) { u.x = Math.max(BASE_X[0] + 40, Math.min(BASE_X[1] - 40, u.x - Math.sign(dx) * d.spd * 0.55 * dt)); u.mv = true; }
     return;
   }
   // dushman bazasi
@@ -192,7 +198,7 @@ function fight(S, u, foes, pl, officers, att, dt) {
   }
   // safga qarab yurish
   const row = S.rows[u.team][u.type];
-  const jit = ((u.id * 37) % 23) - 11;
+  const jit = (((u.id * 37) % 23) - 11) * 6;
   let want;
   if (!pl.has || row === pl.rowMin) want = pl.target + jit;
   else {
@@ -201,7 +207,7 @@ function fight(S, u, foes, pl, officers, att, dt) {
     if (pl.dir * want > pl.dir * pl.target) want = pl.target + jit;
   }
   const dx = want - u.x;
-  if (Math.abs(dx) > 4) { u.x += Math.sign(dx) * Math.min(Math.abs(dx), d.spd * dt); u.mv = true; }
+  if (Math.abs(dx) > 4) { u.x += Math.sign(dx) * Math.min(Math.abs(dx), d.spd * spdK(u) * dt); u.mv = true; }
 }
 
 function mine(S, u, foes, dt) {
@@ -301,13 +307,13 @@ export function aiThink(S, team, level = "orta", mem = {}) {
   }
   // qanday turish: hujum / ushlash / mudofaa
   const mp = power(S, me), ep = power(S, en), pop = popOf(S, me);
-  const near = S.units.some(u => u.team === en && u.type !== "miner" && Math.abs(u.x - BASE_X[me]) < 700);
+  const near = S.units.some(u => u.team === en && u.type !== "miner" && Math.abs(u.x - BASE_X[me]) < 1000);
   let st = S.stance[me];
   if (mp > ep * L.ratio + 3 && pop >= L.attackPop * 0.6 || pop >= POP_MAX - 2 && mp > ep * 0.9) st = "attack";
   else if (S.stance[me] === "attack" && mp < ep * 0.65) st = "defend";
   else if (S.stance[me] !== "attack" && (near || mp < ep * 0.8)) st = near ? "defend" : "hold";
   else if (S.stance[me] === "defend" && !near && mp >= ep * 0.8) st = "hold";
   if (st !== S.stance[me]) command(S, me, { t: "stance", s: st });
-  const fx = me === 0 ? 700 : 1300;
+  const fx = me === 0 ? 1000 : 2000;
   if (S.flag[me] !== fx) command(S, me, { t: "flag", x: fx });
 }
