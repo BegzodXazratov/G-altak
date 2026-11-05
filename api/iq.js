@@ -70,8 +70,9 @@ export default async function handler(req, res) {
         const s = await rpc("iq_get_session", { p_id: b.session_id });
         if (!s || Number(s.tg_id) !== Number(u.id) || !s.finished_at) return out(res, 404, { error: "session" });
         const [norm, paid] = await Promise.all([rpc("iq_norm", {}), rpc("iq_paid", { p_tg: u.id, p_sid: s.id })]);
-        const o = { result: publicResult(s, norm), paid: !!paid, bot: await botName(), name: u.first_name || "" };
-        if (paid) o.detail = detailOf(s);
+        // Batafsil natija hamma uchun BEPUL (to'lov o'chirilgan)
+        const o = { result: publicResult(s, norm), paid: true, bot: await botName(), name: u.first_name || "" };
+        o.detail = detailOf(s);
         return out(res, 200, o);
       }
       case "invoice": {

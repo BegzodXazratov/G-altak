@@ -89,8 +89,8 @@ export function iqTab() {
 
           <h2 class="iqs">Natijada nima olasiz</h2>
           <div class="iqwhat">
-            <div class="free"><b>Bepul</b><ul><li>IQ oralig'i</li><li>Daraja nomi</li><li>100 kishidan nechtasidan yuqoriligingiz</li><li>Do'stlarga yuborish</li></ul></div>
-            <div class="paid"><b>${S.price} ⭐</b><ul><li>4 bo'lim bo'yicha ball</li><li>Kuchli va zaif tomonlar</li><li>Xatolaringiz izohi</li><li>Savolga sarflangan vaqt</li></ul></div>
+            <div class="free"><b>Asosiy</b><ul><li>IQ oralig'i</li><li>Daraja nomi</li><li>100 kishidan nechtasidan yuqoriligingiz</li><li>Do'stlarga yuborish</li></ul></div>
+            <div class="paid"><b>Bepul</b><ul><li>4 bo'lim bo'yicha ball</li><li>Kuchli va zaif tomonlar</li><li>Xatolaringiz izohi</li><li>Savolga sarflangan vaqt</li></ul></div>
           </div>
 
           <h2 class="iqs">Bilib oling</h2>
