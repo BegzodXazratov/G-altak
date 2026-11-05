@@ -1,6 +1,6 @@
 import { isMe, waitScreen, markJoining } from "./core.js";
 import { app, header, bindBack, show, home, api, read, toast, haptic, esc, load, save, scoreCard, ratingLine, refreshProfile, nav, sleep } from "./core.js";
-import { W, H, ROUNDS, GROUND, PW, BOW_Y, ANG_MIN, ANG_MAX, layout, rng, hazards, wallOn, HEART_SEC, initArch, norm, arrowsLeft, applyShot, aiShot } from "./arch-engine.js";
+import { W, H, ROUNDS, GROUND, PW, BOW_Y, ANG_MIN, ANG_MAX, layout, rng, hazards, wallY, HEART_SEC, initArch, norm, arrowsLeft, applyShot, aiShot } from "./arch-engine.js";
 
 const PULL_MAX = 28, MIN_POWER = 15; // sahna birligida: shuncha tortilsa — 100% kuch
 const COL = { p1: "#3aa0ff", p2: "#ff6a4d" };
@@ -184,11 +184,12 @@ function gameScreen(opt) {
     el.className = "tclk" + (t <= 15 ? " low" : "") + (st.turn === opt.mySide ? " mine" : "");
   };
   const el = id => document.getElementById(id);
-  let tSeq = -1, tStart = Date.now(), heartTm = null, forceHeart = false;
+  let tSeq = -1, tStart = Date.now(), heartTm = null, forceHeart = false, wallT = null, wallRaf = 0;
+  const wallLoop = () => { if (!alive) { wallRaf = 0; return; } const t = wallT != null ? wallT : elapsed(); hazards(st.seed, st.seq || 0).walls.forEach((w, i) => { const e = document.querySelector(`[data-w="${i}"]`); if (e) e.setAttribute("y", sy(wallY(w, t) + w.h)); }); wallRaf = requestAnimationFrame(wallLoop); };
   const elapsed = () => { if (st.seq !== tSeq) { tSeq = st.seq; tStart = Date.now(); } return (Date.now() - tStart) / 1000; };
   const hazSvg = () => {
     const H0 = hazards(st.seed, st.seq || 0), e = elapsed();
-    const walls = H0.walls.map((w, i) => `<rect class="wall" data-w="${i}" x="${w.x - w.hw}" y="${sy(w.y + w.h)}" width="${w.hw * 2}" height="${w.h}" rx=".5" style="animation-duration:${w.per}s;animation-delay:-${w.ph}s"/>`).join("");
+    const walls = H0.walls.map((w, i) => `<rect class="wall" data-w="${i}" x="${w.x - w.hw}" y="${sy(wallY(w, e) + w.h)}" width="${w.hw * 2}" height="${w.h}" rx=".5"/>`).join("");
     const heart = H0.heart && (forceHeart || e < HEART_SEC) ? `<g id="heart" class="heart" transform="translate(${H0.heart.x} ${sy(H0.heart.y)})"><circle r="${H0.heart.r}" fill="#ff4d6d" opacity=".18"/><text text-anchor="middle" y="1.9" font-size="6">❤️</text></g>` : "";
     return `<g id="haz">${walls}${heart}</g>`;
   };
@@ -230,8 +231,8 @@ function gameScreen(opt) {
   }
   async function fly(last) {
     const arrow = el("arrow"), trail = el("trail"); if (!arrow || !last?.path) return;
-    const pts = last.path, total = pts.length - 1, MS = 26, HZ = hazards(st.seed, st.seq || 0), wEls = HZ.walls.map((_, i) => document.querySelector(`[data-w="${i}"]`));
-    wEls.forEach(w => { if (w) { w.style.animation = 'none'; } });
+    const pts = last.path, total = pts.length - 1, MS = 26, HZ = hazards(st.seed, st.seq || 0);
+    const el0 = last.el || 0;
     arrow.setAttribute("opacity", 1); sfx("shoot");
     const t0 = performance.now(), tr = [];
     for (;;) {
@@ -240,12 +241,12 @@ function gameScreen(opt) {
       const [x0, y0] = pts[i], [x1, y1] = pts[Math.min(total, i + 1)];
       const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k, th = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;
       arrow.setAttribute("transform", `translate(${x.toFixed(2)} ${sy(y)}) rotate(${(-th).toFixed(1)})`);
-      HZ.walls.forEach((w, i) => { if (wEls[i]) wEls[i].setAttribute('opacity', wallOn(w, f * 0.04) ? 0.95 : 0.12); });
+      wallT = el0 + f * 0.04;
       tr.push(`${x.toFixed(1)},${sy(y)}`); if (tr.length > 60) tr.shift();
       trail.setAttribute("points", tr.join(" "));
       if (f >= total) break; await frame();
     }
-    arrow.setAttribute("opacity", 0); trail.setAttribute("points", "");
+    arrow.setAttribute("opacity", 0); trail.setAttribute("points", ""); wallT = null;
     if (last.heart) { const h = el("heart"); if (h) h.remove(); sfx("hit"); toast("❤️ Jon topdingiz! +1 jon, +1 ball"); }
   }
   async function bloodBurst(x, y0, deg, dmg, floorY, feetX) {
@@ -326,7 +327,7 @@ function gameScreen(opt) {
     setTimeout(async () => {
       if (!alive) return;
       const s = aiShot(st, st.turn, opt.level); anim = false;
-      const prev = st, next = applyShot(st, st.turn, s.angle, s.power);
+      const prev = st, next = applyShot(st, st.turn, s.angle, s.power, 0);
       await showShot(prev, next); aiTurn();
     }, 700);
   }
@@ -409,7 +410,7 @@ function gameScreen(opt) {
         <div class="pad-r"><span>Burchak <b id="va">—</b></span><div class="pwr"><i id="pw" style="width:0%"></i></div><span>Kuch <b id="vp">—</b></span></div></div>
       </div>
       ${st.winner && !shown && !anim || room?.status === "done" && !anim ? endOverlay() : ""}`;
-    bindBack(); drawActors(); armHeart();
+    bindBack(); drawActors(); armHeart(); if (!wallRaf) wallLoop();
     if (can) bindDrag();
     const sb = app().querySelector("[data-snd]"); if (sb) sb.onclick = () => { snd = !snd; save("arch-snd", snd ? "1" : "0"); sb.textContent = snd ? "🔊" : "🔇"; if (snd) audioInit(); };
     const rs = app().querySelector("[data-restart]"); if (rs) rs.onclick = restart;
@@ -477,6 +478,6 @@ function gameScreen(opt) {
         loop();
       }
     },
-    leave() { alive = false; dragEnd(); clearTimeout(poll); clearInterval(clk); clearTimeout(heartTm); },
+    leave() { alive = false; dragEnd(); clearTimeout(poll); clearInterval(clk); clearTimeout(heartTm); cancelAnimationFrame(wallRaf); wallRaf = 0; },
   };
 }
