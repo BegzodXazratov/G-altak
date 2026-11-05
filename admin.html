@@ -169,6 +169,7 @@ details.dd{border:1px solid var(--line);border-radius:14px;background:var(--pane
 .rcf time{opacity:.6}.rcf button{opacity:.65;font-size:11.5px;padding:0}.rcf button:hover{opacity:1;text-decoration:underline}
 .rcf .del,.rcf .blk{color:var(--red)}.rcm.adm .rcf .del{color:#fff}
 .rcbar{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:6px 10px;margin-top:8px}
+.rcbar[hidden]{display:none}
 .rcin{display:flex;gap:8px;align-items:flex-end;margin-top:8px}.rcin textarea{flex:1;resize:none;max-height:120px}
 </style>
 </head>
@@ -230,7 +231,8 @@ async function load() {
     if (!r.ok) { try { sessionStorage.removeItem("galtak-admin"); } catch (e) {} return loginView(j.error || "Xato"); }
     try { sessionStorage.setItem("galtak-admin", pass); } catch (e) {}
     data = j; SO = { ...SO, ...(j.social || {}) }; lastAt = Date.now(); if (j.now) skew = new Date(j.now) - Date.now();
-    render();
+    // guruh chatida yozayotganda sahifa qayta chizilmaydi (kursor yo'qolmasin)
+    if (tab === "room" && $("#rtext")) liveLabel(); else render();
     if (!timer) timer = setInterval(() => { if (!document.hidden) load(); else liveLabel(); }, 10000);
   } catch (e) { if (!data) loginView("Internet bilan muammo"); else liveLabel(true); }
 }
@@ -583,7 +585,7 @@ async function roomSend() {
   const b = $("#rsend"); b.disabled = true;
   try {
     const r = await roomApi("room_post", { text: t, reply: roomReply?.id || 0 });
-    if (r.ok) { $("#rtext").value = ""; $("#rtext").style.height = "auto"; roomDraft = ""; roomReply = null; roomTarget(); await roomLoad(); const box = $("#rlist"); if (box) box.scrollTop = box.scrollHeight; }
+    if (r.ok) { $("#rtext").value = ""; $("#rtext").style.height = "auto"; roomDraft = ""; roomReply = null; roomTarget(); await roomLoad(); $("#rtext").focus(); const box = $("#rlist"); if (box) box.scrollTop = box.scrollHeight; }
     else toast(r.error === "empty" ? "Matn yozing" : "Yuborilmadi");
   } catch (e) { toast("Internet bilan muammo"); }
   b.disabled = false;
