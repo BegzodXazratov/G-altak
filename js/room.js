@@ -44,15 +44,19 @@ export function roomScreen() {
     const inp = document.querySelector("#rmsg"); const text = inp.value.trim();
     if (!text || sending || blocked) return;
     sending = true;
+    // maydonni darrov tozalaymiz (telefonda avto-tuzatish matnni qaytarib qo'ymasligi uchun keyingi kadrda yana tekshiramiz)
+    inp.value = "";
+    requestAnimationFrame(() => { if (inp.value.trim() === text) inp.value = ""; });
+    const restore = () => { if (!inp.value) inp.value = text; };
     try {
       const r = await api("room_send", { text, reply: reply?.id || 0 });
-      if (r.error === "contact") toast("Telefon raqam, username yoki havola yozish mumkin emas");
-      else if (r.error === "wait") toast("Biroz sekinroq yozing 🙂");
-      else if (r.error === "dup") toast("Bu xabarni yaqinda yuborgansiz");
+      if (r.error === "contact") { restore(); toast("Telefon raqam, username yoki havola yozish mumkin emas"); }
+      else if (r.error === "wait") { restore(); toast("Biroz sekinroq yozing 🙂"); }
+      else if (r.error === "dup") { toast("Bu xabarni yaqinda yuborgansiz"); }
       else if (r.error === "blocked") { blocked = true; draw(true); toast("Siz guruhda yozishdan chetlatilgansiz"); }
-      else if (r.error) toast("Xabar yuborilmadi");
+      else if (r.error) { restore(); toast("Xabar yuborilmadi"); }
       else { inp.value = ""; reply = null; bar(); haptic("light"); await pull(); draw("end"); }
-    } catch (e) { toast(e.message); }
+    } catch (e) { restore(); toast(e.message); }
     sending = false; if (!blocked) inp.focus();
   }
   return {
@@ -62,7 +66,7 @@ export function roomScreen() {
       app().innerHTML = header("🗨️ O'yin chati") + `
         <div class="rchat"><div class="rmsgs"></div>
           <div class="rrep" id="rrep" hidden></div>
-          <div class="cbar"><input class="inp" id="rmsg" maxlength="300" placeholder="Xabar yozing…" autocomplete="off"><button class="btn" data-rsend aria-label="Yuborish">➤</button></div>
+          <div class="cbar"><input class="inp" id="rmsg" maxlength="300" placeholder="Xabar yozing…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="send"><button class="btn" data-rsend aria-label="Yuborish">➤</button></div>
           <p class="small muted" style="margin:6px 4px 0">Hamma o'yinchilar ko'radi. Savolingizni yozing, rahnamo javob beradi. Haqorat, raqam, username va havola yo'q. Qoidani buzganlar chetlatiladi.</p></div>`;
       app().querySelector("[data-rsend]").onclick = send;
       app().querySelector("#rmsg").onkeydown = e => { if (e.key === "Enter") send(); };
