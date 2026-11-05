@@ -25,7 +25,7 @@ export const HEART_SEC = 12;
 export function hazards(seed, seq) {
   const r = rng(seed * 104729 + (seq || 0) * 31 + 7);
   // bitta devor: yo'qolmaydi, sekin yuqoriga-pastga yuradi (vaqt = yurish boshlanganidan beri + o'q uchish vaqti)
-  const walls = [{ x: Math.round((44 + r() * 12) * 10) / 10, y0: 34, amp: 12, per: 10, ph: Math.round(r() * 100) / 10, hw: 1.3, h: 9 }];
+  const walls = []; // devor o'chirildi (xalaqit berardi); kerak bo'lsa qayta yoqish mumkin
   const rr = rng(seed * 31337 + 5), turns = [];
   while (turns.length < 3) { const t = 1 + Math.floor(rr() * (ROUNDS * 2 - 2)); if (!turns.includes(t)) turns.push(t); }
   const heart = turns.includes(seq || 0) ? { x: Math.round((40 + r() * 20) * 10) / 10, y: Math.round((30 + r() * 24) * 10) / 10, r: 3.6 } : null;
