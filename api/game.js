@@ -7,7 +7,7 @@ import { initArch, applyShot } from "../js/arch-engine.js";
 import { initState as chessInit, findMove, applyMove as chessApply } from "../js/chess-engine.js";
 import { APP_VERSION } from "../js/version.js";
 
-const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch"];
+const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch", "ww4"];
 // yangi o'yinlarda boshlang'ich holatni server o'zi yaratadi (mijoz maxfiy ma'lumot yoki maqsadlarni o'zgartira olmaydi)
 const initState = b => b.game === "arch" ? initArch() : b.game === "chess" ? chessInit() : b.game === "kim" ? makeKim() : b.game === "shch" ? makeShch(b.count) : (b.state || {});
 
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
         out = await rpc("g_invite", { p_from: id, p_to_h: String(b.h || ""), p_game: b.game, p_room: String(b.room || "") });
         if (out?.ok) {
-          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
+          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4" };
           const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
           const sent = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -200,6 +200,21 @@ export default async function handler(req, res) {
         out = await rpc("g_room_move", { p_id: rm.id, p_player: id, p_version: rm.version, p_state: chessApply(rm.state, m) });
         break;
       }
+      case "w4_push": { // World War 4: xost o'yin holatini yuboradi, mehmonning yangi buyruqlarini oladi
+        const sn = b.snap;
+        if (!sn || typeof sn !== "object" || !Array.isArray(sn.u) || sn.u.length > 160) return res.status(200).json({ error: "bad_snap" });
+        out = await rpc("g_ww4_push", { p_id: String(b.id || ""), p_player: id, p_snap: sn, p_after: Number(b.after) || 0 });
+        break;
+      }
+      case "w4_cmd": { // mehmon buyruq yuboradi (xarid, saf, chiziq)
+        const c = b.cmd;
+        if (!c || typeof c !== "object" || !["buy", "cancel", "stance", "flag", "row", "rows"].includes(c.t)) return res.status(200).json({ error: "bad_cmd" });
+        out = await rpc("g_ww4_cmd", { p_id: String(b.id || ""), p_player: id, p_cmd: c });
+        break;
+      }
+      case "w4_timeout":
+        out = await rpc("g_ww4_timeout", { p_id: String(b.id || ""), p_player: id });
+        break;
       case "resign":
         out = await rpc("g_room_resign", { p_id: b.id, p_player: id });
         break;

@@ -12,12 +12,12 @@
 :root{
   --bg:#F3EEE6;--panel:#FFFCF7;--panel2:#F7F1E7;--ink:#1D1814;--muted:#7C7166;--line:#E6DCCD;
   --accent:#E8572A;--green:#1E9E5A;--greenbg:#1E9E5A1a;--red:#D14343;--redbg:#D143431a;--amber:#C98410;--amberbg:#E0A1201f;
-  --shashka:#1F6F4E;--soz:#5B3DB8;--gugurt:#D9531E;--kim:#1D7FA8;--shch:#B8387A;--chess:#5B4A8A;--arch:#C2762B;--shadow:0 1px 2px #0000000a,0 8px 24px #0000000d;
+  --shashka:#1F6F4E;--soz:#5B3DB8;--gugurt:#D9531E;--kim:#1D7FA8;--shch:#B8387A;--chess:#5B4A8A;--arch:#C2762B;--ww4:#B0382A;--shadow:0 1px 2px #0000000a,0 8px 24px #0000000d;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#110E0C;--panel:#1B1714;--panel2:#231E1A;--ink:#F3EADF;--muted:#9E9184;--line:#2F2823;
   --green:#3CCB7F;--greenbg:#3CCB7F1c;--red:#F06A6A;--redbg:#F06A6A1c;--amber:#F2B33D;--amberbg:#F2B33D1c;
-  --shashka:#2FA673;--soz:#8C6CF0;--gugurt:#F06A2E;--kim:#3AA9D9;--shch:#E0599A;--chess:#8C7BD0;--arch:#E0903F;--shadow:0 1px 2px #0006,0 10px 30px #0004}}
+  --shashka:#2FA673;--soz:#8C6CF0;--gugurt:#F06A2E;--kim:#3AA9D9;--shch:#E0599A;--chess:#8C7BD0;--arch:#E0903F;--ww4:#E0584A;--shadow:0 1px 2px #0006,0 10px 30px #0004}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Onest,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 main{max-width:1240px;margin:0 auto;padding:18px 16px 60px}
@@ -69,7 +69,7 @@ button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
 .games{display:grid;gap:10px}
 .game{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--panel2);border:1px solid var(--line)}
 .gi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:#fff}
-.gi.shashka{background:var(--shashka)}.gi.soz{background:var(--soz)}.gi.gugurt{background:var(--gugurt)}.gi.kim{background:var(--kim)}.gi.shch{background:var(--shch)}.gi.chess{background:var(--chess)}.gi.arch{background:var(--arch)}
+.gi.shashka{background:var(--shashka)}.gi.soz{background:var(--soz)}.gi.gugurt{background:var(--gugurt)}.gi.kim{background:var(--kim)}.gi.shch{background:var(--shch)}.gi.chess{background:var(--chess)}.gi.arch{background:var(--arch)}.gi.ww4{background:var(--ww4)}
 .vs{font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .vs em{font-style:normal;color:var(--muted);font-weight:500;font-size:13px}
 .game small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
@@ -179,7 +179,7 @@ details.dd{border:1px solid var(--line);border-radius:14px;background:var(--pane
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const GAME = { shashka: ["Shashka", "⚫"], soz: ["Topqir", "🔤"], gugurt: ["Gugurt", "🔥"], kim: ["Kim topadi?", "🔢"], shch: ["SH-chyot", "🧮"], chess: ["Shaxmat", "♞"], arch: ["Kamonchi", "🏹"] };
+const GAME = { shashka: ["Shashka", "⚫"], soz: ["Topqir", "🔤"], gugurt: ["Gugurt", "🔥"], kim: ["Kim topadi?", "🔢"], shch: ["SH-chyot", "🧮"], chess: ["Shaxmat", "♞"], arch: ["Kamonchi", "🏹"], ww4: ["World War 4", "⚔️"] };
 const AVC = ["#E8572A", "#1F6F4E", "#5B3DB8", "#C98410", "#2A7FB8", "#B8456E", "#4E8A2A"];
 let pass = "", data = null, tab = "dash", q = "", filt = "all", sortK = "seen_at", timer = null, lastAt = 0, skew = 0;
 try { pass = sessionStorage.getItem("galtak-admin") || ""; tab = sessionStorage.getItem("galtak-admin-tab") || "dash"; } catch (e) {}

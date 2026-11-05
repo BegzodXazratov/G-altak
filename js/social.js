@@ -112,7 +112,7 @@ export function friendsScreen(ctx = null) {
     if (alive && document.querySelector(".frs")) draw();
   }
   function drawCtx() {
-    const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
+    const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4" };
     app().innerHTML = header("🎮 Kimni chaqiramiz?") + `<div class="frs">
       <p class="small muted" style="margin:0 4px 10px">${esc(GN[ctx.game] || "O'yin")} uchun hozir onlayn turganlardan tanlang. <b>🤝 do'st</b> belgisi — sizning do'stingiz.</p>
       <h2 class="sect">Hozir onlayn${others ? ` · ${others.length}` : ""}</h2>
@@ -127,7 +127,7 @@ export function friendsScreen(ctx = null) {
   function draw() {
     if (ctx) return drawCtx();
     const d = data;
-    const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi" };
+    const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4" };
     app().innerHTML = header(ctx ? "🎮 Kimni chaqiramiz?" : "👥 Do'stlar") + `<div class="frs">
       ${ctx ? `<p class="small muted" style="margin:0 4px 10px">${esc(GN[ctx.game] || "O'yin")} uchun o'yinchini tanlang — do'stingizni yoki onlayn turgan istalgan kishini.</p>` : `<button class="btn" data-find>➕ Do'st qo'shish — onlayn o'yinchilar</button>`}
       ${d === null ? `<p class="muted">Yuklanmoqda…</p>` : ""}
