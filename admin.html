@@ -435,7 +435,18 @@ function iqDraw(j, st) {
   const fun = [["Testni boshlagan", o.started, 100], ["Oxirigacha yetgan", o.finished, o.started ? o.finished / o.started * 100 : 0], ["Batafsil uchun to'lagan", o.payers, o.finished ? o.payers / o.finished * 100 : 0]];
   const bal = st?.balance ? (Number(st.balance.amount || 0) + (st.balance.nanostar_amount ? st.balance.nanostar_amount / 1e9 : 0)) : null;
   const txs = (st?.tx || []).filter(t => t.source && t.source.type === "user");
-  body.innerHTML = `
+  const lv = j.live, mx = lv ? Math.max(1, ...lv.hours.map(h => Math.max(h.st, h.fi))) : 1;
+  const liveHtml = lv ? `<section class="panel" style="margin-bottom:14px"><div class="ph"><h2>🧠 IQ testlar — o'ynalish statistikasi</h2><span class="sp"></span><small>har 10 soniyada yangilanadi</small></div>
+      <div class="kpis">
+        ${k("🟢 Hozir yechmoqda", lv.playing, "so'nggi 30 daqiqada boshlab, tugatmagan")}
+        ${k("▶️ Bugun boshlagan", lv.started_24h, `${lv.finished_24h} tasi oxirigacha yetdi`)}
+        ${k("🚪 Tashlab ketgan", lv.abandoned_24h, "24 soatda boshlab tugatmagan")}
+        ${k("📈 Jami o'ynalgan", lv.started_total, `${lv.finished_total} tasi tugatilgan (${pct(lv.finished_total, lv.started_total)})`)}
+      </div>
+      ${lv.live.length ? `<div class="chips" style="margin:6px 0 12px">${lv.live.map(x => `<span class="chip">🧠 ${esc(x.name || "Ism yo'q")}${x.username ? ` <small class="muted">@${esc(x.username)}</small>` : ""} <small class="muted">· ${x.min} daq</small></span>`).join("")}</div>` : `<p class="muted" style="font-size:13px;margin:4px 0 12px">Hozir test yechayotgan hech kim yo'q.</p>`}
+      <div style="display:flex;align-items:flex-end;gap:3px;height:90px">${lv.hours.map(h => `<div title="${new Date(h.h).getHours()}:00 — boshladi ${h.st}, tugatdi ${h.fi}" style="flex:1;display:flex;align-items:flex-end;gap:1px;height:100%"><i style="flex:1;background:#8b6cf0;height:${Math.round(h.st / mx * 100)}%;min-height:${h.st ? 2 : 0}px;border-radius:2px 2px 0 0"></i><i style="flex:1;background:var(--accent);height:${Math.round(h.fi / mx * 100)}%;min-height:${h.fi ? 2 : 0}px;border-radius:2px 2px 0 0"></i></div>`).join("")}</div>
+      <div class="muted" style="font-size:12px;margin-top:6px"><span style="color:#8b6cf0">■</span> boshlagan · <span style="color:var(--accent)">■</span> tugatgan — so'nggi 24 soat (soat bo'yicha)</div></section>` : "";
+  body.innerHTML = liveHtml + `
     <section class="panel" style="margin-bottom:14px"><div class="ph"><h2>⭐ Botning Stars balansi (Telegram'dan)</h2></div>
       <div style="display:flex;gap:18px;align-items:baseline;flex-wrap:wrap"><div class="v disp" style="font-size:34px;font-weight:800">${bal === null ? "—" : Math.round(bal * 100) / 100} ⭐</div>
       <span class="muted" style="font-size:13px">${bal === null ? esc(st?.balErr || "Balans olinmadi") : "Hozir hisobdagi Stars. Pulga chiqarish: Fragment orqali, kamida 1000 ⭐, 21 kundan keyin."}</span></div>

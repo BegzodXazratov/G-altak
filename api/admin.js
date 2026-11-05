@@ -34,7 +34,8 @@ export default async function handler(req, res) {
     }
     if (req.body?.action === "iq") {
       const [ov, pays, users] = await Promise.all([iqdb.rpc("iq_admin_overview", {}), iqdb.rpc("iq_admin_payments", { p_limit: 50 }), iqdb.rpc("iq_admin_users", { p_limit: 30 })]);
-      return res.status(200).json({ ov, pays, users });
+      const live = await iqdb.rpc("iq_admin_live", {}).catch(() => null);
+      return res.status(200).json({ ov, pays, users, live });
     }
     if (req.body?.action === "room") return res.status(200).json(await rpc("g_room_admin_list", {}));
     if (req.body?.action === "room_post") { // admin "Admin (Rahnamo)" nomidan yozadi, xohlasa savolga javob sifatida
