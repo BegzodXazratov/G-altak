@@ -176,7 +176,7 @@ function pickGame(h, name) {
   let secs = gameSeconds("soz");
   const draw = () => {
     el.innerHTML = `<div class="card stack center"><h2 style="margin:0">${esc(name)} bilan</h2><p class="muted" style="margin:0">Qaysi o'yin?</p>
-      ${Object.keys(GNAME).map(g => `<button class="btn alt" data-g="${g}">${GICON[g]} ${GNAME[g]}</button>`).join("")}
+      ${Object.keys(GNAME).filter(g => g !== "ww4").map(g => `<button class="btn alt" data-g="${g}">${GICON[g]} ${GNAME[g]}</button>`).join("")}
       <p class="small muted" style="margin:4px 0 0">Topqir va Gugurt vaqti:</p>
       <div class="seg tpick">${TIMES.map(t => `<button data-t="${t}" aria-pressed="${secs === t}">${t / 60} daq</button>`).join("")}</div>
       <button class="btn alt" data-x style="opacity:.7">Bekor qilish</button></div>`;
