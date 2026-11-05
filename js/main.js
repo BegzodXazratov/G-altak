@@ -7,7 +7,6 @@ import { kimMenu, createPrivate as newKim } from "./kim.js";
 import { shchMenu, createPrivate as newShch } from "./shch.js";
 import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
-import { ww4Menu, createPrivate as newWw4 } from "./ww4.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
 import { roomSeen } from "./room.js";
 
@@ -161,7 +160,7 @@ function onlineScreen() {
 async function startInvite(h, name, game) {
   const timed = game === "soz" || game === "gugurt", secs = timed ? gameSeconds(game) : 0;
   try {
-    const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch, ww4: newWw4 })[game](name);
+    const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch })[game](name);
     const r = await api("invite", { h, game, room: room.id, seconds: secs });
     if (r.ok) { haptic("ok"); return; }
     toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "blocked_by_me" ? `${name} bloklangan — avval «Do'stlar» bo'limidan blokdan chiqaring`
@@ -202,7 +201,7 @@ async function shareApp() {
 }
 
 // ---------- reyting ----------
-const TABS = [["all", "Umumiy"], ["shashka", "Shashka"], ["soz", "Topqir"], ["gugurt", "Gugurt"], ["ww4", "WW4"]];
+const TABS = [["all", "Umumiy"], ["shashka", "Shashka"], ["soz", "Topqir"], ["gugurt", "Gugurt"]];
 function leaderboard(game = "all") {
   let list = null;
   return {
@@ -266,11 +265,6 @@ const menu = {
             <h2>Kamonchi</h2><p>Burchak va kuchni topib, raqibning 5 jonini oling</p>
             <span class="art" aria-hidden="true">🏹</span>
           </button>
-          <button class="game g-ww4" data-go="ww4">
-            <span class="tag">Strategiya · real vaqt</span>
-            <h2>World War 4</h2><p>Konchi, askar, kamonchi, zobit va dev — qo'shin yig'ib, raqib bazasini buzing</p>
-            <span class="art" aria-hidden="true">⚔️</span>
-          </button>
           <button class="game g-soz" data-go="soz">
             <span class="tag">So'z · 1–3 daqiqa</span>
             <h2>Topqir</h2><p>Harflardan o'zbekcha so'zlarni raqibdan tezroq toping</p>
@@ -303,7 +297,6 @@ const menu = {
         if (g === "shch") show(shchMenu());
         if (g === "chess") show(chessMenu());
         if (g === "arch") show(archMenu());
-        if (g === "ww4") show(ww4Menu());
       });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;

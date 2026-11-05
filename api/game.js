@@ -200,21 +200,6 @@ export default async function handler(req, res) {
         out = await rpc("g_room_move", { p_id: rm.id, p_player: id, p_version: rm.version, p_state: chessApply(rm.state, m) });
         break;
       }
-      case "w4_push": { // World War 4: xost o'yin holatini yuboradi, mehmonning yangi buyruqlarini oladi
-        const sn = b.snap;
-        if (!sn || typeof sn !== "object" || !Array.isArray(sn.u) || sn.u.length > 160) return res.status(200).json({ error: "bad_snap" });
-        out = await rpc("g_ww4_push", { p_id: String(b.id || ""), p_player: id, p_snap: sn, p_after: Number(b.after) || 0 });
-        break;
-      }
-      case "w4_cmd": { // mehmon buyruq yuboradi (xarid, saf, chiziq)
-        const c = b.cmd;
-        if (!c || typeof c !== "object" || !["buy", "cancel", "stance", "flag", "row", "rows"].includes(c.t)) return res.status(200).json({ error: "bad_cmd" });
-        out = await rpc("g_ww4_cmd", { p_id: String(b.id || ""), p_player: id, p_cmd: c });
-        break;
-      }
-      case "w4_timeout":
-        out = await rpc("g_ww4_timeout", { p_id: String(b.id || ""), p_player: id });
-        break;
       case "resign":
         out = await rpc("g_room_resign", { p_id: b.id, p_player: id });
         break;
