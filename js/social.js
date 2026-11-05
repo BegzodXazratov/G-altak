@@ -1,6 +1,6 @@
 // Profil, do'stlar va do'stlar chati
 import { iqTab } from "./iq.js";
-import { roomScreen } from "./room.js";
+import { roomScreen, roomSeen, setRoomSeen } from "./room.js";
 import { app, show, api, me, profile, setProfile, esc, toast, header, bindBack, haptic, nav, level, MAX_SCORE, refreshProfile, back, tabBadge, paintTabs, goTab, gameSeconds } from "./core.js";
 
 export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
@@ -13,6 +13,12 @@ export function applyPing(r) {
   social.unread = r.unread || 0; social.requests = r.requests || [];
   if (social.requests.length > prevReq) toast(`👋 ${social.requests[0]} sizga do'stlik so'rovi yubordi`);
   else if (social.unread > prevUnread && !document.querySelector(".chat")) toast("💬 Yangi xabar keldi");
+  // O'yin chati: yangi xabarlar soni tab ustida
+  if (r.room_last != null) {
+    const seen = roomSeen(), onRoom = !!document.querySelector(".rchat");
+    if (seen === null || onRoom) { if (seen === null) setRoomSeen(r.room_last); tabBadge.room = 0; }
+    else { const n = r.room_n || 0; if (n > (tabBadge.room || 0) && n > 0) toast("🗨️ O'yin chatida yangi xabar"); tabBadge.room = n; }
+  }
   paintBadge();
 }
 export const badgeCount = () => social.unread + social.requests.length;

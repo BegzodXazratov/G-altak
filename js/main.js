@@ -8,6 +8,7 @@ import { shchMenu, createPrivate as newShch } from "./shch.js";
 import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
+import { roomSeen } from "./room.js";
 
 setupTelegram();
 
@@ -86,7 +87,7 @@ function startPresence() {
   const ping = async () => {
     if (document.hidden) return;
     try {
-      const r = await api("ping", { act: currentAct() });
+      const r = await api("ping", { act: currentAct(), rl: roomSeen() || 0 });
       applyPing(r);
       (r.declined || []).forEach(n => toast(`${n} taklifni rad etdi`));
       if (r.busy || isBusy()) return; // o'yin paytida takliflar xalaqit bermaydi

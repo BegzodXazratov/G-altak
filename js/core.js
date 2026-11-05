@@ -118,7 +118,7 @@ export function show(screen, push = true) {
 }
 // ---------- pastki menyu: O'yin · Do'stlar · Chatlar · Profil ----------
 const TABS_UI = [["home", "🎮", "O'yin"], ["iq", "🧠", "IQ"], ["friends", "👥", "Do'stlar"], ["room", "🗨️", "O'yin chati"], ["chats", "💬", "Chatlar"], ["profile", "👤", "Profil"]];
-export const tabBadge = { friends: 0, chats: 0 };
+export const tabBadge = { friends: 0, chats: 0, room: 0 };
 export function paintTabs(screen = current) {
   let el = document.getElementById("tabbar");
   if (!screen?.tab) { el?.remove(); document.body.classList.remove("hastabs"); return; }

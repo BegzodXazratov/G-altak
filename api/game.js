@@ -64,7 +64,11 @@ export default async function handler(req, res) {
         break;
       }
       case "ping":
-        [out] = await Promise.all([rpc("g_ping", { p_id: id }), rpc("g_set_act", { p_id: id, p_act: String(b.act || "") }).catch(() => {})]);
+        {
+          const [pg, , rc] = await Promise.all([rpc("g_ping", { p_id: id }), rpc("g_set_act", { p_id: id, p_act: String(b.act || "") }).catch(() => {}),
+            rpc("g_room_count", { p_id: id, p_after: Number(b.rl) || 0 }).catch(() => null)]);
+          out = rc ? { ...pg, room_last: rc.last, room_n: rc.n } : pg;
+        }
         break;
       case "online":
         out = await rpc("g_online", { p_id: id });
