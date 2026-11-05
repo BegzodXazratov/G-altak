@@ -282,7 +282,7 @@ function render() {
       <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="pm">✉️ Xabar yuborish</button><button class="ibtn" id="bc">📢 Yangilanish xabari</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
     <div class="tabs">
-      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["room", "🗨️ Guruh chati"], ["activity", "Faollik"], ["iq", "🧠 IQ va ⭐"]].map(([k, l, n]) =>
+      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["room", "🗨️ Guruh chati"], ["activity", "Faollik"], ["iq", "🧠 IQ va ⭐"], ["inbox", "💬 Javoblar", data.inbox_unseen ? "● " + data.inbox_unseen : ""]].map(([k, l, n]) =>
         `<button data-tab="${k}" aria-pressed="${tab === k}">${l}${n !== undefined && n !== "" ? `<i>${n}</i>` : ""}</button>`).join("")}
     </div>
     <div class="kpis">
@@ -311,7 +311,7 @@ function render() {
     } catch (e) { alert("Internet bilan muammo"); }
     b.disabled = false; b.textContent = "📢 Yangilanish xabari";
   };
-  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "room") roomView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else dashView();
+  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "room") roomView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else if (tab === "inbox") inboxView(); else dashView();
 }
 // erkin xabar yuborish oynasi
 function postModal() {
@@ -411,6 +411,21 @@ function byGame() {
     <div class="tr"><div class="fl" style="width:${(B[k] || 0) / tot * 100}%;background:var(--${k})"></div></div></div>`).join("")}</div>`;
 }
 
+// ---------- Botga yozilgan javoblar ----------
+async function inboxView() {
+  const body = $("#body");
+  body.innerHTML = `<section class="panel"><p class="muted">Yuklanmoqda…</p></section>`;
+  let j; try { j = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "inbox" }) })).json(); } catch (e) { body.innerHTML = `<section class="panel"><p class="muted">Internet bilan muammo</p></section>`; return; }
+  if (tab !== "inbox") return;
+  const items = j.items || [];
+  body.innerHTML = `<section class="panel"><div class="ph"><h2>💬 Botga yozilgan javoblar</h2><span class="sp"></span><small>${items.length} ta xabar${j.unseen ? ` · ${j.unseen} ta yangi` : ""}</small></div>
+    ${items.length ? items.map(x => `<div class="hb" style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>${esc(x.name || "Ism yo'q")}${x.username ? ` <small class="muted">@${esc(x.username)}</small>` : ""} <small class="muted">ID ${esc(x.tg_id)}</small>${x.seen ? "" : ` <span style="color:var(--accent)">● yangi</span>`}</b><small class="muted">${date(x.created_at)}</small></div>
+      ${x.reply_to ? `<div class="muted" style="font-size:12.5px;margin:4px 0;border-left:3px solid var(--line);padding-left:8px">↪ ${esc(x.reply_to.slice(0, 160))}</div>` : ""}
+      <div style="margin:4px 0;white-space:pre-wrap">${esc(x.text)}</div>
+      <button class="ibtn" data-ans="${esc(x.tg_id)}" style="font-size:12.5px">✉️ Javob yozish</button></div>`).join("") : `<p class="muted">Hali hech kim yozmagan. Foydalanuvchi botga yozsa, shu yerda ko'rinadi.</p>`}</section>`;
+  body.querySelectorAll("[data-ans]").forEach(b => b.onclick = () => { postModal(); setTimeout(() => { const a = document.querySelector("#pa"), i = document.querySelector("#pi"); if (a && i) { a.value = "one"; i.style.display = ""; i.value = b.dataset.ans; document.querySelector("#pt")?.focus(); } }, 30); });
+  if (j.unseen) { fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "inbox_seen" }) }).then(() => { data.inbox_unseen = 0; }).catch(() => {}); }
+}
 // ---------- IQ testlar va Stars to'lovlari ----------
 let IQC = null, IQSIG = "";
 async function iqView() {

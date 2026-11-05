@@ -44,9 +44,12 @@ export default async function handler(req, res) {
     }
     if (req.body?.action === "room_delete") return res.status(200).json(await rpc("g_room_delete", { p_msg: Number(req.body.id) || 0 }));
     if (req.body?.action === "room_block") return res.status(200).json(await rpc("g_room_block", { p_tg_id: String(req.body.tg_id || ""), p_on: !!req.body.on, p_wipe: !!req.body.wipe }));
+    if (req.body?.action === "inbox") return res.status(200).json(await rpc("g_inbox_list", { p_limit: 100 }));
+    if (req.body?.action === "inbox_seen") { await rpc("g_inbox_seen", {}); return res.status(200).json({ ok: true }); }
     if (req.body?.action === "reach") return res.status(200).json(await reachCheck(Number(req.body.offset) || 0, req.headers.host));
     const [d, social, acts] = await Promise.all([rpc("g_admin_players", {}), rpc("g_admin_social", {}), rpc("g_admin_acts", {})]);
-    res.status(200).json({ ...d, social: { ...social, acts } });
+    const inbox = await rpc("g_inbox_list", { p_limit: 1 }).catch(() => null);
+    res.status(200).json({ ...d, inbox_unseen: inbox?.unseen || 0, social: { ...social, acts } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "server" });

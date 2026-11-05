@@ -50,6 +50,9 @@ export default async function handler(req, res) {
         await send(m.chat.id, "✅ Rahmat! Akkauntingiz tayyor.", { reply_markup: { remove_keyboard: true } });
         await send(m.chat.id, "O'yinga qaytish uchun bosing 👇", { reply_markup: playBtn() });
       }
+    } else if (m?.text && m.chat?.type === "private" && !m.text.startsWith("/start") && m.from && !m.from.is_bot) {
+      // foydalanuvchi botga yozgan xabar — admin panelda «Javoblar» bo'limida ko'rinadi
+      await rpc("g_inbox_add", { p_id: String(m.from.id), p_name: [m.from.first_name, m.from.last_name].filter(Boolean).join(" "), p_username: m.from.username || "", p_text: m.text, p_reply: m.reply_to_message?.text || m.reply_to_message?.caption || "" }).catch(e => console.error("inbox", e.message));
     } else if (m?.text?.startsWith("/start")) {
       const arg = m.text.split(" ")[1] || "";
       const prof = await rpc("g_profile", { p_id: String(m.from.id) }, false);
