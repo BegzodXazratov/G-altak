@@ -12,7 +12,18 @@ export const camLimit = c => clamp(c, VIEW_W / 2 - 30, W - VIEW_W / 2 + 30);
 function line(c, x1, y1, x2, y2) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
 
 // ---------- orqa fon ----------
+let skyC = null, skyKey = '';
 function sky(c, w, h, cam) {
+  // fon (osmon + qumtepalar) har kadrda qayta chizilmaydi: kamera 3 birlik siljiganda yangilanadi
+  const key = w + 'x' + h + ':' + Math.round(cam / 3);
+  if (!skyC || skyKey !== key) {
+    if (!skyC) skyC = document.createElement('canvas');
+    if (skyC.width !== w || skyC.height !== h) { skyC.width = w; skyC.height = h; }
+    skyC.getContext('2d').clearRect(0, 0, w, h); sky0(skyC.getContext('2d'), w, h, cam); skyKey = key;
+  }
+  c.drawImage(skyC, 0, 0);
+}
+function sky0(c, w, h, cam) {
   const g = c.createLinearGradient(0, 0, 0, h * 0.8);
   g.addColorStop(0, "#241c45"); g.addColorStop(0.55, "#b8506a"); g.addColorStop(1, "#f29a52");
   c.fillStyle = g; c.fillRect(0, 0, w, h);

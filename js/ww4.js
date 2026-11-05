@@ -217,7 +217,7 @@ function gameScreen(opt) {
   // ---- chizish ----
   let cv, cx, mv, mx, cw = 0, ch = 0, mw = 0, mh = 0, dpr = 1;
   function fit() {
-    dpr = Math.min(2, window.devicePixelRatio || 1);
+    dpr = Math.min(1.5, window.devicePixelRatio || 1);
     const w = cv.clientWidth; if (!w) return;
     if (w !== cw) { cw = w; ch = Math.round(w * ASPECT); cv.width = cw * dpr; cv.height = ch * dpr; cv.style.height = ch + "px"; }
     const m = mv.clientWidth; if (m && m !== mw) { mw = m; mh = 34; mv.width = mw * dpr; mv.height = mh * dpr; mv.style.height = mh + "px"; }
