@@ -44,4 +44,4 @@ export function makeShch(count) {
   }
 }
 
-export const makeKim = () => ({ phase: "setup", ready: {}, pref: {}, guesses: { p1: [], p2: [] }, turn: null, max: 15 });
+export const makeKim = (b = {}) => { const mode = b.mode === "abc" ? "abc" : "num", len = Number(b.len) === 6 ? 6 : 5; return { phase: "setup", ready: {}, pref: {}, guesses: { p1: [], p2: [] }, turn: null, max: mode === "abc" ? 20 : 15, mode, len }; };

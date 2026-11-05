@@ -9,7 +9,7 @@ import { APP_VERSION } from "../js/version.js";
 
 const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch", "ww4"];
 // yangi o'yinlarda boshlang'ich holatni server o'zi yaratadi (mijoz maxfiy ma'lumot yoki maqsadlarni o'zgartira olmaydi)
-const initState = b => b.game === "arch" ? initArch() : b.game === "chess" ? chessInit() : b.game === "kim" ? makeKim() : b.game === "shch" ? makeShch(b.count) : (b.state || {});
+const initState = b => b.game === "arch" ? initArch() : b.game === "chess" ? chessInit() : b.game === "kim" ? makeKim(b) : b.game === "shch" ? makeShch(b.count) : (b.state || {});
 
 export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
 

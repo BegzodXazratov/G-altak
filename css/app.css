@@ -655,3 +655,9 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .arch-scene .wall{fill:#d9b26b;stroke:#6b4a22;stroke-width:.25}
 .arch-scene .heart{animation:hbeat 1s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes hbeat{50%{opacity:.7}}
+
+.kb{display:grid;gap:6px;width:100%;max-width:380px;margin:6px auto 0}.kb .r{display:flex;gap:4px;justify-content:center}
+.kb button{flex:1;min-width:0;padding:12px 0;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-family:var(--display);font-size:17px;color:var(--ink)}
+.kb button:active{transform:scale(.95)}.kb button.alt{flex:1.5;font-size:16px}
+.kb button.go{background:var(--accent);color:#fff;border-color:transparent;font-size:15px;font-family:inherit;font-weight:700}.kb button:disabled{opacity:.4}.kb.off{opacity:.45;pointer-events:none}
+.kt-row.big .kt-t{max-width:15vw}
