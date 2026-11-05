@@ -602,3 +602,20 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .iq-sheet{position:fixed;inset:0;z-index:60;background:rgba(20,24,50,.45);display:flex;align-items:flex-end;justify-content:center;padding:12px}
 .iq-sheet-box{width:100%;max-width:520px;background:var(--card);color:var(--ink);border-radius:24px;padding:20px;display:grid;gap:10px}
 .iq-sheet-box h3{margin:0;font-size:18px}.iq-sheet-box p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.5}
+
+/* O'yin chati (ommaviy) */
+#tabbar button{min-width:0}#tabbar .tl{font-size:10.5px;white-space:nowrap}
+.rmsgs{height:calc(100dvh - 300px);min-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px 8px}
+.rmsg{display:flex;gap:8px;align-items:flex-end;max-width:92%;align-self:flex-start}
+.rmsg.mine{align-self:flex-end;flex-direction:row-reverse}
+.rmsg .rb{background:var(--card);border:1px solid var(--line);padding:7px 11px;border-radius:16px 16px 16px 4px;min-width:0;word-break:break-word}
+.rmsg.mine .rb{background:var(--ink);color:var(--bg);border-color:transparent;border-radius:16px 16px 4px 16px}
+.rmsg.adm .rb{border-color:var(--accent,#E8572A);background:rgba(232,87,42,.10)}
+.rmsg.adm.mine .rb{color:inherit}
+.rn{font-size:12px;font-weight:700;opacity:.75;margin-bottom:2px}.rmsg.mine .rn{display:none}
+.rbadge{font-style:normal;font-size:10px;background:var(--accent,#E8572A);color:#fff;border-radius:8px;padding:1px 6px;margin-left:4px;font-weight:700}
+.rq{font-size:12px;opacity:.8;border-left:3px solid var(--accent,#E8572A);padding:2px 8px;margin:2px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62vw}
+.rf{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:2px}.rf time{font-size:10.5px;opacity:.55}
+.rf button{font-size:11px;opacity:.6;padding:2px 0}
+.rrep{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent,#E8572A);border-radius:10px;padding:6px 10px;margin-bottom:6px}
+.rrep[hidden]{display:none}.rrep span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
