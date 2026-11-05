@@ -1,5 +1,6 @@
 // Profil, do'stlar va do'stlar chati
 import { iqTab } from "./iq.js";
+import { roomScreen } from "./room.js";
 import { app, show, api, me, profile, setProfile, esc, toast, header, bindBack, haptic, nav, level, MAX_SCORE, refreshProfile, back, tabBadge, paintTabs, goTab, gameSeconds } from "./core.js";
 
 export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
@@ -267,6 +268,6 @@ export function chatScreen(friend) {
   };
 }
 
-nav.tabs = { iq: () => iqTab(), friends: () => friendsScreen(), chats: () => chatsScreen(), profile: () => profileScreen() };
+nav.tabs = { iq: () => iqTab(), friends: () => friendsScreen(), chats: () => chatsScreen(), room: () => roomScreen(), profile: () => profileScreen() };
 nav.friends = ctx => ctx ? show(friendsScreen(ctx), false) : goTab("friends");
 nav.profile = () => goTab("profile");

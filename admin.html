@@ -263,7 +263,7 @@ function render() {
       <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="pm">✉️ Xabar yuborish</button><button class="ibtn" id="bc">📢 Yangilanish xabari</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
     <div class="tabs">
-      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["activity", "Faollik"], ["iq", "🧠 IQ va ⭐"]].map(([k, l, n]) =>
+      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["room", "🗨️ Guruh chati"], ["activity", "Faollik"], ["iq", "🧠 IQ va ⭐"]].map(([k, l, n]) =>
         `<button data-tab="${k}" aria-pressed="${tab === k}">${l}${n !== undefined && n !== "" ? `<i>${n}</i>` : ""}</button>`).join("")}
     </div>
     <div class="kpis">
@@ -292,7 +292,7 @@ function render() {
     } catch (e) { alert("Internet bilan muammo"); }
     b.disabled = false; b.textContent = "📢 Yangilanish xabari";
   };
-  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else dashView();
+  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "room") roomView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else dashView();
 }
 // erkin xabar yuborish oynasi
 function postModal() {
@@ -499,6 +499,76 @@ function chatsView() {
     <p class="muted" style="margin:0 0 12px;font-size:13px">Maxfiylik uchun xabar matni ko'rsatilmaydi — faqat kim kim bilan yozishgani va nechta xabar ekani.</p>
     <div class="list">${C.length ? C.map(c => `<div class="pair"><b>${esc(nameOf(0, c.a_name))}</b><span class="arr">↔</span><b>${esc(nameOf(0, c.b_name))}</b><span class="sp"></span>
       ${Number(c.unread) ? `<span class="tag amb">${c.unread} o'qilmagan</span>` : ""}<span class="mu">${c.msgs} xabar</span><time title="${date(c.last_at)}">${ago(c.last_at)}</time></div>`).join("") : `<div class="empty">Hali hech kim yozishmagan</div>`}</div></section>`;
+}
+
+// ---------- ommaviy "O'yin chati": admin (Rahnamo) nomidan yozish, javob berish, o'chirish, bloklash ----------
+let RM = { messages: [], blocked: [] }, roomDraft = "", roomReply = null, roomTimer = null, roomTop = null;
+async function roomApi(action, extra = {}) {
+  const r = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action, ...extra }) });
+  return r.json();
+}
+async function roomLoad() {
+  try { RM = await roomApi("room"); if (tab === "room") roomList(); } catch (e) {}
+}
+function roomView() {
+  $("#body").innerHTML = `<section class="panel"><div class="ph"><h2>🗨️ O'yin chati</h2><span class="sp"></span><small id="rcount"></small></div>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">Siz bu yerda «Admin (Rahnamo)» nomidan yozasiz. Savol ostidagi «Javob» ni bosing: javobingiz o'sha savolga ulanib chiqadi.</p>
+    <div id="rblocked"></div>
+    <div id="rlist" class="list" style="max-height:520px;overflow:auto"></div>
+    <div id="rtarget" class="muted" style="margin-top:12px;font-size:13px"></div>
+    <div style="display:flex;gap:8px;margin-top:6px"><textarea id="rtext" class="inp" rows="2" maxlength="600" placeholder="Admin (Rahnamo) nomidan yozing…" style="flex:1;resize:vertical"></textarea><button class="btn" id="rsend">Yuborish</button></div></section>`;
+  $("#rtext").value = roomDraft; $("#rtext").oninput = e => { roomDraft = e.target.value; };
+  $("#rsend").onclick = roomSend;
+  roomList(); roomTarget();
+  roomLoad(); clearInterval(roomTimer);
+  roomTimer = setInterval(() => { if (tab !== "room") return clearInterval(roomTimer); if (!document.hidden) roomLoad(); }, 4000);
+}
+function roomTarget() {
+  const el = $("#rtarget"); if (!el) return;
+  el.innerHTML = roomReply ? `↩ Javob: <b>${esc(roomReply.name)}</b> — ${esc(roomReply.body.slice(0, 80))} <button class="ibtn" id="rclr" style="padding:3px 9px;font-size:12px">bekor</button>` : "Oddiy xabar (hech kimga javob emas)";
+  const c = $("#rclr"); if (c) c.onclick = () => { roomReply = null; roomTarget(); };
+}
+function roomList() {
+  const M = RM.messages || [], B = RM.blocked || [];
+  const cnt = $("#rcount"); if (cnt) cnt.textContent = `${M.length} ta xabar · ${B.length} ta bloklangan`;
+  const bl = $("#rblocked");
+  if (bl) bl.innerHTML = B.length ? `<details class="dd" style="margin-bottom:10px"><summary>🚫 Bloklanganlar (${B.length})</summary><div class="chips" style="margin-top:10px">${B.map(b => `<span class="chip">${esc(b.name)} <button data-unb="${esc(b.tg_id)}" class="ibtn" style="padding:2px 8px;font-size:12px">Blokdan chiqarish</button></span>`).join("")}</div></details>` : "";
+  const box = $("#rlist"); if (!box) return;
+  const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80, first = !box.dataset.ok;
+  box.innerHTML = M.length ? M.map(m => `<div class="pair" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px"><b>${esc(m.name)}</b>${m.admin ? ` <span class="tag">rahnamo</span>` : ""}${m.blocked ? ` <span class="tag amb">bloklangan</span>` : ""} <time class="mu" title="${date(m.at)}">${clock(m.at)}</time>
+        ${m.reply ? `<div class="muted" style="font-size:12px;border-left:3px solid var(--muted);padding-left:8px;margin:3px 0">↩ ${esc(m.reply.name)}: ${esc(m.reply.body)}</div>` : ""}
+        <div style="margin-top:2px;word-break:break-word">${esc(m.body)}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="ibtn" data-rr="${m.id}" style="padding:5px 10px;font-size:13px">↩ Javob</button>
+        <button class="ibtn" data-rd="${m.id}" style="padding:5px 10px;font-size:13px">🗑 O'chirish</button>
+        ${m.admin || !m.tg_id || m.blocked ? "" : `<button class="ibtn" data-rb="${m.id}" style="padding:5px 10px;font-size:13px">🚫 Bloklash</button>`}</div></div>`).join("") : `<div class="empty">Hali hech kim yozmagan</div>`;
+  box.dataset.ok = "1";
+  if (first && roomTop && !roomTop.end) box.scrollTop = roomTop.top; else if (atEnd || first) box.scrollTop = box.scrollHeight;
+  box.onscroll = () => { roomTop = { top: box.scrollTop, end: box.scrollHeight - box.scrollTop - box.clientHeight < 80 }; };
+  const byId = id => M.find(x => x.id === Number(id));
+  box.querySelectorAll("[data-rr]").forEach(b => b.onclick = () => { const m = byId(b.dataset.rr); roomReply = { id: m.id, name: m.name, body: m.body }; roomTarget(); $("#rtext").focus(); });
+  box.querySelectorAll("[data-rd]").forEach(b => b.onclick = async () => {
+    if (!confirm("Bu xabar hamma uchun o'chirilsinmi?")) return;
+    await roomApi("room_delete", { id: Number(b.dataset.rd) }); if (roomReply?.id === Number(b.dataset.rd)) { roomReply = null; roomTarget(); } roomLoad();
+  });
+  box.querySelectorAll("[data-rb]").forEach(b => b.onclick = async () => {
+    const m = byId(b.dataset.rb);
+    if (!confirm(`«${m.name}» guruhda yozolmaydi (o'qiy oladi). Bloklaymizmi?`)) return;
+    const wipe = confirm("Uning oldingi barcha xabarlarini ham o'chiraymi?\nOK = ha, o'chir · Bekor = xabarlari qolsin");
+    await roomApi("room_block", { tg_id: m.tg_id, on: true, wipe }); toast("Bloklandi"); roomLoad();
+  });
+  document.querySelectorAll("[data-unb]").forEach(b => b.onclick = async () => { await roomApi("room_block", { tg_id: b.dataset.unb, on: false }); toast("Blokdan chiqarildi"); roomLoad(); });
+}
+async function roomSend() {
+  const t = $("#rtext").value.trim(); if (!t) return;
+  const b = $("#rsend"); b.disabled = true;
+  try {
+    const r = await roomApi("room_post", { text: t, reply: roomReply?.id || 0 });
+    if (r.ok) { $("#rtext").value = ""; roomDraft = ""; roomReply = null; roomTarget(); await roomLoad(); const box = $("#rlist"); if (box) box.scrollTop = box.scrollHeight; }
+    else toast(r.error === "empty" ? "Matn yozing" : "Yuborilmadi");
+  } catch (e) { toast("Internet bilan muammo"); }
+  b.disabled = false;
 }
 function activityView() {
   const P = data.players, n = P.length || 1;

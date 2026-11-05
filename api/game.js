@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   try {
     // xonalarda faqat o'yinchi o'zi kiritgan ism ishlatiladi
     let name = "";
-    if (["create", "match", "join", "rematch"].includes(b.action)) {
+    if (["create", "match", "join", "rematch", "room_send"].includes(b.action)) {
       const prof = await rpc("g_profile", { p_id: id }, false);
       if (!prof || prof.needs_name) return res.status(200).json({ error: "need_name" });
       name = prof.name;
@@ -93,6 +93,12 @@ export default async function handler(req, res) {
         out = await rpc("g_profile_update", { p_id: id, p_name: nm, p_avatar: av });
         break;
       }
+      case "room_get": // ommaviy "O'yin chati": oxirgi xabarlar
+        out = await rpc("g_room_get", { p_id: id });
+        break;
+      case "room_send":
+        out = await rpc("g_room_send", { p_id: id, p_body: String(b.text || ""), p_reply: Number(b.reply) || null });
+        break;
       case "chat_list":
         out = await rpc("g_chat_list", { p_id: id });
         break;
@@ -230,7 +236,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "action" });
     }
     // yangi mijoz (v2) ochgan xonada ID yashiriladi; eski mijoz qatnashsa — xona eski ko'rinishda qoladi
-    if (["create", "match", "join", "rematch"].includes(b.action) && out?.id) {
+    if (["create", "match", "join", "rematch", "room_send"].includes(b.action) && out?.id) {
       out = await rpc("g_room_mode", { p_id: out.id, p_player: id, p_legacy: b.v !== 2 });
     }
     res.status(200).json(out);
