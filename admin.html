@@ -538,12 +538,42 @@ function friendsView() {
   };
   $("#fq").oninput = draw; draw();
 }
+let CS = { q: "", sort: "last", dir: -1 };
+try { const x = JSON.parse(sessionStorage.getItem("galtak-chats-sort") || "null"); if (x && x.sort) CS = { q: "", sort: x.sort, dir: x.dir === 1 ? 1 : -1 }; } catch (e) {}
 function chatsView() {
   const C = SO.chats, total = C.reduce((a, c) => a + Number(c.msgs), 0);
-  $("#body").innerHTML = `<section class="panel"><div class="ph"><h2>💬 Do'stlar orasidagi chatlar</h2><span class="sp"></span><small>${C.length} ta suhbat · ${total} ta xabar</small></div>
+  const SORTS = [["last", "🕒 Oxirgi xabar"], ["name", "🔤 Ism"], ["msgs", "💬 Xabarlar soni"], ["unread", "🔔 O'qilmagan"]];
+  const DEF = { last: -1, name: 1, msgs: -1, unread: -1 }; // birinchi bosilganda: yangisi / A→Z / ko'pi
+  $("#body").innerHTML = `<section class="panel"><div class="ph"><h2>💬 Do'stlar orasidagi chatlar</h2><span class="sp"></span><small id="cc">${C.length} ta suhbat · ${total} ta xabar</small></div>
     <p class="muted" style="margin:0 0 12px;font-size:13px">Maxfiylik uchun xabar matni ko'rsatilmaydi — faqat kim kim bilan yozishgani va nechta xabar ekani.</p>
-    <div class="list">${C.length ? C.map(c => `<div class="pair"><b>${esc(nameOf(0, c.a_name))}</b><span class="arr">↔</span><b>${esc(nameOf(0, c.b_name))}</b><span class="sp"></span>
-      ${Number(c.unread) ? `<span class="tag amb">${c.unread} o'qilmagan</span>` : ""}<span class="mu">${c.msgs} xabar</span><time title="${date(c.last_at)}">${ago(c.last_at)}</time></div>`).join("") : `<div class="empty">Hali hech kim yozishmagan</div>`}</div></section>`;
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">
+      <input id="cq" placeholder="🔍 Ism bo'yicha qidirish" value="${esc(CS.q)}" style="flex:1;min-width:160px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit">
+    </div>
+    <div class="seg" style="margin-bottom:12px">${SORTS.map(([k, t]) => `<button data-cs="${k}" aria-pressed="${CS.sort === k}">${t}${CS.sort === k ? (CS.dir === 1 ? " ↑" : " ↓") : ""}</button>`).join("")}</div>
+    <div class="list" id="clist"></div></section>`;
+  const draw = () => {
+    const q = CS.q.trim().toLowerCase().replace(/\s+/g, " ");
+    let L = C.filter(c => !q || (String(nameOf(0, c.a_name)) + " " + String(nameOf(0, c.b_name))).toLowerCase().includes(q));
+    const nm = c => String(nameOf(0, c.a_name)), nm2 = c => String(nameOf(0, c.b_name));
+    const cmp = {
+      last: (x, y) => new Date(x.last_at) - new Date(y.last_at),
+      name: (x, y) => nm(x).localeCompare(nm(y), "uz", { sensitivity: "base" }) || nm2(x).localeCompare(nm2(y), "uz", { sensitivity: "base" }),
+      msgs: (x, y) => Number(x.msgs) - Number(y.msgs),
+      unread: (x, y) => Number(x.unread) - Number(y.unread) || new Date(x.last_at) - new Date(y.last_at)
+    }[CS.sort];
+    L = L.slice().sort((x, y) => CS.dir * cmp(x, y));
+    $("#cc").textContent = (q ? L.length + " / " : "") + C.length + " ta suhbat · " + total + " ta xabar";
+    $("#clist").innerHTML = L.length ? L.map(c => `<div class="pair"><b>${esc(nameOf(0, c.a_name))}</b><span class="arr">↔</span><b>${esc(nameOf(0, c.b_name))}</b><span class="sp"></span>
+      ${Number(c.unread) ? `<span class="tag amb">${c.unread} o'qilmagan</span>` : ""}<span class="mu">${c.msgs} xabar</span><time title="${date(c.last_at)}">${ago(c.last_at)}</time></div>`).join("") : `<div class="empty">${C.length ? "Hech narsa topilmadi" : "Hali hech kim yozishmagan"}</div>`;
+  };
+  $("#cq").oninput = e => { CS.q = e.target.value; draw(); };
+  document.querySelectorAll("[data-cs]").forEach(b => b.onclick = () => {
+    const k = b.dataset.cs;
+    if (CS.sort === k) CS.dir = -CS.dir; else { CS.sort = k; CS.dir = DEF[k]; }
+    try { sessionStorage.setItem("galtak-chats-sort", JSON.stringify({ sort: CS.sort, dir: CS.dir })); } catch (e) {}
+    chatsView(); const i = $("#cq"); if (i && CS.q) { i.focus(); i.setSelectionRange(CS.q.length, CS.q.length); }
+  });
+  draw();
 }
 
 // ---------- ommaviy "O'yin chati": admin (Rahnamo) nomidan yozish, javob berish, o'chirish, bloklash ----------
