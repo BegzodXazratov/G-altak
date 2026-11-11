@@ -156,6 +156,7 @@ export function start(s, now = Date.now()) {
   const roles = shuffle(rolesFor(s.players.length));
   s.players.forEach((p, i) => { p.role = roles[i]; p.alive = true; });
   s.log = []; s.chat = []; s.round = 0; s.winner = null; s.lastHeal = -1;
+  s.startedAt = now;
   say(s, `🎲 O'yin boshlandi! ${s.players.length} kishi: ${rolesFor(s.players.length).filter(isMafia).length} ta mafia shahar ichida yashirindi.`, "all", now);
   enter(s, "night", now);
 }

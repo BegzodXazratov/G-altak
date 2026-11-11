@@ -37,6 +37,7 @@ export default async function handler(req, res) {
       const live = await iqdb.rpc("iq_admin_live", {}).catch(() => null);
       return res.status(200).json({ ov, pays, users, live });
     }
+    if (req.body?.action === "mafia") return res.status(200).json(await rpc("g_mafia_admin", {}));
     if (req.body?.action === "room") return res.status(200).json(await rpc("g_room_admin_list", {}));
     if (req.body?.action === "room_post") { // admin "Admin (Rahnamo)" nomidan yozadi, xohlasa savolga javob sifatida
       const r = await rpc("g_room_admin_post", { p_body: String(req.body.text || ""), p_reply: Number(req.body.reply) || null });

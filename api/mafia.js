@@ -28,6 +28,10 @@ async function mutate(id, fn, readonly = false) {
       // o'yin tugadi yoki xona qayta lobbiga qaytdi — shu xonaning ovozli xabarlari serverdan o'chiriladi
       if (was !== s.phase && (s.phase === "end" || (was === "end" && s.phase === "lobby")))
         await rpc("g_mafia_voice_clear", { p_room: r.id }).catch(() => {});
+      // tugagan o'yin tarixga yoziladi (admin paneldagi Mafia statistikasi uchun)
+      if (was !== "end" && s.phase === "end" && s.winner)
+        await rpc("g_mafia_game_save", { p_room: r.id, p_winner: s.winner, p_rounds: s.round || 0, p_started: Number(s.startedAt) || 0,
+          p_players: s.players.map(p => ({ id: p.bot ? "" : p.id, name: p.name, role: p.role, alive: !!p.alive, bot: !!p.bot, left: !!p.left })) }).catch(e => console.error("mafia save", e.message));
       return { s, id: r.id };
     }
   }
