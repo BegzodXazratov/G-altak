@@ -69,7 +69,65 @@ export function mafiaMenu() {
 // ---------- xona ----------
 export function mafiaRoom(id, first = null) {
   let v = first, timer = null, clock = null, alive = true, left = 0, sig = "", mode = "kill", showRole = false, joined = !!first, sending = false, ended = false;
+  let rec = null, recTimer = null, audio = null, playing = 0; const vcache = new Map();
   const P = () => v?.players?.[v.me];
+  const MAXREC = 20; // ovozli xabar eng ko'pi 20 soniya
+  const mmss = n => `0:${String(Math.max(0, Math.round(n))).padStart(2, "0")}`;
+
+  // ---------- ovozli xabar: yozish ----------
+  async function recStart() {
+    if (rec || !window.MediaRecorder || !navigator.mediaDevices?.getUserMedia) return toast("Bu qurilmada ovoz yozib bo'lmaydi");
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+    catch (e) { return toast("Mikrofonga ruxsat bering 🎤"); }
+    const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus", "audio/webm"].find(t => MediaRecorder.isTypeSupported?.(t)) || "";
+    let mr; try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 24000 } : {}); } catch (e) { stream.getTracks().forEach(t => t.stop()); return toast("Ovoz yozib bo'lmadi"); }
+    rec = { mr, stream, chunks: [], t0: Date.now(), mime };
+    mr.ondataavailable = e => { if (e.data?.size) rec?.chunks.push(e.data); };
+    mr.start(250); haptic("light"); draw(true);
+    recTimer = setInterval(() => {
+      if (!rec) return; const sec = (Date.now() - rec.t0) / 1000, el = document.getElementById("mfrec");
+      if (el) el.textContent = mmss(sec);
+      if (sec >= MAXREC) recStop(true);
+    }, 250);
+  }
+  function recStop(sendIt) {
+    if (!rec) return; const r = rec; rec = null; clearInterval(recTimer);
+    const dur = (Date.now() - r.t0) / 1000;
+    r.mr.onstop = async () => {
+      r.stream.getTracks().forEach(t => t.stop());
+      if (!sendIt) return draw(true);
+      if (dur < 1) { toast("Juda qisqa — gapirib, keyin yuboring"); return draw(true); }
+      const blob = new Blob(r.chunks, { type: r.mr.mimeType || r.mime || "audio/webm" });
+      draw(true);
+      try {
+        const data = await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1] || ""); fr.onerror = no; fr.readAsDataURL(blob); });
+        const res = await mapi("voice_send", { id, data, mime: blob.type || "audio/webm", dur });
+        if (res.error) return toast(ERRTXT[res.error] || res.msg || "Ovoz yuborilmadi");
+        haptic("ok"); v = res; draw(true);
+      } catch (e) { toast(e.message); }
+    };
+    try { r.mr.stop(); } catch (e) { r.stream.getTracks().forEach(t => t.stop()); }
+    draw(true);
+  }
+  // ---------- ovozli xabar: eshitish ----------
+  async function play(vid) {
+    if (audio && playing === vid) { audio.pause(); audio = null; playing = 0; return draw(true); }
+    if (audio) { audio.pause(); audio = null; }
+    try {
+      let url = vcache.get(vid);
+      if (!url) {
+        const r = await mapi("voice_get", { id, vid });
+        if (r.error || !r.data) return toast("Bu ovozli xabar endi mavjud emas");
+        const bin = atob(r.data), u8 = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+        url = URL.createObjectURL(new Blob([u8], { type: r.mime })); vcache.set(vid, url);
+      }
+      audio = new Audio(url); playing = vid;
+      audio.onended = () => { playing = 0; audio = null; draw(true); };
+      await audio.play().catch(() => { playing = 0; audio = null; toast("Ovozni ochib bo'lmadi — bu telefon formatni qo'llamasligi mumkin"); });
+      draw(true);
+    } catch (e) { toast(e.message); }
+  }
 
   async function pull() {
     try {
@@ -86,7 +144,12 @@ export function mafiaRoom(id, first = null) {
       draw();
     } catch (e) {}
   }
-  function stop() { alive = false; clearInterval(timer); clearInterval(clock); }
+  function stop() {
+    alive = false; clearInterval(timer); clearInterval(clock);
+    if (rec) recStop(false);
+    if (audio) { audio.pause(); audio = null; }
+    vcache.forEach(u => URL.revokeObjectURL(u)); vcache.clear();
+  }
 
   async function doAct(kind, target) {
     try { const r = await mapi("act", { id, kind, target }); if (r.error) return toast(ERRTXT[r.error] || r.msg || "Bo'lmadi"); haptic("light"); v = r; left = r.left; draw(true); } catch (e) { toast(e.message); }
@@ -146,10 +209,11 @@ export function mafiaRoom(id, first = null) {
 
   function draw(force) {
     if (!v || !alive) return;
-    const s = JSON.stringify([v.phase, v.round, v.players, v.log.length, v.chat.length, v.mine, v.dcheck, v.votes, v.mafiaVotes, v.ready, v.iReady, mode, showRole, v.host]);
+    const s = JSON.stringify([v.phase, v.round, v.players, v.log.length, v.chat.length, v.mine, v.dcheck, v.votes, v.mafiaVotes, v.ready, v.iReady, mode, showRole, v.host, !!rec, playing]);
     if (!force && s === sig) { tickClock(); return; }
     sig = s;
     const me = P(), role = me?.role, box0 = document.querySelector(".mf-feed");
+    const typed = document.querySelector("#mfmsg"), keep = typed ? { val: typed.value, focus: document.activeElement === typed } : null; // yozilayotgan matn yo'qolmasin
     const atEnd = !box0 || box0.scrollHeight - box0.scrollTop - box0.clientHeight < 80;
     const canChat = v.phase === "lobby" || v.phase === "end" || (me?.alive && (v.phase === "day" || v.phase === "vote" || (v.phase === "night" && isMaf(role))));
     const feed = [...v.log.map(l => ({ n: l.n, sys: l.text })), ...v.chat.map(c => ({ ...c }))].sort((a, b) => a.n - b.n).slice(-80);
@@ -178,10 +242,14 @@ export function mafiaRoom(id, first = null) {
       ${["night", "day", "vote"].includes(v.phase) ? `<button class="linkbtn" data-quit style="margin-top:8px">🚪 O'yindan butunlay chiqish</button>` : ""}
       <h2 class="sect">${v.phase === "night" && isMaf(role) ? "🔫 Mafia chati (faqat sheriklar)" : "Voqealar va chat"}</h2>
       <div class="mf-feed">${feed.length ? feed.map(f => f.sys ? `<div class="mf-sys">${esc(f.sys)}</div>`
-        : `<div class="mf-msg ${f.i === v.me ? "mine" : ""} ${f.ch === "mafia" ? "maf" : ""}"><b>${esc(v.players[f.i]?.name || "?")}${f.ch === "mafia" ? " 🔫" : ""}</b>${esc(f.text)}</div>`).join("")
+        : `<div class="mf-msg ${f.i === v.me ? "mine" : ""} ${f.ch === "mafia" ? "maf" : ""}"><b>${esc(v.players[f.i]?.name || "?")}${f.ch === "mafia" ? " 🔫" : ""}</b>${f.voice ? `<button class="mf-voice ${playing === f.voice ? "on" : ""}" data-play="${f.voice}"><i>${playing === f.voice ? "⏸" : "▶️"}</i><span class="wave"></span><small>${mmss(f.dur)}</small></button>`
+          : f.gone ? `<span class="muted small">🎤 ovozli xabar (o'yin tugagach o'chirildi)</span>` : ""}${esc(f.text)}</div>`).join("")
         : `<p class="muted small center">Hali hech narsa yo'q</p>`}</div>
-      <div class="cbar" style="margin-top:8px"><input class="inp" id="mfmsg" maxlength="200" autocomplete="off" ${canChat ? "" : "disabled"}
-        placeholder="${canChat ? (v.phase === "night" ? "Sheriklarga yozing…" : "Xabar yozing…") : !me?.alive ? "Siz kuzatuvchisiz" : "Tunda faqat mafia yozadi 😴"}"><button class="btn" data-send style="width:auto" ${canChat ? "" : "disabled"}>➤</button></div>`;
+      ${rec ? `<div class="cbar mf-recbar" style="margin-top:8px"><span class="mf-dot"></span><b id="mfrec">${mmss((Date.now() - rec.t0) / 1000)}</b><span class="grow small muted">Yozilmoqda… (${MAXREC} s gacha)</span>
+          <button class="btn alt" data-rx style="width:auto">✕</button><button class="btn" data-rsend style="width:auto">➤</button></div>`
+      : `<div class="cbar" style="margin-top:8px"><input class="inp" id="mfmsg" maxlength="200" autocomplete="off" ${canChat ? "" : "disabled"}
+        placeholder="${canChat ? (v.phase === "night" ? "Sheriklarga yozing…" : "Xabar yozing…") : !me?.alive ? "Siz kuzatuvchisiz" : "Tunda faqat mafia yozadi 😴"}">
+        <button class="btn alt mf-mic" data-mic style="width:auto" ${canChat ? "" : "disabled"} aria-label="Ovozli xabar">🎤</button><button class="btn" data-send style="width:auto" ${canChat ? "" : "disabled"}>➤</button></div>`}`;
     bindBack();
     const box = document.querySelector(".mf-feed"); if (atEnd || force) box.scrollTop = box.scrollHeight;
     const q = s => app().querySelector(s), on = (s, f) => { const e = q(s); if (e) e.onclick = f; };
@@ -198,6 +266,11 @@ export function mafiaRoom(id, first = null) {
     on("[data-exit]", quit);
     on("[data-quit]", () => { if (!P()?.alive || confirm("O'yindan chiqasizmi? Siz o'yindan chetlatilasiz va rolingiz hammaga ochiladi.")) quit(); });
     on("[data-send]", sendMsg);
+    on("[data-mic]", recStart);
+    on("[data-rx]", () => recStop(false));
+    on("[data-rsend]", () => recStop(true));
+    app().querySelectorAll("[data-play]").forEach(b => b.onclick = () => play(+b.dataset.play));
+    if (keep) { const ni = q("#mfmsg"); if (ni && !ni.disabled) { ni.value = keep.val; if (keep.focus) ni.focus(); } }
     const inp = q("#mfmsg"); if (inp) inp.onkeydown = e => { if (e.key === "Enter") sendMsg(); };
   }
   function quit() { ended = true; lset("mafia-room", ""); mapi("leave", { id }).catch(() => {}); back(); }

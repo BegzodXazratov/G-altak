@@ -90,6 +90,7 @@ function enter(s, phase, now) {
 
 function finish(s, w, now) {
   s.winner = w;
+  s.chat.forEach(c => { if (c.voice) { c.voice = 0; c.gone = true; } }); // ovozlar o'chiriladi (serverda ham)
   say(s, w === "town" ? "🏆 Tinch aholi g'alaba qozondi! Barcha mafia topildi." : "🏆 Mafia g'alaba qozondi! Shahar ularning qo'lida.", "all", now);
   enter(s, "end", now);
 }
@@ -179,11 +180,12 @@ export function act(s, i, kind, target, now = Date.now()) {
 }
 
 const BAD = /(https?:\/\/|t\.me\/|www\.|@[a-z0-9_]{4,}|\d[\d\s\-()]{6,}\d)/i;
-export function chat(s, i, text, now = Date.now()) {
+// voice = { vid, dur } — ovozli xabar (fayl alohida jadvalda saqlanadi)
+export function chat(s, i, text, now = Date.now(), voice = null) {
   const p = s.players[i]; if (!p) return "no";
   const body = String(text || "").replace(/\s+/g, " ").trim().slice(0, 200);
-  if (!body) return "empty";
-  if (BAD.test(body)) return "contact";
+  if (!body && !voice) return "empty";
+  if (body && BAD.test(body)) return "contact";
   if (p.lastMsg && now - p.lastMsg < 1200) return "wait";
   let ch;
   if (s.phase === "lobby" || s.phase === "end") ch = "all";
@@ -191,7 +193,9 @@ export function chat(s, i, text, now = Date.now()) {
   else if (s.phase === "night") { if (!isMafia(p.role)) return "sleep"; ch = "mafia"; }
   else ch = "all";
   p.lastMsg = now;
-  s.chat.push({ n: ++s.seq, i, text: body, ch, at: now });
+  const m = { n: ++s.seq, i, text: body, ch, at: now };
+  if (voice) { m.voice = voice.vid; m.dur = Math.max(1, Math.min(30, Math.round(voice.dur) || 1)); }
+  s.chat.push(m);
   if (s.chat.length > 150) s.chat.shift();
   return null;
 }
@@ -221,7 +225,7 @@ export function view(s, meId, now = Date.now()) {
     players: s.players.map((p, j) => ({ name: p.name, av: p.av || "", alive: p.alive, bot: !!p.bot, left: !!p.left,
       role: see(p, j) && p.role ? p.role : null })),
     log: s.log.filter(l => l.to === "all" || l.to === me),
-    chat: s.chat.filter(c => c.ch === "all" || (c.ch === "mafia" && (myMaf || over))).map(c => ({ n: c.n, i: c.i, text: c.text, ch: c.ch, at: c.at })),
+    chat: s.chat.filter(c => c.ch === "all" || (c.ch === "mafia" && (myMaf || over))).map(c => ({ n: c.n, i: c.i, text: c.text, ch: c.ch, at: c.at, voice: c.voice, dur: c.dur, gone: !!c.gone })),
     lastHeal: mp?.role === "doctor" ? s.lastHeal : -1,
   };
   if (mp && s.phase === "night") {

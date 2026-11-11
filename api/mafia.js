@@ -5,7 +5,7 @@ import { MIN_P, MAX_P, BOT_NAMES, newLobby, start, tick, act, chat, leave, view 
 
 const code = () => Array.from({ length: 5 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[(Math.random() * 32) | 0]).join("");
 const ERR = { exists: "Xona topilmadi", full: "Xona to'la (12 kishi)", started: "O'yin allaqachon boshlangan", not_host: "Faqat xona egasi qila oladi",
-  few: `Kamida ${MIN_P} kishi kerak`, not_in: "Siz bu xonada emassiz" };
+  few: `Kamida ${MIN_P} kishi kerak`, not_in: "Siz bu xonada emassiz", bad_audio: "Ovoz yozilmadi — qayta urinib ko'ring" };
 
 async function load(id) {
   const r = await rpc("g_mafia_get", { p_id: String(id || "") });
@@ -17,14 +17,19 @@ async function mutate(id, fn, readonly = false) {
   for (let k = 0; k < 4; k++) {
     const r = await load(id);
     if (!r) return { error: "exists" };
-    const s = r.state, now = Date.now();
+    const s = r.state, now = Date.now(), was = s.phase;
     const res = fn(s, now);
     if (res && res.error) return res;
     const moved = tick(s, now);
     if (readonly && !moved) return { s, id: r.id }; // o'zgarish yo'q — bazaga yozmaymiz
     const status = s.phase === "lobby" ? "lobby" : s.phase === "end" ? "end" : "playing";
     const w = await rpc("g_mafia_put", { p_id: r.id, p_version: r.version, p_status: status, p_state: s });
-    if (w?.ok) return { s, id: r.id };
+    if (w?.ok) {
+      // o'yin tugadi yoki xona qayta lobbiga qaytdi — shu xonaning ovozli xabarlari serverdan o'chiriladi
+      if (was !== s.phase && (s.phase === "end" || (was === "end" && s.phase === "lobby")))
+        await rpc("g_mafia_voice_clear", { p_room: r.id }).catch(() => {});
+      return { s, id: r.id };
+    }
   }
   return { error: "busy" };
 }
@@ -106,6 +111,27 @@ export default async function handler(req, res) {
           const e = chat(s, i, b.text, now);
           if (e) return { error: e };
         }));
+      case "voice_send": { // ovozli xabar: avval yozishga ruxsat bormi tekshiramiz, keyin faylni saqlaymiz
+        const data = String(b.data || ""), mime = String(b.mime || "");
+        if (!/^audio\//.test(mime) || !data || data.length > 560000 || !/^[A-Za-z0-9+/=]+$/.test(data)) return fail("bad_audio");
+        const r0 = await load(b.id); if (!r0) return fail("exists");
+        const i0 = r0.state.players.findIndex(p => p.id === uid); if (i0 < 0) return fail("not_in");
+        const dry = structuredClone(r0.state), e0 = chat(dry, i0, "", Date.now(), { vid: 0, dur: 1 });
+        if (e0) return fail(e0);
+        const vid = await rpc("g_mafia_voice_put", { p_room: r0.id, p_data: data, p_mime: mime });
+        return out(await mutate(b.id, (s, now) => {
+          const i = s.players.findIndex(p => p.id === uid);
+          const e = chat(s, i, "", now, { vid: Number(vid), dur: Number(b.dur) || 1 });
+          if (e) return { error: e };
+        }));
+      }
+      case "voice_get": { // faqat o'sha xabarni ko'rishga haqqi borlar eshita oladi (mafia ovozlari — faqat mafiaga)
+        const r0 = await load(b.id); if (!r0) return fail("exists");
+        const vid = Number(b.vid);
+        if (!view(r0.state, uid).chat.some(c => c.voice === vid)) return fail("no");
+        const a = await rpc("g_mafia_voice_get", { p_id: vid });
+        return a ? send({ data: a.data, mime: a.mime }) : fail("exists");
+      }
       case "leave":
         await mutate(b.id, (s, now) => { const i = s.players.findIndex(p => p.id === uid); if (i >= 0) leave(s, i, now); });
         return send({ ok: true });
