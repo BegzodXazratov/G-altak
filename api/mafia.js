@@ -5,7 +5,7 @@ import { MIN_P, MAX_P, BOT_NAMES, newLobby, start, tick, act, chat, leave, view 
 
 const code = () => Array.from({ length: 5 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[(Math.random() * 32) | 0]).join("");
 const ERR = { exists: "Xona topilmadi", full: "Xona to'la (12 kishi)", started: "O'yin allaqachon boshlangan", not_host: "Faqat xona egasi qila oladi",
-  few: `Kamida ${MIN_P} kishi kerak`, not_in: "Siz bu xonada emassiz", bad_audio: "Ovoz yozilmadi — qayta urinib ko'ring" };
+  few: `Kamida ${MIN_P} kishi kerak`, not_in: "Siz bu xonada emassiz", bad_audio: "Ovoz yozilmadi — qayta urinib ko'ring", closed: "Bu xona yopilgan" };
 
 async function load(id) {
   const r = await rpc("g_mafia_get", { p_id: String(id || "") });
@@ -17,12 +17,15 @@ async function mutate(id, fn, readonly = false) {
   for (let k = 0; k < 4; k++) {
     const r = await load(id);
     if (!r) return { error: "exists" };
+    if (r.status === "done") return { error: "closed" };
     const s = r.state, now = Date.now(), was = s.phase;
     const res = fn(s, now);
     if (res && res.error) return res;
     const moved = tick(s, now);
-    if (readonly && !moved) return { s, id: r.id }; // o'zgarish yo'q — bazaga yozmaymiz
-    const status = s.phase === "lobby" ? "lobby" : s.phase === "end" ? "end" : "playing";
+    if (readonly && !moved && !(res && res.dirty)) return { s, id: r.id }; // o'zgarish yo'q — bazaga yozmaymiz
+    // kutish xonasida birorta ham odam qolmasa (faqat botlar yoki bo'sh) — xona yopiladi
+    const empty = s.phase === "lobby" && !s.players.some(p => !p.bot);
+    const status = empty ? "done" : s.phase === "lobby" ? "lobby" : s.phase === "end" ? "end" : "playing";
     const w = await rpc("g_mafia_put", { p_id: r.id, p_version: r.version, p_status: status, p_state: s });
     if (w?.ok) {
       // o'yin tugadi yoki xona qayta lobbiga qaytdi — shu xonaning ovozli xabarlari serverdan o'chiriladi
@@ -72,7 +75,7 @@ export default async function handler(req, res) {
           if (i >= 0) { s.players[i].left = false; return; }
           if (s.phase !== "lobby") return { error: "started" };
           if (s.players.length >= MAX_P) return { error: "full" };
-          s.players.push({ ...me(), alive: true, role: null });
+          s.players.push({ ...me(), alive: true, role: null, seen: Date.now() });
           if (!s.host) s.host = uid;
         }));
       case "bot": // xona egasi bo'sh joyni bot bilan to'ldiradi (sinov uchun ham qulay)
@@ -96,11 +99,25 @@ export default async function handler(req, res) {
         return out(await mutate(b.id, (s, now) => {
           if (s.host !== uid) return { error: "not_host" };
           if (s.phase !== "end") return;
-          s.players = s.players.filter(p => !p.left).map(p => ({ ...p, alive: true, role: null }));
+          s.players = s.players.filter(p => !p.left).map(p => ({ ...p, alive: true, role: null, seen: now }));
           Object.assign(s, { phase: "lobby", round: 0, deadline: 0, night: {}, votes: {}, ready: [], lastHeal: -1, winner: null, log: [], chat: [], at: now });
         }));
       case "state":
-        return out(await mutate(b.id, (s) => { if (!s.players.some(p => p.id === uid)) return { error: "not_in" }; }, true));
+        return out(await mutate(b.id, (s, now) => {
+          const me0 = s.players.find(p => p.id === uid);
+          if (!me0) return { error: "not_in" };
+          if (s.phase !== "lobby") return;
+          // kutish xonasi: kim hali ekranda turganini belgilaymiz; 60 soniya ko'rinmaganlar xonadan chiqariladi
+          let dirty = false;
+          if (!me0.seen || now - me0.seen > 20000) { me0.seen = now; dirty = true; }
+          const gone = s.players.filter(p => !p.bot && p.seen && now - p.seen > 60000);
+          if (gone.length) {
+            s.players = s.players.filter(p => !gone.includes(p));
+            if (!s.players.some(p => p.id === s.host)) s.host = s.players.find(p => !p.bot)?.id || null;
+            dirty = true;
+          }
+          return dirty ? { dirty } : undefined;
+        }, true));
       case "act":
         return out(await mutate(b.id, (s, now) => {
           const i = s.players.findIndex(p => p.id === uid);

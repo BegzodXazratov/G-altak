@@ -28,7 +28,7 @@ export function rolesFor(n) {
 export const BOT_NAMES = ["Botir", "Sardor", "Malika", "Jasur", "Dilnoza", "Otabek", "Nodira", "Shoxrux", "Kamola", "Bekzod", "Zarina"];
 
 export function newLobby(host, now) {
-  return { host: host.id, players: [{ ...host, alive: true, role: null }], phase: "lobby", round: 0, deadline: 0,
+  return { host: host.id, players: [{ ...host, alive: true, role: null, seen: now }], phase: "lobby", round: 0, deadline: 0,
     night: {}, votes: {}, ready: [], lastHeal: -1, log: [], chat: [], seq: 0, winner: null, at: now };
 }
 
