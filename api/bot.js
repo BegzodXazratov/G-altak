@@ -61,7 +61,9 @@ export default async function handler(req, res) {
         await send(m.chat.id, "👋 G'altak o'yinlariga xush kelibsiz!\n\nRo'yxatdan o'tish uchun pastdagi «📱 Raqamni yuborish» tugmasini bosing.",
           { reply_markup: { keyboard: [[{ text: "📱 Raqamni yuborish", request_contact: true }]], resize_keyboard: true, one_time_keyboard: true } });
       }
-      if (arg.startsWith("r_")) {
+      if (arg.startsWith("m_")) {
+        await send(m.chat.id, "🎭 Do'stingiz sizni Mafia o'yiniga chaqiryapti!", { reply_markup: playBtn("🎭 Xonaga kirish", `${base}?room=${encodeURIComponent(arg)}`) });
+      } else if (arg.startsWith("r_")) {
         await send(m.chat.id, "⚔️ Do'stingiz sizni o'yinga chaqiryapti!", { reply_markup: playBtn("⚔️ O'yinga kirish", `${base}?room=${encodeURIComponent(arg.slice(2))}`) });
       } else if (prof?.has_phone) {
         await send(m.chat.id, "🎮 G'altak o'yinlari: Shashka, Topqir va Gugurt — hammasi 1 vs 1. Pastdagi tugmani bosing.", { reply_markup: playBtn() });
