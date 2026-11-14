@@ -155,7 +155,7 @@ function molGame(opt) {
         <radialGradient id="gS" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#6fe6d3"/><stop offset=".6" stop-color="#1fb3a0"/><stop offset="1" stop-color="#0e7f78"/></radialGradient>
       </defs>
       ${bonds.map(([i, j]) => `<line class="bond" x1="${pts[i].x.toFixed(1)}" y1="${pts[i].y.toFixed(1)}" x2="${pts[j].x.toFixed(1)}" y2="${pts[j].y.toFixed(1)}"/>`).join("")}
-      <g filter="url(#goo)" class="goo"><path class="trail" d="" stroke-width="22"/><g class="blobs"></g></g>
+      <g class="goo"><path class="trail" d="" stroke-width="7"/><g class="blobs"></g></g>
       <g class="drops"></g>
       ${pts.map((p, i) => `<g class="atom${p.mid ? " mid" : ""}" data-i="${i}" style="animation-delay:${(-i * .55).toFixed(2)}s">
         <circle class="sph" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r}" fill="url(#${p.mid ? "gM" : "gO"})"/>
@@ -168,7 +168,7 @@ function molGame(opt) {
   function bindBoard(b, pts) {
     const svg = b.querySelector("svg"), trail = svg.querySelector(".trail"), blobs = svg.querySelector(".blobs"), drops = svg.querySelector(".drops");
     const atoms = [...svg.querySelectorAll(".atom")];
-    let sel = [], down = false, ptr = null, dwell = null, dwellAnim = null;
+    let sel = [], down = false, ptr = null, dwell = null, dwellAnim = null, dwelled = false;
     const toSvg = e => { const m = svg.getScreenCTM().inverse(); const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return { x: p.x, y: p.y }; };
     const hit = p => { let best = -1, bd = 1e9; pts.forEach((a, i) => { const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < a.r * 1.12 && d < bd) { bd = d; best = i; } }); return best; };
 
@@ -188,20 +188,20 @@ function molGame(opt) {
     function paint(extra) {
       const d = sel.map((i, k) => `${k ? "L" : "M"}${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`).join(" ") + (extra && sel.length ? ` L${extra.x.toFixed(1)} ${extra.y.toFixed(1)}` : "");
       trail.setAttribute("d", d);
-      blobs.innerHTML = [...new Set(sel)].map(i => `<circle class="blob" cx="${pts[i].x}" cy="${pts[i].y}" r="${pts[i].r + 1}"/>`).join("");
+      blobs.innerHTML = "";
       atoms.forEach((g, i) => { const on = sel.includes(i); g.classList.toggle("on", on); g.querySelector(".sph").setAttribute("fill", on ? "url(#gS)" : `url(#${pts[i].mid ? "gM" : "gO"})`); });
     }
     function stopDwell() { clearTimeout(dwell); dwell = null; if (dwellAnim) { dwellAnim.cancel(); dwellAnim = null; } atoms.forEach(g => g.querySelector(".dw").setAttribute("stroke-dasharray", "0 400")); }
     function startDwell() {
-      stopDwell(); if (!sel.length) return;
+      stopDwell(); if (!sel.length || dwelled) return;
       const i = sel[sel.length - 1], ring = atoms[i].querySelector(".dw"), len = 2 * Math.PI * (pts[i].r + 5);
       ring.setAttribute("stroke-dasharray", `${len} ${len}`);
-      dwellAnim = ring.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 480, easing: "linear" });
-      dwell = setTimeout(() => { if (down && sel.length < 20) { add(i); } }, 480);
+      dwellAnim = ring.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 800, easing: "linear" });
+      dwell = setTimeout(() => { if (down && sel.length < 20) { dwelled = true; add(i); } }, 800);
     }
     function add(i) {
       if (sel.length >= 20) return;
-      sel.push(i); cur = sel.map(k => pts[k].ch); haptic("light"); drip(i); paint(ptr); draw(); startDwell();
+      if (sel[sel.length - 1] !== i) dwelled = false; sel.push(i); cur = sel.map(k => pts[k].ch); haptic("light"); drip(i); paint(ptr); draw(); startDwell();
     }
     function finish(commit) {
       const w = sel.length;

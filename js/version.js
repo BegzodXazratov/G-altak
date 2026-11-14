@@ -1,6 +1,6 @@
 // Har yangilanishda APP_VERSION oshiriladi: eski versiyadagi o'yinchilar ilovadan chiqariladi,
 // /api/broadcast esa botdan hammaga NEWS matnini yuboradi (har versiya uchun bir marta).
-export const APP_VERSION = "15";
+export const APP_VERSION = "16";
 export const NEWS = `⬡ G'altak'da yangi o'yin — MOLEKULA!
 
 • O'rtada 1 ta, atrofida 6 ta harf — shulardan so'z yasang

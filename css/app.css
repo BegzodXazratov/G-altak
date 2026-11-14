@@ -716,7 +716,7 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .molboard .atom .sph{stroke:rgba(0,0,0,.12);stroke-width:1}
 .molboard .atom.on text{fill:#fff}
 .molboard .atom .dw{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;opacity:.9}
-.molboard .trail{stroke:#20B2A0;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.molboard .trail{stroke:#20B2A0;opacity:.9;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .molboard .blob{fill:#20B2A0}
 .molboard .drop{fill:#4fd6c4}
 .molboard.off{opacity:.55;pointer-events:none}
