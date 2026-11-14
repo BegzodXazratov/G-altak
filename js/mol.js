@@ -92,7 +92,7 @@ function molGame(opt) {
   let st = room ? room.state : opt.state;
   const meKey = room ? (isMe(room.p1) ? "p1" : "p2") : "p1";
   const themKey = meKey === "p1" ? "p2" : "p1";
-  let cur = [], poll = null, tick = null, finishing = false, alive = true, pending = 0, reveal = false, all = null, order = null, flashT = null;
+  let cur = [], selIdx = [], poll = null, tick = null, finishing = false, alive = true, pending = 0, reveal = false, all = null, order = null, flashT = null;
 
   const L = () => st.letters;
   const mineWords = () => (st.found?.[meKey] || []);
@@ -112,18 +112,19 @@ function molGame(opt) {
   function shuffle() {
     const o = outer().slice();
     for (let k = o.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [o[k], o[j]] = [o[j], o[k]]; }
-    order = o; cur = []; haptic("light"); drawBoard(); draw();
+    order = o; haptic("light"); drawBoard(); draw();
   }
 
   async function submit() {
     if (done() || !started()) return;
     const raw = word();
-    if (raw.length < 2) return say("Kamida 2 harf kerak", "bad");
+    const fail = m => { snd("bad"); say(m, "bad"); };
+    if (raw.length < 2) return fail("Kamida 2 harf kerak");
     const w = molWord(L(), raw);
-    if (!w) { haptic("error"); return say("O'rtadagi harf qatnashishi kerak", "bad"); }
-    if (mineWords().includes(w)) { haptic("error"); cur = []; draw(); return say("Bu so'zni topgansiz", "bad"); }
-    if (!isWord(w)) { haptic("error"); return say(`${w} — lug'atda yo'q`, "bad"); }
-    haptic("ok"); cur = [];
+    if (!w) { haptic("error"); return fail("O'rtadagi harf qatnashishi kerak"); }
+    if (mineWords().includes(w)) { haptic("error"); clearSel(); return fail("Bu so'zni topgansiz"); }
+    if (!isWord(w)) { haptic("error"); return fail(`${w} — lug'atda yo'q`); }
+    haptic("ok"); snd("ok"); clearSel();
     const add = list => ({ ...st.found, [meKey]: [...list, w] });
     st.found = add(mineWords());
     say(isPangram(L(), w) ? `⭐ ${w} — barcha harflar! +1` : `${w} +1`, "good");
@@ -162,72 +163,65 @@ function molGame(opt) {
         <circle class="dw" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r + 5}" stroke-dasharray="0 400" transform="rotate(-90 ${p.x.toFixed(1)} ${p.y.toFixed(1)})"/>
         <text x="${p.x.toFixed(1)}" y="${(p.y + (p.mid ? 11 : 9)).toFixed(1)}" text-anchor="middle" font-size="${p.mid ? 34 : 28}">${esc(p.ch)}</text></g>`).join("")}
     </svg>`;
-    bindBoard(b, pts);
+    boardPts = pts; selIdx = []; cur = []; bindBoard(b);
   }
 
-  function bindBoard(b, pts) {
-    const svg = b.querySelector("svg"), trail = svg.querySelector(".trail"), blobs = svg.querySelector(".blobs"), drops = svg.querySelector(".drops");
-    const atoms = [...svg.querySelectorAll(".atom")];
-    let sel = [], down = false, ptr = null, dwell = null, dwellAnim = null, dwelled = false;
-    const toSvg = e => { const m = svg.getScreenCTM().inverse(); const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return { x: p.x, y: p.y }; };
-    const hit = p => { let best = -1, bd = 1e9; pts.forEach((a, i) => { const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < a.r * 1.12 && d < bd) { bd = d; best = i; } }); return best; };
+  // ---- ovoz (WebAudio, fayl kerak emas) ----
+  let AC = null;
+  function snd(kind, n = 0) {
+    try {
+      AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+      if (AC.state === "suspended") AC.resume();
+      const t = AC.currentTime;
+      const tone = (f0, f1, dur, type, vol, at = 0) => {
+        const o = AC.createOscillator(), g = AC.createGain();
+        o.type = type; o.frequency.setValueAtTime(f0, t + at); o.frequency.exponentialRampToValueAtTime(f1, t + at + dur);
+        g.gain.setValueAtTime(vol, t + at); g.gain.exponentialRampToValueAtTime(.0001, t + at + dur);
+        o.connect(g); g.connect(AC.destination); o.start(t + at); o.stop(t + at + dur + .02);
+      };
+      if (kind === "pop") { const f = 380 * Math.pow(1.08, Math.min(n, 12)); tone(f * 1.9, f * .7, .13, "sine", .16); tone(f * 3.1, f * 1.4, .07, "triangle", .05); }
+      else if (kind === "ok") { tone(520, 520, .12, "sine", .13); tone(780, 780, .12, "sine", .13, .09); tone(1040, 1040, .2, "sine", .12, .18); }
+      else if (kind === "bad") tone(190, 110, .22, "sawtooth", .07);
+      else if (kind === "del") tone(300, 160, .09, "sine", .1);
+    } catch (e) {}
+  }
 
-    function drip(i) {
-      const a = pts[i];
-      for (let k = 0; k < 5; k++) {
-        const c = document.createElementNS(NS, "circle");
-        const ang = Math.random() * Math.PI * 2, d = a.r + 14 + Math.random() * 20, r0 = 2.5 + Math.random() * 3.5;
-        c.setAttribute("class", "drop"); c.setAttribute("cx", a.x); c.setAttribute("cy", a.y); c.setAttribute("r", r0);
-        drops.appendChild(c);
-        const an = c.animate([{ transform: "translate(0,0) scale(1)", opacity: .95 }, { transform: `translate(${Math.cos(ang) * d}px,${Math.sin(ang) * d}px) scale(.2)`, opacity: 0 }], { duration: 520 + Math.random() * 200, easing: "cubic-bezier(.2,.7,.3,1)" });
-        an.onfinish = () => c.remove();
-      }
-      const ag = atoms[i];
-      ag.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 320, easing: "cubic-bezier(.3,1.6,.5,1)" });
+  let boardPts = [];
+  function paintSel() {
+    const svg = document.querySelector(".molboard svg"); if (!svg) return;
+    const trail = svg.querySelector(".trail");
+    trail.setAttribute("d", selIdx.map((i, k) => `${k ? "L" : "M"}${boardPts[i].x.toFixed(1)} ${boardPts[i].y.toFixed(1)}`).join(" "));
+    svg.querySelectorAll(".atom").forEach((g, i) => { const on = selIdx.includes(i); g.classList.toggle("on", on); g.querySelector(".sph").setAttribute("fill", on ? "url(#gS)" : `url(#${boardPts[i].mid ? "gM" : "gO"})`); });
+  }
+  function burst(i) {
+    const svg = document.querySelector(".molboard svg"); if (!svg) return;
+    const a = boardPts[i], drops = svg.querySelector(".drops");
+    for (let k = 0; k < 8; k++) {
+      const c = document.createElementNS(NS, "circle");
+      const ang = Math.random() * Math.PI * 2, d = a.r + 12 + Math.random() * 34, r0 = 2.5 + Math.random() * 4;
+      c.setAttribute("class", "drop"); c.setAttribute("cx", a.x); c.setAttribute("cy", a.y); c.setAttribute("r", r0);
+      drops.appendChild(c);
+      const an = c.animate([{ transform: "translate(0,0) scale(1)", opacity: .95 }, { transform: `translate(${Math.cos(ang) * d}px,${Math.sin(ang) * d}px) scale(.15)`, opacity: 0 }], { duration: 480 + Math.random() * 260, easing: "cubic-bezier(.2,.7,.3,1)" });
+      an.onfinish = () => c.remove();
     }
-    function paint(extra) {
-      const d = sel.map((i, k) => `${k ? "L" : "M"}${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`).join(" ") + (extra && sel.length ? ` L${extra.x.toFixed(1)} ${extra.y.toFixed(1)}` : "");
-      trail.setAttribute("d", d);
-      blobs.innerHTML = "";
-      atoms.forEach((g, i) => { const on = sel.includes(i); g.classList.toggle("on", on); g.querySelector(".sph").setAttribute("fill", on ? "url(#gS)" : `url(#${pts[i].mid ? "gM" : "gO"})`); });
-    }
-    function stopDwell() { clearTimeout(dwell); dwell = null; if (dwellAnim) { dwellAnim.cancel(); dwellAnim = null; } atoms.forEach(g => g.querySelector(".dw").setAttribute("stroke-dasharray", "0 400")); }
-    function startDwell() {
-      stopDwell(); if (!sel.length || dwelled) return;
-      const i = sel[sel.length - 1], ring = atoms[i].querySelector(".dw"), len = 2 * Math.PI * (pts[i].r + 5);
-      ring.setAttribute("stroke-dasharray", `${len} ${len}`);
-      dwellAnim = ring.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 800, easing: "linear" });
-      dwell = setTimeout(() => { if (down && sel.length < 20) { dwelled = true; add(i); } }, 800);
-    }
-    function add(i) {
-      if (sel.length >= 20) return;
-      if (sel[sel.length - 1] !== i) dwelled = false; sel.push(i); cur = sel.map(k => pts[k].ch); haptic("light"); drip(i); paint(ptr); draw(); startDwell();
-    }
-    function finish(commit) {
-      const w = sel.length;
-      stopDwell(); down = false;
-      const far = ptr ? Math.hypot(ptr.x - C, ptr.y - C) > R * 1.45 : false;
-      if (commit && w >= 2 && !far) submit(); cur = []; draw();
-      sel = []; paint(null);
-    }
-    svg.addEventListener("pointerdown", e => {
-      if (done() || !started()) return;
-      const p = toSvg(e), i = hit(p); if (i < 0) return;
-      e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (_) {}
-      down = true; ptr = p; sel = []; cur = []; add(i);
+    const r = document.createElementNS(NS, "circle");
+    r.setAttribute("cx", a.x); r.setAttribute("cy", a.y); r.setAttribute("r", a.r); r.setAttribute("fill", "none"); r.setAttribute("stroke", "#4fd6c4"); r.setAttribute("stroke-width", 3);
+    drops.appendChild(r);
+    r.animate([{ transform: "scale(1)", opacity: .9, transformOrigin: `${a.x}px ${a.y}px` }, { transform: "scale(1.7)", opacity: 0, transformOrigin: `${a.x}px ${a.y}px` }], { duration: 450, easing: "ease-out" }).onfinish = () => r.remove();
+    svg.querySelectorAll(".atom")[i].animate([{ transform: "scale(1)" }, { transform: "scale(.86)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], { duration: 360, easing: "ease-out" });
+  }
+  function tapAtom(i) {
+    if (done() || !started() || cur.length >= 20) return;
+    selIdx.push(i); cur = selIdx.map(k => boardPts[k].ch);
+    haptic("light"); snd("pop", cur.length); burst(i); paintSel(); draw();
+  }
+  function del() { if (!cur.length) return; selIdx.pop(); cur = selIdx.map(k => boardPts[k].ch); haptic("light"); snd("del"); paintSel(); draw(); }
+  function clearSel() { selIdx = []; cur = []; paintSel(); draw(); }
+  function bindBoard(b) {
+    b.querySelectorAll(".atom").forEach((g, i) => {
+      g.addEventListener("pointerdown", e => { e.preventDefault(); tapAtom(i); });
     });
-    svg.addEventListener("pointermove", e => {
-      if (!down) return;
-      e.preventDefault(); ptr = toSvg(e);
-      const i = hit(ptr);
-      if (i >= 0 && i !== sel[sel.length - 1]) add(i);
-      else if (i < 0 && dwell) stopDwell();
-      else if (i >= 0 && i === sel[sel.length - 1] && !dwell) startDwell();
-      paint(ptr);
-    });
-    svg.addEventListener("pointerup", e => { if (down) { ptr = toSvg(e); finish(true); } });
-    svg.addEventListener("pointercancel", () => { if (down) finish(false); });
-    svg.addEventListener("contextmenu", e => e.preventDefault());
+    paintSel();
   }
 
   function chips(list, cls) {
@@ -250,7 +244,7 @@ function molGame(opt) {
     const tt = document.querySelector(".moltotal"); if (tt) tt.textContent = room && st.total ? `Jami ${st.total} ta so'z bor · topildi: ${mc}` : "";
     const pv = document.querySelector(".preview");
     const w = word();
-    pv.textContent = w || (started() ? "Harflarni barmoq bilan ulang" : "Tayyorlaning…");
+    pv.textContent = w || (started() ? "Harflarni bosing" : "Tayyorlaning…");
     pv.className = `preview ${w ? "typing" : ""}`;
     const bd = document.querySelector(".molboard"); if (bd) bd.classList.toggle("off", done() || !started());
     const fnd = document.querySelector(".found");
@@ -326,12 +320,14 @@ function molGame(opt) {
       <div class="preview"></div>
       <div class="molmsg"></div>
       <div class="wwrap"><div class="molboard"></div><div id="cd"></div></div>
-      <div class="moltools"><button class="btn alt" data-shuf aria-label="Aralashtirish">↻ Aralashtirish</button></div>
+      <div class="moltools"><button class="btn alt" data-del aria-label="O'chirish">⌫</button><button class="btn alt" data-shuf aria-label="Aralashtirish">↻</button><button class="btn green" data-ok>Yuborish ✓</button></div>
       <div class="found"></div>
       <div id="ov"></div>`;
     bindBack();
     drawBoard();
+    app().querySelector("[data-del]").onclick = del;
     app().querySelector("[data-shuf]").onclick = shuffle;
+    app().querySelector("[data-ok]").onclick = submit;
     draw();
   }
 

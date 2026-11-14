@@ -126,7 +126,7 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .score b{display:block;font-family:var(--display);font-size:22px}
 .score span{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 .newbtn{text-align:center;font-weight:700}
-.g48{position:relative;aspect-ratio:1;background:#BBAA94;border-radius:16px;padding:10px;touch-action:none;user-select:none;--gap:10px}
+.g48{position:relative;aspect-ratio:1;background:#BBAA94;border-radius:16px;padding:10px;touch-action:manipulation;user-select:none;--gap:10px}
 .g48 .cells{position:absolute;inset:10px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:var(--gap)}
 .g48 .cells i{border-radius:10px;background:rgba(255,255,255,.3)}
 .g48 .tiles{position:absolute;inset:10px}
@@ -161,7 +161,7 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .timer.low{background:#C0392B;color:#fff;animation:pulse 1s infinite}
 .wwrap{position:relative}
 .wgrid{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;aspect-ratio:1;padding:6px;border-radius:16px;background:var(--card);
-  border:1px solid var(--line);touch-action:none;user-select:none;-webkit-user-select:none}
+  border:1px solid var(--line);touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .wgrid.bad{animation:shake .3s}
 @keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 .lt{display:grid;place-items:center;border-radius:9px;font-family:var(--display);font-weight:600;font-size:clamp(16px,5.4vw,25px);
@@ -456,7 +456,7 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .fchip.on{color:#2FBF5B;border-color:#2FBF5B55;background:#2FBF5B14}
 .onrow .nm{padding-bottom:2px}
 
-.arch-play{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.arch-play{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .arch-pad{margin-top:10px;min-height:150px;border:2px dashed var(--line);border-radius:14px;display:grid;align-content:center;gap:14px;padding:14px;text-align:center;font-size:14px;background:var(--card)}
 .arch-pad.off{opacity:.55}.pad-t{font-weight:600;line-height:1.35}
 .pad-r{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:13px}.pad-r b{display:inline-block;min-width:34px}
@@ -630,7 +630,7 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .hpb{height:6px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:3px}.hpb u{display:block;height:100%;width:100%;text-decoration:none;transition:width .25s}
 .ww-tm{font-family:var(--display);font-size:14px;padding:5px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
 .ww-cvw{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#241c45}
-.ww-cv{display:block;width:100%;touch-action:none;user-select:none;-webkit-user-select:none}
+.ww-cv{display:block;width:100%;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .ww-cam{position:absolute;right:6px;top:6px;display:flex;gap:6px}
 .ww-cam button{width:34px;height:34px;border-radius:10px;background:rgba(20,22,30,.6);color:#fff;font-size:16px}
 .ww-wait{position:absolute;inset:0;display:grid;place-content:center;gap:10px;text-align:center;background:rgba(10,10,20,.62);color:#fff;font-weight:600;padding:16px}
@@ -706,7 +706,7 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 /* ---------- Molekula ---------- */
 .g-mol{background:linear-gradient(135deg,#1F8A8A,#0F4F63)}
 @keyframes molfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
-.molboard{position:relative;width:min(100%,340px);aspect-ratio:1;margin:2px auto 4px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+.molboard{position:relative;width:min(100%,340px);aspect-ratio:1;margin:2px auto 4px;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   border-radius:50%;background:radial-gradient(circle at 50% 45%,rgba(31,138,138,.16),rgba(31,138,138,0) 68%)}
 .molboard svg{width:100%;height:100%;display:block;overflow:visible}
 .molboard .bond{stroke:var(--line);stroke-width:1.6;opacity:.9}
@@ -722,8 +722,9 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 .molboard.off{opacity:.55;pointer-events:none}
 .molmsg{min-height:20px;text-align:center;font-size:14px;font-weight:600;color:var(--muted);margin:-2px 0 2px}
 .molmsg.bad{color:#C0392B}.molmsg.good{color:var(--green)}
-.moltools{display:flex;justify-content:center;gap:8px;margin-top:2px}
-.moltools .btn{padding:10px 22px;border-radius:999px}
+.moltools{display:grid;grid-template-columns:56px 56px 1fr;gap:8px;margin-top:2px}
+.moltools .btn{padding:14px 10px;border-radius:14px}
+.molboard .atom{cursor:pointer}
 .wchip.both{background:var(--gold);border-color:var(--gold);color:#1F1A16}
 .wchip.miss{background:transparent;border:1px dashed var(--line);color:var(--muted);font-weight:600}
 .tabs4 button{white-space:nowrap}
