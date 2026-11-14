@@ -705,20 +705,27 @@ body.hastabs #toast{bottom:calc(100px + env(safe-area-inset-bottom))}
 
 /* ---------- Molekula ---------- */
 .g-mol{background:linear-gradient(135deg,#1F8A8A,#0F4F63)}
-.molboard{position:relative;width:min(100%,330px);aspect-ratio:1;margin:4px auto 6px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.hx{position:absolute;width:28%;aspect-ratio:1/1.1547;transform:translate(-50%,-50%);display:grid;place-items:center;border:0;padding:0;
-  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--card);color:var(--ink);
-  filter:drop-shadow(0 2px 0 var(--line));transition:transform .08s,background .12s}
-.hx::before{content:"";position:absolute;inset:3px;clip-path:inherit;background:var(--bg)}
-.hx b{position:relative;font-family:var(--display);font-weight:700;font-size:clamp(20px,7vw,30px)}
-.hx:active:not(:disabled){transform:translate(-50%,-50%) scale(.92)}
-.hx.mid::before{background:var(--accent)}
-.hx.mid{color:#fff}
-.hx:disabled{opacity:.5}
+@keyframes molfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+.molboard{position:relative;width:min(100%,340px);aspect-ratio:1;margin:2px auto 4px;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  border-radius:50%;background:radial-gradient(circle at 50% 45%,rgba(31,138,138,.16),rgba(31,138,138,0) 68%)}
+.molboard svg{width:100%;height:100%;display:block;overflow:visible}
+.molboard .bond{stroke:var(--line);stroke-width:1.6;opacity:.9}
+.molboard .atom{animation:molfloat 4s ease-in-out infinite;transform-box:fill-box}
+.molboard .atom text{font-family:var(--display);font-weight:800;pointer-events:none;fill:#2a1f17}
+.molboard .atom.mid text{fill:#fff}
+.molboard .atom .sph{stroke:rgba(0,0,0,.12);stroke-width:1}
+.molboard .atom.on text{fill:#fff}
+.molboard .atom .dw{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;opacity:.9}
+.molboard .trail{stroke:#20B2A0;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.molboard .blob{fill:#20B2A0}
+.molboard .drop{fill:#4fd6c4}
+.molboard.off{opacity:.55;pointer-events:none}
 .molmsg{min-height:20px;text-align:center;font-size:14px;font-weight:600;color:var(--muted);margin:-2px 0 2px}
 .molmsg.bad{color:#C0392B}.molmsg.good{color:var(--green)}
-.moltools{display:grid;grid-template-columns:56px 56px 1fr;gap:8px;margin-top:8px}
-.moltools .btn{padding:14px 10px}
+.moltools{display:flex;justify-content:center;gap:8px;margin-top:2px}
+.moltools .btn{padding:10px 22px;border-radius:999px}
 .wchip.both{background:var(--gold);border-color:var(--gold);color:#1F1A16}
 .wchip.miss{background:transparent;border:1px dashed var(--line);color:var(--muted);font-weight:600}
 .tabs4 button{white-space:nowrap}
+.moltotal{text-align:center;font-size:13px;color:var(--muted);font-weight:600;margin:0 0 2px}
+.found .flabel{display:block;margin:10px 0 6px}

@@ -3,7 +3,7 @@
 
 To'plam: markaziy harf + 6 ta atrof harf (jami 7 ta turli harf; O' va G' bitta harf).
 So'z: kamida 2 harf, faqat shu 7 harfdan (takrorlash mumkin), markaziy harfni o'z ichiga oladi.
-Ko'plik (-LAR) ham hisoblanadi (o'yin ichida ham shunday).
+Faqat lug'atdagi so'zlar hisoblanadi (hosila -LAR shakllari yo'q).
 Ishga tushirish:  python3 tools/gen_molekula.py
 """
 import json, re, random, itertools, sys
@@ -18,13 +18,9 @@ VOW = {"A","E","I","O","U","O'"}
 
 def toks(w): return TOK.findall(w)
 
-# lug'at (+ko'plik): so'z -> token mask
+# faqat lug'atning o'zidagi so'zlar (qo'shimcha -LAR shakllari hisoblanmaydi)
 base = set(WORDS)
 valid = set(base)
-for w in base:
-    if len(w) >= 2: valid.add(w + "LAR")          # ko'plik: KITOB -> KITOBLAR (o'yin ichidagi isWord bilan bir xil emas, pastga qarang)
-# o'yin ichidagi qoida: w LAR bilan tugasa, uzunligi >= 5 va w[:-3] lug'atda bo'lsa. Shuni aynan takrorlaymiz:
-valid = set(base) | {w + "LAR" for w in base if len(w + "LAR") >= 5}
 
 masks, cents = [], []
 allw = []
@@ -66,7 +62,7 @@ for S in cands:
     if nv < 2 or nv > 4: continue
     if (S >> IDX["C"]) & 1 and not (S >> IDX["H"]) & 1: continue   # C faqat CH bilan ma'noli                         # kamida 2 unli, 3 undosh bo'lsin
     inside = masks[(masks & np.uint32(~S & 0xFFFFFFFF)) == 0]
-    if len(inside) < 50: continue
+    if len(inside) < 40: continue
     bits = [i for i in range(len(LETTERS)) if (S >> i) & 1]
     per = {i: int(((inside >> np.uint32(i)) & np.uint32(1)).sum()) for i in bits}
     good.append((S, bits, per, len(inside)))
@@ -76,7 +72,7 @@ print("yaxshi to'plamlar:", len(good), file=sys.stderr)
 puzzles = []
 for S, bits, per, tot in good:
     for want_vowel in (True, False):
-        opts = [i for i in bits if ((LETTERS[i] in VOW) == want_vowel) and 32 <= per[i] <= 300]
+        opts = [i for i in bits if ((LETTERS[i] in VOW) == want_vowel) and 28 <= per[i] <= 300]
         if not opts: continue
         c = random.choice(opts)
         puzzles.append((S, c, per[c]))

@@ -1,6 +1,7 @@
 import { isMe, waitScreen, timePicker, bindTimePicker, gameSeconds } from "./core.js";
 import { app, header, bindBack, show, home, api, read, toast, haptic, esc, load, save, scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
-import { molWord, allWords, isPangram } from "./mol-engine.js";
+import { molWord, allWords, isPangram, tokens } from "./mol-engine.js";
+const tokensLen = w => tokens(w).length;
 
 // Molekula: markazda 1 ta, atrofida 6 ta harf. Shu harflardan (takrorlab) kamida 2 harfli o'zbekcha so'zlar yasang —
 // so'z markaziy harfni o'z ichiga olishi shart. Ikkala o'yinchi bir xil to'plamni oladi; bir xil so'zni ikkalasi topsa ham hisoblanadi.
@@ -16,7 +17,7 @@ async function bank() {
   if (!BANK) BANK = await (await fetch("data/molekula.json")).json();
   return BANK;
 }
-const isWord = w => !!DICT && (DICT.has(w) || (w.endsWith("LAR") && w.length >= 5 && DICT.has(w.slice(0, -3))));
+const isWord = w => !!DICT && DICT.has(w); // faqat lug'atning o'zi
 
 // har safar yangi to'plam: oxirgi 400 tasi qaytarilmaydi (qurilmada eslab qolinadi)
 export async function generate(secs = gameSeconds("mol")) {
@@ -108,15 +109,10 @@ function molGame(opt) {
     flashT = setTimeout(() => { if (el.isConnected) { el.textContent = ""; el.className = "molmsg"; } }, 1800);
   }
 
-  function tap(ch) {
-    if (done() || !started() || cur.length >= 20) return;
-    cur.push(ch); haptic("light"); draw();
-  }
-  const del = () => { if (cur.length) { cur.pop(); haptic("light"); draw(); } };
   function shuffle() {
     const o = outer().slice();
     for (let k = o.length - 1; k > 0; k--) { const j = (Math.random() * (k + 1)) | 0; [o[k], o[j]] = [o[j], o[k]]; }
-    order = o; haptic("light"); drawBoard();
+    order = o; cur = []; haptic("light"); drawBoard(); draw();
   }
 
   async function submit() {
@@ -143,18 +139,95 @@ function molGame(opt) {
     draw();
   }
 
-  function boardHtml() {
-    const o = outer();
-    const pos = o.map((ch, k) => {
-      const a = (-90 + 60 * k) * Math.PI / 180;
-      return `<button class="hx" style="left:${(50 + 33 * Math.cos(a)).toFixed(2)}%;top:${(50 + 33 * Math.sin(a)).toFixed(2)}%" data-ch="${esc(ch)}"><b>${esc(ch)}</b></button>`;
-    }).join("");
-    return `<button class="hx mid" style="left:50%;top:50%" data-ch="${esc(L().c)}"><b>${esc(L().c)}</b></button>${pos}`;
-  }
+  const NS = "http://www.w3.org/2000/svg";
+  const R = 100, C = 150;
   function drawBoard() {
     const b = document.querySelector(".molboard"); if (!b) return;
-    b.innerHTML = boardHtml();
-    b.querySelectorAll("[data-ch]").forEach(x => x.onclick = () => tap(x.dataset.ch));
+    const o = outer();
+    const pts = [{ ch: L().c, x: C, y: C, r: 40, mid: true }, ...o.map((ch, k) => { const a = (-90 + 60 * k) * Math.PI / 180; return { ch, x: C + R * Math.cos(a), y: C + R * Math.sin(a), r: 33 }; })];
+    const bonds = [];
+    for (let k = 1; k <= 6; k++) { bonds.push([0, k]); bonds.push([k, k % 6 + 1]); }
+    b.innerHTML = `<svg viewBox="0 0 300 300">
+      <defs>
+        <filter id="goo" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/><feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"/></filter>
+        <radialGradient id="gO" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#fffdf7"/><stop offset=".6" stop-color="#f4e6cf"/><stop offset="1" stop-color="#e0c9a3"/></radialGradient>
+        <radialGradient id="gM" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#ffb35c"/><stop offset=".6" stop-color="#f07a24"/><stop offset="1" stop-color="#cf4f16"/></radialGradient>
+        <radialGradient id="gS" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#6fe6d3"/><stop offset=".6" stop-color="#1fb3a0"/><stop offset="1" stop-color="#0e7f78"/></radialGradient>
+      </defs>
+      ${bonds.map(([i, j]) => `<line class="bond" x1="${pts[i].x.toFixed(1)}" y1="${pts[i].y.toFixed(1)}" x2="${pts[j].x.toFixed(1)}" y2="${pts[j].y.toFixed(1)}"/>`).join("")}
+      <g filter="url(#goo)" class="goo"><path class="trail" d="" stroke-width="22"/><g class="blobs"></g></g>
+      <g class="drops"></g>
+      ${pts.map((p, i) => `<g class="atom${p.mid ? " mid" : ""}" data-i="${i}" style="animation-delay:${(-i * .55).toFixed(2)}s">
+        <circle class="sph" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r}" fill="url(#${p.mid ? "gM" : "gO"})"/>
+        <circle class="dw" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r + 5}" stroke-dasharray="0 400" transform="rotate(-90 ${p.x.toFixed(1)} ${p.y.toFixed(1)})"/>
+        <text x="${p.x.toFixed(1)}" y="${(p.y + (p.mid ? 11 : 9)).toFixed(1)}" text-anchor="middle" font-size="${p.mid ? 34 : 28}">${esc(p.ch)}</text></g>`).join("")}
+    </svg>`;
+    bindBoard(b, pts);
+  }
+
+  function bindBoard(b, pts) {
+    const svg = b.querySelector("svg"), trail = svg.querySelector(".trail"), blobs = svg.querySelector(".blobs"), drops = svg.querySelector(".drops");
+    const atoms = [...svg.querySelectorAll(".atom")];
+    let sel = [], down = false, ptr = null, dwell = null, dwellAnim = null;
+    const toSvg = e => { const m = svg.getScreenCTM().inverse(); const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return { x: p.x, y: p.y }; };
+    const hit = p => { let best = -1, bd = 1e9; pts.forEach((a, i) => { const d = Math.hypot(a.x - p.x, a.y - p.y); if (d < a.r * 1.12 && d < bd) { bd = d; best = i; } }); return best; };
+
+    function drip(i) {
+      const a = pts[i];
+      for (let k = 0; k < 5; k++) {
+        const c = document.createElementNS(NS, "circle");
+        const ang = Math.random() * Math.PI * 2, d = a.r + 14 + Math.random() * 20, r0 = 2.5 + Math.random() * 3.5;
+        c.setAttribute("class", "drop"); c.setAttribute("cx", a.x); c.setAttribute("cy", a.y); c.setAttribute("r", r0);
+        drops.appendChild(c);
+        const an = c.animate([{ transform: "translate(0,0) scale(1)", opacity: .95 }, { transform: `translate(${Math.cos(ang) * d}px,${Math.sin(ang) * d}px) scale(.2)`, opacity: 0 }], { duration: 520 + Math.random() * 200, easing: "cubic-bezier(.2,.7,.3,1)" });
+        an.onfinish = () => c.remove();
+      }
+      const ag = atoms[i];
+      ag.animate([{ transform: "scale(1)" }, { transform: "scale(1.18)" }, { transform: "scale(1)" }], { duration: 320, easing: "cubic-bezier(.3,1.6,.5,1)" });
+    }
+    function paint(extra) {
+      const d = sel.map((i, k) => `${k ? "L" : "M"}${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`).join(" ") + (extra && sel.length ? ` L${extra.x.toFixed(1)} ${extra.y.toFixed(1)}` : "");
+      trail.setAttribute("d", d);
+      blobs.innerHTML = [...new Set(sel)].map(i => `<circle class="blob" cx="${pts[i].x}" cy="${pts[i].y}" r="${pts[i].r + 1}"/>`).join("");
+      atoms.forEach((g, i) => { const on = sel.includes(i); g.classList.toggle("on", on); g.querySelector(".sph").setAttribute("fill", on ? "url(#gS)" : `url(#${pts[i].mid ? "gM" : "gO"})`); });
+    }
+    function stopDwell() { clearTimeout(dwell); dwell = null; if (dwellAnim) { dwellAnim.cancel(); dwellAnim = null; } atoms.forEach(g => g.querySelector(".dw").setAttribute("stroke-dasharray", "0 400")); }
+    function startDwell() {
+      stopDwell(); if (!sel.length) return;
+      const i = sel[sel.length - 1], ring = atoms[i].querySelector(".dw"), len = 2 * Math.PI * (pts[i].r + 5);
+      ring.setAttribute("stroke-dasharray", `${len} ${len}`);
+      dwellAnim = ring.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 480, easing: "linear" });
+      dwell = setTimeout(() => { if (down && sel.length < 20) { add(i); } }, 480);
+    }
+    function add(i) {
+      if (sel.length >= 20) return;
+      sel.push(i); cur = sel.map(k => pts[k].ch); haptic("light"); drip(i); paint(ptr); draw(); startDwell();
+    }
+    function finish(commit) {
+      const w = sel.length;
+      stopDwell(); down = false;
+      const far = ptr ? Math.hypot(ptr.x - C, ptr.y - C) > R * 1.45 : false;
+      if (commit && w >= 2 && !far) submit(); cur = []; draw();
+      sel = []; paint(null);
+    }
+    svg.addEventListener("pointerdown", e => {
+      if (done() || !started()) return;
+      const p = toSvg(e), i = hit(p); if (i < 0) return;
+      e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+      down = true; ptr = p; sel = []; cur = []; add(i);
+    });
+    svg.addEventListener("pointermove", e => {
+      if (!down) return;
+      e.preventDefault(); ptr = toSvg(e);
+      const i = hit(ptr);
+      if (i >= 0 && i !== sel[sel.length - 1]) add(i);
+      else if (i < 0 && dwell) stopDwell();
+      else if (i >= 0 && i === sel[sel.length - 1] && !dwell) startDwell();
+      paint(ptr);
+    });
+    svg.addEventListener("pointerup", e => { if (down) { ptr = toSvg(e); finish(true); } });
+    svg.addEventListener("pointercancel", () => { if (down) finish(false); });
+    svg.addEventListener("contextmenu", e => e.preventDefault());
   }
 
   function chips(list, cls) {
@@ -174,11 +247,12 @@ function molGame(opt) {
       <div class="side mine"><b>${mc}</b><span>So'z</span></div>
       <div class="timer ${t <= 10 && started() ? "low" : ""}">${clock}</div>
       <div class="side"><b>${st.total || "?"}</b><span>jami mumkin</span></div>`;
+    const tt = document.querySelector(".moltotal"); if (tt) tt.textContent = room && st.total ? `Jami ${st.total} ta so'z bor · topildi: ${mc}` : "";
     const pv = document.querySelector(".preview");
     const w = word();
-    pv.textContent = w || (started() ? "Harflarni bosing" : "Tayyorlaning…");
+    pv.textContent = w || (started() ? "Harflarni barmoq bilan ulang" : "Tayyorlaning…");
     pv.className = `preview ${w ? "typing" : ""}`;
-    document.querySelectorAll(".hx").forEach(x => x.disabled = done() || !started());
+    const bd = document.querySelector(".molboard"); if (bd) bd.classList.toggle("off", done() || !started());
     const fnd = document.querySelector(".found");
     if (done()) {
       const A = new Set(mineWords()), B = new Set(themWords());
@@ -199,10 +273,14 @@ function molGame(opt) {
   }
 
   function missedHtml() {
-    if (!all) all = allWords(L(), DICT_LIST || [], isWord);
+    if (!all) all = allWords(L(), DICT_LIST || []);
     const got = new Set([...mineWords(), ...themWords()]);
     const miss = all.filter(w => !got.has(w)).sort((a, b) => b.length - a.length || a.localeCompare(b));
-    return `<div><span class="flabel">Hech kim topmagan · ${miss.length} ta (jami ${all.length} ta so'z bor edi)</span>${miss.slice(0, 160).map(w => `<span class="wchip miss">${isPangram(L(), w) ? "⭐ " : ""}${w}</span>`).join("")}${miss.length > 160 ? `<span class="muted small">…va yana ${miss.length - 160} ta</span>` : ""}</div>`;
+    const groups = {};
+    miss.forEach(w => (groups[tokensLen(w)] = groups[tokensLen(w)] || []).push(w));
+    const lens = Object.keys(groups).map(Number).sort((a, b) => b - a);
+    return `<div><span class="flabel">Hech kim topmagan · ${miss.length} ta (jami ${all.length} ta so'z bor edi)</span></div>` +
+      lens.map(n => `<div><span class="flabel">${n} harfli · ${groups[n].length}</span>${groups[n].map(w => `<span class="wchip miss">${isPangram(L(), w) ? "⭐ " : ""}${w}</span>`).join("")}</div>`).join("");
   }
   const revBar = () => `<div class="revbar"><button class="btn alt" data-end="result">📋 Natija</button><button class="btn" data-end="menu">Menyuga</button></div>`;
 
@@ -244,21 +322,16 @@ function molGame(opt) {
   function render() {
     app().innerHTML = header("Molekula") + `
       <div class="sbar"></div>
+      <div class="moltotal"></div>
       <div class="preview"></div>
       <div class="molmsg"></div>
       <div class="wwrap"><div class="molboard"></div><div id="cd"></div></div>
-      <div class="moltools">
-        <button class="btn alt" data-del aria-label="O'chirish">⌫</button>
-        <button class="btn alt" data-shuf aria-label="Aralashtirish">↻</button>
-        <button class="btn green" data-ok>Yuborish ✓</button>
-      </div>
+      <div class="moltools"><button class="btn alt" data-shuf aria-label="Aralashtirish">↻ Aralashtirish</button></div>
       <div class="found"></div>
       <div id="ov"></div>`;
     bindBack();
     drawBoard();
-    app().querySelector("[data-del]").onclick = del;
     app().querySelector("[data-shuf]").onclick = shuffle;
-    app().querySelector("[data-ok]").onclick = submit;
     draw();
   }
 

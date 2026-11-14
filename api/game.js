@@ -1,6 +1,6 @@
 // Barcha yozish amallari shu yerdan: Telegram imzosi tekshiriladi, keyin Supabase'ga server kaliti bilan boriladi.
 import { verifyInitData, rpc, fullName, noteReach } from "./_lib.js";
-import { isWord, pathWord } from "./_soz.js";
+import { isWord, isDictWord, pathWord } from "./_soz.js";
 import { molWord } from "../js/mol-engine.js";
 import { checkSolution } from "../js/gugurt-engine.js";
 import { makeShch, makeKim } from "./_shch.js";
@@ -216,7 +216,7 @@ export default async function handler(req, res) {
         const room = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
         if (!room || room.error || room.game !== "mol") return res.status(200).json({ error: "not_found" });
         const word = molWord(room.state?.letters, b.word);
-        if (!word || !isWord(word)) return res.status(200).json({ error: "no_word" });
+        if (!word || !isDictWord(word)) return res.status(200).json({ error: "no_word" });
         out = await rpc("g_mol_claim", { p_id: room.id, p_player: id, p_word: word });
         break;
       }

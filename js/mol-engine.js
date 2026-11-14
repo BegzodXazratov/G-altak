@@ -16,17 +16,10 @@ export function molWord(letters, raw) {
   return w;
 }
 
-// butun lug'atdan shu to'plamga mos barcha so'zlar (natijani ko'rsatish uchun). isWord — lug'at tekshiruvi
-export function allWords(letters, dictWords, isWord) {
+// butun lug'atdan shu to'plamga mos barcha so'zlar (faqat lug'atning o'zidagilar)
+export function allWords(letters, dictWords) {
   const set = new Set([letters.c, ...letters.o]);
-  const ok = w => { const tk = tokens(w); return tk.length >= 2 && tk.join("") === w && tk.includes(letters.c) && tk.every(t => set.has(t)); };
-  const out = new Set();
-  for (const w of dictWords) {
-    if (ok(w)) out.add(w);
-    const p = w + "LAR";
-    if (p.length >= 5 && ok(p) && isWord(p)) out.add(p);
-  }
-  return [...out];
+  return dictWords.filter(w => { const tk = tokens(w); return tk.length >= 2 && tk.join("") === w && tk.includes(letters.c) && tk.every(t => set.has(t)); });
 }
 
 export const isPangram = (letters, w) => {
