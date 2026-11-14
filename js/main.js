@@ -1,4 +1,4 @@
-import { app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, profile, me, score, esc, toast,
+import { toggleTheme, app, setupTelegram, show, startParam, tg, inTelegram, api, setProfile, profile, me, score, esc, toast,
   header, bindBack, read, refreshProfile, haptic, nav, scoreCard, level, botUsername, back, gameSeconds, setGameSeconds, TIMES, isBusy, MAX_SCORE, goTab, currentAct } from "./core.js";
 import { shashkaMenu, joinRoom, createPrivate as newShashka } from "./shashka.js";
 import { sozMenu, createPrivate as newSoz } from "./soz.js";
@@ -243,6 +243,7 @@ const menu = {
           <div class="mi"><b>${esc(me().name)} <em class="edit">✎</em></b><span>${level().icon} ${level().name}</span>
             <div class="mbar"><i style="width:${Math.min(100, (profile?.stats?.all?.rating ?? 0) / MAX_SCORE * 100)}%"></i></div></div>
           <div class="mscore"><b>${profile?.stats?.all?.rating ?? 0}</b><small>/${MAX_SCORE}</small></div>
+          <button class="themebtn" data-theme aria-label="Kunduz / tun rejimi">${document.documentElement.dataset.scheme === "dark" ? "☀️" : "🌙"}</button>
         </section>
         <div class="qrow">
           <button class="qbtn" data-lb><span>🏆</span><b>Reyting</b><i>${profile?.stats?.all?.rank && profile.stats.all.wins + profile.stats.all.losses + profile.stats.all.draws > 0 ? profile.stats.all.rank + "-o'rin" : top?.length ? "top " + Math.min(top.length, 30) : ""}</i></button>
@@ -315,6 +316,7 @@ const menu = {
       };
       app().querySelectorAll("[data-catb]").forEach(b => b.onclick = () => { window.__cat = b.dataset.catb; applyCat(); });
       applyCat();
+      app().querySelector("[data-theme]")?.addEventListener("click", (e) => { e.stopPropagation(); toggleTheme(); e.currentTarget.textContent = document.documentElement.dataset.scheme === "dark" ? "☀️" : "🌙"; });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;
       app().querySelector("[data-friends]").onclick = () => goTab("friends");

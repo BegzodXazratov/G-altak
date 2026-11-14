@@ -6,15 +6,28 @@ export const app = () => document.getElementById("app");
 const SB_URL = "https://ljilvblrbdhdizvgqtyc.supabase.co";
 const SB_KEY = "sb_publishable_dtWXod3KZbYtDS2U5_z8fQ_dMBma7IV";
 
+// Mavzu: "auto" (Telegram/qurilma bo'yicha), "light" (kunduz) yoki "dark" (tun)
+const themePref = () => { try { return localStorage.getItem("g_theme") || "auto"; } catch (e) { return "auto"; } };
+export function applyScheme() {
+  const p = themePref();
+  const sys = tg?.colorScheme || (matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const sc = p === "auto" ? sys : p;
+  document.documentElement.dataset.scheme = sc === "dark" ? "dark" : "light";
+  try { tg?.setHeaderColor?.(sc === "dark" ? "#09111C" : "#DDE7EF"); tg?.setBackgroundColor?.(sc === "dark" ? "#09111C" : "#DDE7EF"); } catch (e) {}
+}
+export function toggleTheme() {
+  const cur = document.documentElement.dataset.scheme === "dark" ? "dark" : "light";
+  try { localStorage.setItem("g_theme", cur === "dark" ? "light" : "dark"); } catch (e) {}
+  applyScheme();
+}
 export function setupTelegram() {
+  applyScheme();
   if (!tg) return;
   tg.ready();
   tg.expand();
   try { tg.disableVerticalSwipes?.(); } catch (e) {}
-  const apply = () => document.documentElement.dataset.scheme = tg.colorScheme === "dark" ? "dark" : "light";
-  apply();
-  tg.onEvent?.("themeChanged", apply);
-  try { tg.setHeaderColor?.("bg_color"); } catch (e) {}
+  applyScheme();
+  tg.onEvent?.("themeChanged", applyScheme);
 }
 
 export const inTelegram = () => !!tg?.initData;

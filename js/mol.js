@@ -151,9 +151,9 @@ function molGame(opt) {
     b.innerHTML = `<svg viewBox="0 0 300 300">
       <defs>
         <filter id="goo" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/><feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"/></filter>
-        <radialGradient id="gO" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#fffdf7"/><stop offset=".6" stop-color="#f4e6cf"/><stop offset="1" stop-color="#e0c9a3"/></radialGradient>
-        <radialGradient id="gM" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#ffb35c"/><stop offset=".6" stop-color="#f07a24"/><stop offset="1" stop-color="#cf4f16"/></radialGradient>
-        <radialGradient id="gS" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#6fe6d3"/><stop offset=".6" stop-color="#1fb3a0"/><stop offset="1" stop-color="#0e7f78"/></radialGradient>
+        <radialGradient id="gO" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#dcecf7"/><stop offset="1" stop-color="#a9c9e0"/></radialGradient>
+        <radialGradient id="gM" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#ffe0a0"/><stop offset=".6" stop-color="#f2b24b"/><stop offset="1" stop-color="#d48a1e"/></radialGradient>
+        <radialGradient id="gS" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#9fe8f6"/><stop offset=".6" stop-color="#3fb6dc"/><stop offset="1" stop-color="#1b7fb0"/></radialGradient>
       </defs>
       ${bonds.map(([i, j]) => `<line class="bond" x1="${pts[i].x.toFixed(1)}" y1="${pts[i].y.toFixed(1)}" x2="${pts[j].x.toFixed(1)}" y2="${pts[j].y.toFixed(1)}"/>`).join("")}
       <g class="goo"><path class="trail" d="" stroke-width="7"/><g class="blobs"></g></g>

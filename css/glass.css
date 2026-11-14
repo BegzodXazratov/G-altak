@@ -1,0 +1,123 @@
+/* G'altak · "Tomchi" dizayni: shaffof shisha, yumshoq kunduz va chuqur tun rejimi. app.css ustidan qo'llanadi. */
+:root{
+  --bg:#DDE7EF; --card:rgba(255,255,255,.52); --ink:#1B2B3D; --muted:#5C7087; --line:rgba(110,140,170,.28);
+  --accent:#1F86C7; --accent-ink:#fff; --green:#1E8E6A; --gold:#EDB24B; --violet:#6A5BD0;
+  --board-dark:#5E86AE; --board-light:#DCE9F3; --sel:#EDB24B;
+  --mine:#1F86C7; --theirs:#1E8E6A;
+  --r:22px; --glow:rgba(31,134,199,.35);
+  --glass-hi:rgba(255,255,255,.85); --glass-bd:rgba(255,255,255,.7); --glass-sh:0 12px 32px -14px rgba(40,72,110,.32);
+  --blob1:#9ED9E8; --blob2:#C7C2F0; --blob3:#BFE3D6;
+  color-scheme:light;
+}
+:root[data-scheme="dark"]{
+  --bg:#09111C; --card:rgba(255,255,255,.065); --ink:#E5EEF8; --muted:#8CA1B8; --line:rgba(255,255,255,.12);
+  --accent:#4DB8F0; --accent-ink:#04121F; --green:#3CC79A; --gold:#F2C265; --violet:#9285F0;
+  --board-dark:#35567C; --board-light:#B7CCDF; --sel:#F2C265;
+  --mine:#4DB8F0; --theirs:#3CC79A;
+  --glass-hi:rgba(255,255,255,.16); --glass-bd:rgba(255,255,255,.14); --glass-sh:0 14px 36px -16px rgba(0,0,0,.7);
+  --blob1:#14547f; --blob2:#3a2f8f; --blob3:#0f5f55;
+  color-scheme:dark;
+}
+html,body{background:var(--bg)}
+body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(42% 34% at 12% 6%,var(--blob1),transparent 70%),
+    radial-gradient(40% 36% at 100% 22%,var(--blob2),transparent 70%),
+    radial-gradient(46% 38% at 20% 100%,var(--blob3),transparent 70%);
+  opacity:.75;animation:drift 26s ease-in-out infinite alternate}
+:root[data-scheme="dark"] body::before{opacity:.55}
+@keyframes drift{to{transform:translate3d(2%,3%,0) scale(1.06)}}
+@media (prefers-reduced-motion:reduce){body::before{animation:none}}
+
+/* shisha yuzalar */
+.card,.back,.pill,.cat,.seg,input.inp,.bigbtn,.score,.sbar .side,.wgrid,.mecard,.lbrow,.topstrip,.onbar,.onrow,.hintbtn,.lw,.wchip,
+.player .cnt,.btn.alt,.mini,.qbtn,.invite,.rrep,.avopt,.iq-opt,.busy{
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5)}
+.card,.bigbtn,.score,.sbar .side,.wgrid,.mecard,.lbrow,.topstrip,.onbar,.onrow,.qbtn,.rrep,.iq-opt{
+  background:var(--card);border:1px solid var(--glass-bd);box-shadow:inset 0 1px 0 var(--glass-hi),var(--glass-sh)}
+.back,.pill,.cat,.seg,input.inp,.hintbtn,.lw,.wchip,.btn.alt,.player .cnt{border:1px solid var(--glass-bd);box-shadow:inset 0 1px 0 var(--glass-hi)}
+.btn.alt,.hintbtn{background:var(--card);color:var(--ink)}
+.invite{border:1px dashed var(--line)}
+
+/* tugmalar: tomchi yaltirog'i */
+.btn{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 78%,#fff),var(--accent));color:var(--accent-ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 10px 22px -10px var(--glow)}
+.btn.alt{background:var(--card);color:var(--ink);box-shadow:inset 0 1px 0 var(--glass-hi)}
+.btn.green{background:linear-gradient(180deg,#3BB88F,#1E8E6A);color:#fff}
+.btn.danger{background:linear-gradient(180deg,#F0696D,#D63D44);color:#fff}
+.cat.on{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 78%,#fff),var(--accent));color:var(--accent-ink);border-color:transparent}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 14px -8px var(--glow)}
+.avatar{background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 70%,#fff),var(--accent));color:var(--accent-ink)}
+.welcome h1 span,.hero h1 span{color:var(--accent)}
+.wlogo{border-radius:0;box-shadow:none;filter:drop-shadow(0 16px 22px var(--glow))}
+
+/* yuqori kartalar */
+.mini,.scorecard,.lobby-top{background:linear-gradient(135deg,rgba(18,42,70,.78),rgba(28,70,110,.62));color:#EAF4FF;
+  border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 14px 30px -14px rgba(20,50,90,.55)}
+:root[data-scheme="dark"] .mini,:root[data-scheme="dark"] .scorecard,:root[data-scheme="dark"] .lobby-top{background:linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.04))}
+.mbar i,.scorecard .bar i{background:linear-gradient(90deg,#7BE0F0,#4DB8F0)}
+.mscore b,.sc-top b,.lobby-top b{color:#BFEBFF}
+.themebtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;flex:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25)}
+.timer,#toast,#quip{background:rgba(20,40,66,.88);color:#EAF4FF;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+:root[data-scheme="dark"] .timer,:root[data-scheme="dark"] #toast,:root[data-scheme="dark"] #quip{background:rgba(230,240,252,.14);color:var(--ink)}
+
+/* o'yin kartalari: rangli shisha tomchilar */
+.game{border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 16px 30px -16px rgba(25,55,95,.5);isolation:isolate}
+.game::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(120% 90% at 0% 0%,rgba(255,255,255,.32),transparent 55%)}
+.game::after{content:"";position:absolute;right:-30px;top:-40px;width:150px;height:150px;border-radius:50%;z-index:-1;
+  background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.35),rgba(255,255,255,.04) 62%,transparent 70%)}
+.g-shashka{background:linear-gradient(135deg,#2BA58A,#146A6E)}
+.g-chess{background:linear-gradient(135deg,#6C7BE0,#3A3F9C)}
+.g-arch{background:linear-gradient(135deg,#E39A57,#B5563A)}
+.g-soz{background:linear-gradient(135deg,#8B77E6,#5340B9)}
+.g-mol{background:linear-gradient(135deg,#27B7C7,#1280A6)}
+.g-kim{background:linear-gradient(135deg,#3C9FD6,#1F63A0)}
+.g-shch{background:linear-gradient(135deg,#D8689C,#9C3C78)}
+.g-gug{background:linear-gradient(135deg,#EE8A5C,#C0503F)}
+.g-ww4{background:linear-gradient(135deg,#C9564A,#3A3380)}
+.iq-hero{background:linear-gradient(135deg,#4DB8F0,#6A5BD0)}
+.b-fast{background:linear-gradient(135deg,#4DB8F0,#1F86C7)}
+.b-friend .ic{background:rgba(106,91,208,.18)}.b-ai .ic{background:rgba(30,142,106,.18)}.b-local .ic{background:rgba(237,178,75,.22)}
+:root[data-scheme="dark"] .b-friend .ic,:root[data-scheme="dark"] .b-ai .ic,:root[data-scheme="dark"] .b-local .ic{background:rgba(255,255,255,.08)}
+
+/* taxtalar */
+.board{border:5px solid color-mix(in srgb,var(--board-dark) 70%,#10243a);box-shadow:var(--glass-sh)}
+.board.chess{border-color:color-mix(in srgb,var(--board-dark) 70%,#10243a)}
+.sq.last{box-shadow:inset 0 0 0 100px rgba(237,178,75,.34)}
+.pc.w i{background:radial-gradient(circle at 35% 28%,#fff,#d9e6f1 70%);color:#1F6FA8}
+.pc.b i{background:radial-gradient(circle at 35% 28%,#4b6784,#122338 75%);color:#F2C265}
+.player .dot.w{background:#E8F1F8;border:1px solid #9fb6c9}.player .dot.b{background:#122338}
+.g48{background:rgba(70,110,150,.35);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--glass-bd)}
+.g48 .cells i{background:rgba(255,255,255,.28)}
+.tile{color:#17304A}
+.tile.v2{background:#EAF3FA}.tile.v4{background:#D6E8F5}.tile.v8{background:#8CCDEF;color:#fff}.tile.v16{background:#5DB5E8;color:#fff}
+.tile.v32{background:#3B9BDB;color:#fff}.tile.v64{background:#2B7DC4;color:#fff}.tile.v128{background:#7C74DD;color:#fff}
+.tile.v256{background:#6559CF;color:#fff}.tile.v512{background:#4F42B8;color:#fff}.tile.v1024{background:#1E8E6A;color:#fff}
+.tile.v2048{background:#146A55;color:#F2C265}.tile.v4096{background:#0F2236;color:#F2C265}
+
+/* Topqir va Molekula harflari */
+.lt{background:rgba(255,255,255,.4);color:var(--ink)}
+:root[data-scheme="dark"] .lt{background:rgba(255,255,255,.08)}
+.lt.sel{background:var(--gold);color:#1B2B3D}
+.lt.mine,.lt.head{background:var(--accent);color:var(--accent-ink)}
+.lt.theirs{background:var(--theirs);color:#06241B}
+.wchip.mine,.lw.mine{background:var(--mine);color:var(--accent-ink)}
+.wchip.theirs{background:var(--theirs);color:#06241B}
+.countdown{background:color-mix(in srgb,var(--bg) 72%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.molboard .atom text{fill:#17304A}
+.molboard .trail{stroke:var(--accent)}.molboard .blob{fill:var(--accent)}.molboard .drop{fill:color-mix(in srgb,var(--accent) 60%,#fff)}
+.plus{text-shadow:none}
+
+/* Gugurt, Kim topadi */
+.eqbox{background:linear-gradient(180deg,rgba(24,48,78,.86),rgba(14,30,50,.9));border:1px solid rgba(255,255,255,.18)}
+.ansbox{background:var(--card)}
+.kt-t.G{background:#2DB783;border-color:#2DB783;color:#04241A}
+.kt-t.Y{background:var(--gold);border-color:var(--gold);color:#1B2B3D}
+
+/* qatlamlar */
+.overlay{background:rgba(8,18,32,.45);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.invpop .card{border:1px solid var(--glass-bd);box-shadow:inset 0 1px 0 var(--glass-hi),0 22px 50px -10px rgba(10,30,60,.5)}
+#tabbar{background:color-mix(in srgb,var(--bg) 86%,transparent)!important;-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);border-top:1px solid var(--glass-bd)!important}
+.turnpill{background:var(--accent);color:var(--accent-ink)}
+.hint{background:rgba(30,142,106,.14)}
+.champ{background:linear-gradient(135deg,#7BD6F0,#6A5BD0)}
