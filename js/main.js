@@ -5,6 +5,7 @@ import { sozMenu, createPrivate as newSoz } from "./soz.js";
 import { gugurtMenu, createPrivate as newGug } from "./gugurt.js";
 import { kimMenu, createPrivate as newKim } from "./kim.js";
 import { shchMenu, createPrivate as newShch } from "./shch.js";
+import { molMenu, createPrivate as newMol } from "./mol.js";
 import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
@@ -80,8 +81,8 @@ function enter() {
 nav.askName = () => show(registerScreen(), false);
 
 // ---------- onlayn holat va takliflar ----------
-const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4" };
-const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "🧮", chess: "♞", arch: "🏹", ww4: "⚔️" };
+const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4", mol: "Molekula" };
+const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "🧮", chess: "♞", arch: "🏹", ww4: "⚔️", mol: "⬡" };
 let presence = null;
 const seenInv = new Set();
 function startPresence() {
@@ -160,9 +161,9 @@ function onlineScreen() {
 }
 // tanlangan o'yin uchun do'stga taklif: xona ochiladi, taklif yuboriladi (o'yin qayta so'ralmaydi)
 async function startInvite(h, name, game) {
-  const timed = game === "soz" || game === "gugurt", secs = timed ? gameSeconds(game) : 0;
+  const timed = game === "soz" || game === "gugurt" || game === "mol", secs = timed ? gameSeconds(game) : 0;
   try {
-    const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch })[game](name);
+    const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch, mol: newMol })[game](name);
     const r = await api("invite", { h, game, room: room.id, seconds: secs });
     if (r.ok) { haptic("ok"); return; }
     toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "blocked_by_me" ? `${name} bloklangan — avval «Do'stlar» bo'limidan blokdan chiqaring`
@@ -179,7 +180,7 @@ function pickGame(h, name) {
   const draw = () => {
     el.innerHTML = `<div class="card stack center"><h2 style="margin:0">${esc(name)} bilan</h2><p class="muted" style="margin:0">Qaysi o'yin?</p>
       ${Object.keys(GNAME).filter(g => g !== "ww4").map(g => `<button class="btn alt" data-g="${g}">${GICON[g]} ${GNAME[g]}</button>`).join("")}
-      <p class="small muted" style="margin:4px 0 0">Topqir va Gugurt vaqti:</p>
+      <p class="small muted" style="margin:4px 0 0">Topqir, Molekula va Gugurt vaqti:</p>
       <div class="seg tpick">${TIMES.map(t => `<button data-t="${t}" aria-pressed="${secs === t}">${t / 60} daq</button>`).join("")}</div>
       <button class="btn alt" data-x style="opacity:.7">Bekor qilish</button></div>`;
     el.querySelectorAll("[data-t]").forEach(b => b.onclick = e => { e.stopPropagation(); secs = +b.dataset.t; draw(); });
@@ -189,7 +190,7 @@ function pickGame(h, name) {
   el.onclick = e => { if (e.target === el) el.remove(); };
   async function go(game) {
     el.remove();
-    if (game === "soz" || game === "gugurt") setGameSeconds(game, secs);
+    if (game === "soz" || game === "gugurt" || game === "mol") setGameSeconds(game, secs);
     startInvite(h, name, game);
   }
   draw();
@@ -203,7 +204,7 @@ async function shareApp() {
 }
 
 // ---------- reyting ----------
-const TABS = [["all", "Umumiy"], ["shashka", "Shashka"], ["soz", "Topqir"], ["gugurt", "Gugurt"]];
+const TABS = [["all", "Umumiy"], ["shashka", "Shashka"], ["soz", "Topqir"], ["mol", "Molekula"], ["gugurt", "Gugurt"]];
 function leaderboard(game = "all") {
   let list = null;
   return {
@@ -280,6 +281,11 @@ const menu = {
             <h2>Topqir</h2><p>Harflardan o'zbekcha so'zlarni raqibdan tezroq toping</p>
             <span class="art" aria-hidden="true">🔤</span>
           </button>
+          <button class="game g-mol" data-go="mol">
+            <span class="tag">Yangi · so'z · 1–3 daqiqa</span>
+            <h2>Molekula</h2><p>Atrofdagi 6 ta va o'rtadagi harfdan so'z yasang — kim ko'p topsa, yutadi</p>
+            <span class="art" aria-hidden="true">⬡</span>
+          </button>
           <button class="game g-kim" data-go="kim">
             <span class="tag">Mantiq · 1 vs 1</span>
             <h2>Kim topadi?</h2><p>Raqibning 5 xonali yashirin sonini birinchi bo'lib toping</p>
@@ -303,6 +309,7 @@ const menu = {
         if (g === "shashka") show(shashkaMenu());
         if (g === "soz") show(sozMenu());
         if (g === "gugurt") show(gugurtMenu());
+        if (g === "mol") show(molMenu());
         if (g === "kim") show(kimMenu());
         if (g === "shch") show(shchMenu());
         if (g === "chess") show(chessMenu());

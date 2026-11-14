@@ -1,13 +1,14 @@
 // Barcha yozish amallari shu yerdan: Telegram imzosi tekshiriladi, keyin Supabase'ga server kaliti bilan boriladi.
 import { verifyInitData, rpc, fullName, noteReach } from "./_lib.js";
 import { isWord, pathWord } from "./_soz.js";
+import { molWord } from "../js/mol-engine.js";
 import { checkSolution } from "../js/gugurt-engine.js";
 import { makeShch, makeKim } from "./_shch.js";
 import { initArch, applyShot } from "../js/arch-engine.js";
 import { initState as chessInit, findMove, applyMove as chessApply } from "../js/chess-engine.js";
 import { APP_VERSION } from "../js/version.js";
 
-const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch", "ww4"];
+const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch", "ww4", "mol"];
 // yangi o'yinlarda boshlang'ich holatni server o'zi yaratadi (mijoz maxfiy ma'lumot yoki maqsadlarni o'zgartira olmaydi)
 const initState = b => b.game === "arch" ? initArch() : b.game === "chess" ? chessInit() : b.game === "kim" ? makeKim(b) : b.game === "shch" ? makeShch(b.count) : (b.state || {});
 
@@ -77,11 +78,11 @@ export default async function handler(req, res) {
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
         out = await rpc("g_invite", { p_from: id, p_to_h: String(b.h || ""), p_game: b.game, p_room: String(b.room || "") });
         if (out?.ok) {
-          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4" };
+          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4", mol: "Molekula" };
           const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
           const sent = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!${["soz", "gugurt"].includes(b.game) && b.seconds ? ` (${Math.round(b.seconds / 60)} daqiqa)` : ""}`,
+            body: JSON.stringify({ chat_id: out.to_id, text: `🎮 ${out.from_name} sizni ${GN[b.game]} o'yiniga chaqirmoqda!${["soz", "gugurt", "mol"].includes(b.game) && b.seconds ? ` (${Math.round(b.seconds / 60)} daqiqa)` : ""}`,
               reply_markup: { inline_keyboard: [[{ text: "▶️ Qabul qilish", web_app: { url } }]] } }),
           }).then(r => r.json()).catch(() => null);
           if (sent) await noteReach(out.to_id, sent);
@@ -209,6 +210,14 @@ export default async function handler(req, res) {
         const word = pathWord(room.state?.grid || [], b.path);
         if (!word || !isWord(word)) return res.status(200).json({ error: "no_word" });
         out = await rpc("g_soz_claim", { p_id: room.id, p_player: id, p_word: word });
+        break;
+      }
+      case "mclaim": {
+        const room = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
+        if (!room || room.error || room.game !== "mol") return res.status(200).json({ error: "not_found" });
+        const word = molWord(room.state?.letters, b.word);
+        if (!word || !isWord(word)) return res.status(200).json({ error: "no_word" });
+        out = await rpc("g_mol_claim", { p_id: room.id, p_player: id, p_word: word });
         break;
       }
       case "finish":
