@@ -10,7 +10,6 @@ import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
 import { roomSeen } from "./room.js";
-import { mafiaMenu, mafiaRoom } from "./mafia.js";
 
 setupTelegram();
 
@@ -75,8 +74,7 @@ function enter() {
   show(menu, false);
   startPresence();
   const room = startParam();
-  if (/^m_/i.test(room)) show(mafiaRoom(room.slice(2).toUpperCase()));
-  else if (room) joinRoom(room);
+  if (room) joinRoom(room);
 }
 nav.askName = () => show(registerScreen(), false);
 
@@ -251,14 +249,6 @@ const menu = {
           <button class="qbtn" data-friends><span>👥</span><b>Do'stlar</b><i></i></button>
         </div>
         <button class="onbar" data-online>${onbarHtml()}</button>
-        <h2 class="sect">Guruh o'yinlari · 4–12 kishi</h2>
-        <div class="games">
-          <button class="game g-mafia" data-go="mafia">
-            <span class="tag">Yangi · guruh o'yini</span>
-            <h2>Mafia</h2><p>Tun, kun va ovoz: shahar ichidagi mafiani toping</p>
-            <span class="art" aria-hidden="true">🎭</span>
-          </button>
-        </div>
         <h2 class="sect">O'yinlar · hammasi 1 vs 1</h2>
         <div class="games">
           <button class="game g-shashka" data-go="shashka">
@@ -314,7 +304,6 @@ const menu = {
         if (g === "shch") show(shchMenu());
         if (g === "chess") show(chessMenu());
         if (g === "arch") show(archMenu());
-        if (g === "mafia") show(mafiaMenu());
       });
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;

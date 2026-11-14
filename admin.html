@@ -282,7 +282,7 @@ function render() {
       <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="pm">✉️ Xabar yuborish</button><button class="ibtn" id="bc">📢 Yangilanish xabari</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
     <div class="tabs">
-      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["room", "🗨️ Guruh chati"], ["activity", "Faollik"], ["mafia", "🎭 Mafia", MFC?.live?.length ? "● " + MFC.live.length : ""], ["iq", "🧠 IQ va ⭐"], ["inbox", "💬 Javoblar", data.inbox_unseen ? "● " + data.inbox_unseen : ""]].map(([k, l, n]) =>
+      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["room", "🗨️ Guruh chati"], ["activity", "Faollik"], ["iq", "🧠 IQ va ⭐"], ["inbox", "💬 Javoblar", data.inbox_unseen ? "● " + data.inbox_unseen : ""]].map(([k, l, n]) =>
         `<button data-tab="${k}" aria-pressed="${tab === k}">${l}${n !== undefined && n !== "" ? `<i>${n}</i>` : ""}</button>`).join("")}
     </div>
     <div class="kpis">
@@ -311,7 +311,7 @@ function render() {
     } catch (e) { alert("Internet bilan muammo"); }
     b.disabled = false; b.textContent = "📢 Yangilanish xabari";
   };
-  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "room") roomView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else if (tab === "mafia") mafiaView(); else if (tab === "inbox") inboxView(); else dashView();
+  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "room") roomView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else if (tab === "inbox") inboxView(); else dashView();
 }
 // erkin xabar yuborish oynasi
 function postModal() {
@@ -428,48 +428,6 @@ async function inboxView() {
 }
 // ---------- IQ testlar va Stars to'lovlari ----------
 let IQC = null, IQSIG = "";
-// ---------- 🎭 Mafia: jonli xonalar, kim o'ynayapti, tarix ----------
-let MFC = null, MFSIG = "";
-const MROLE = { don: "🎩 Don", mafia: "🔫 Mafia", doctor: "💉 Doktor", kom: "🕵️ Komissar", civ: "👨‍🌾 Tinch" };
-const MPH = { lobby: "⏳ kutish xonasi", night: "🌙 tun", day: "☀️ muhokama", vote: "🗳 ovoz", end: "🏁 tugadi" };
-async function mafiaView() {
-  if (MFC) mafiaDraw(MFC); else $("#body").innerHTML = `<section class="panel"><p class="muted">Yuklanmoqda…</p></section>`;
-  let j; try { j = await (await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pass, action: "mafia" }) })).json(); }
-  catch (e) { if (!MFC) $("#body").innerHTML = `<section class="panel"><p class="muted">Internet bilan muammo</p></section>`; return; }
-  if (tab !== "mafia" || !j || j.error) return;
-  MFC = j; const sig = JSON.stringify(j); if (sig !== MFSIG) { MFSIG = sig; mafiaDraw(j); }
-}
-function mafiaDraw(j) {
-  const k = (l, v, s) => `<div class="panel kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s || ""}</div></div>`;
-  const pct = (a, b) => b ? Math.round(a / b * 100) + "%" : "—";
-  const live = j.live || [], playing = live.filter(r => r.status === "playing");
-  const humansIn = r => (r.players || []).filter(p => !p.bot && !p.left).length;
-  const mx = Math.max(1, ...(j.hours || []).map(h => h.n));
-  $("#body").innerHTML = `
-    <div class="kpis">
-      ${k("🎭 Hozir o'ynamoqda", playing.reduce((a, r) => a + humansIn(r), 0), `${playing.length} ta o'yin · ${live.length - playing.length} ta xona kutmoqda`)}
-      ${k("🏁 Bugun o'yinlar", j.today ?? 0, `jami ${j.total ?? 0} ta tugagan o'yin`)}
-      ${k("👥 Mafia o'ynaganlar", j.people ?? 0, `<b>${j.people_today ?? 0}</b> kishi so'nggi 24 soatda`)}
-      ${k("⚖️ Kim ko'p yutadi", `${pct(j.town, j.total)} / ${pct(j.mafia, j.total)}`, `tinch aholi ${j.town ?? 0} · mafia ${j.mafia ?? 0}${j.avg_n ? ` · o'rtacha ${j.avg_n} kishi${j.avg_min ? `, ${j.avg_min} daq` : ""}` : ""}`)}
-    </div>
-    <section class="panel" style="margin-bottom:14px"><div class="ph"><h2>🔴 Jonli xonalar</h2><span class="sp"></span><small>har 10 soniyada yangilanadi</small></div>
-      ${live.length ? live.map(r => `<div class="hb" style="padding:10px 0;border-top:1px solid var(--line)">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:baseline"><b>${esc(r.id)}</b><span class="muted" style="font-size:13px">${MPH[r.phase] || r.phase}${r.round && r.status === "playing" ? ` · ${r.round}-aylanish` : ""} · ${r.public ? "ochiq" : "🔒 yopiq"} · ${humansIn(r)} odam${(r.players || []).some(p => p.bot) ? ` + ${(r.players || []).filter(p => p.bot).length} bot` : ""} · ${ago(r.updated_at)}</span></div>
-          <div class="chips" style="margin-top:8px">${(r.players || []).map(p => `<span class="chip ${p.alive && r.status === "playing" ? "play" : ""}" style="${p.alive || r.status !== "playing" ? "" : "opacity:.5;text-decoration:line-through"}">${p.bot ? "🤖" : p.left ? "🚪" : r.status === "playing" ? (p.alive ? "🙂" : "💀") : "⏳"} ${esc(p.name)}</span>`).join("")}</div></div>`).join("")
-        : `<p class="muted" style="margin:0">Hozir hech kim mafia o'ynamayapti.</p>`}</section>
-    <section class="panel" style="margin-bottom:14px"><div class="ph"><h2>📊 So'nggi 24 soat</h2><span class="sp"></span><small>soat bo'yicha tugagan o'yinlar</small></div>
-      <div style="display:flex;align-items:flex-end;gap:3px;height:80px">${(j.hours || []).map(h => `<i title="${new Date(h.h).getHours()}:00 — ${h.n} ta o'yin" style="flex:1;background:#b8324a;height:${Math.round(h.n / mx * 100)}%;min-height:${h.n ? 3 : 1}px;border-radius:2px 2px 0 0;opacity:${h.n ? 1 : .25}"></i>`).join("")}</div></section>
-    <div class="grid2" style="grid-template-columns:1fr 1fr">
-      <section class="panel"><div class="ph"><h2>🏆 Kim ko'p o'ynaydi</h2><span class="sp"></span><small>${(j.top || []).length} kishi</small></div>
-        ${(j.top || []).length ? `<table class="t" style="width:100%;font-size:13.5px;border-collapse:collapse"><tr class="muted"><td>Ism</td><td>O'yin</td><td>G'alaba</td><td>Mafia bo'lgan</td><td>Oxirgi</td></tr>${j.top.map(u => `<tr style="border-top:1px solid var(--line)"><td style="padding:7px 4px">${esc(u.name || "—")}${u.username ? ` <small class="muted">@${esc(u.username)}</small>` : ""}</td><td><b>${u.games}</b></td><td>${u.wins} <small class="muted">${pct(u.wins, u.games)}</small></td><td>${u.maf}</td><td class="muted">${ago(u.last_at)}</td></tr>`).join("")}</table>`
-          : `<p class="muted" style="margin:0">Birinchi o'yin tugashi bilan shu yerda ko'rinadi.</p>`}</section>
-      <section class="panel"><div class="ph"><h2>🕘 So'nggi o'yinlar</h2></div>
-        ${(j.recent || []).length ? j.recent.map(g => `<div style="padding:9px 0;border-top:1px solid var(--line);font-size:13.5px">
-            <div style="display:flex;justify-content:space-between;gap:8px"><b>${g.winner === "town" ? "👨‍🌾 Tinch aholi yutdi" : "🔫 Mafia yutdi"}</b><small class="muted">${ago(g.ended_at)} · ${g.rounds} aylanish${g.started_at ? ` · ${Math.max(1, Math.round((new Date(g.ended_at) - new Date(g.started_at)) / 60000))} daq` : ""}</small></div>
-            <div class="muted" style="margin-top:4px;line-height:1.5">${(g.players || []).map(p => `${p.bot ? "🤖" : ""}${esc(p.name)} <span style="opacity:.75">(${MROLE[p.role] || "?"})</span>`).join(", ")}</div></div>`).join("")
-          : `<p class="muted" style="margin:0">Hali tugagan o'yin yo'q.</p>`}</section>
-    </div>`;
-}
 async function iqView() {
   const body = $("#body");
   if (IQC) iqDraw(IQC.j, IQC.st); // oldingi ma'lumot bilan darrov chizamiz: miltillash yo'q
