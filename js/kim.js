@@ -18,6 +18,7 @@ export function kimMenu() {
         <div class="stack" style="margin-top:12px">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reyting uchun</small></span></button>
           <button class="bigbtn b-friend" data-act="create"><span class="ic">👥</span><span><b>Do'stni chaqirish</b><small>Do'stlar yoki havola orqali</small></span></button>
+          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>Kompyuter o'ylagan ${isAbc() ? "so'zni" : "sonni"} toping · rekord: <span id="kbest"></span></small></span></button>
         </div>`;
       bindBack();
       const info = () => {
@@ -32,8 +33,35 @@ export function kimMenu() {
       app().querySelectorAll("[data-len]").forEach(b => b.onclick = () => { cfg.len = Number(b.dataset.len); pick(); });
       app().querySelector('[data-act="create"]').onclick = () => startOnline("create");
       app().querySelector('[data-act="match"]').onclick = () => startOnline("match");
+      const best = () => { const v = load(bestKey()); const el = app().querySelector("#kbest"); if (el) el.textContent = v ? `${v} urinish` : "yo'q"; };
+      best();
+      app().querySelectorAll("[data-mode],[data-len]").forEach(b => b.addEventListener("click", best));
+      app().querySelector('[data-act="solo"]').onclick = async () => { try { show(kimGame({ solo: await soloSetup() })); } catch (e) { toast("Yuklab bo'lmadi, qayta urinib ko'ring"); } };
     },
   };
+}
+const bestKey = () => `kim-best-${cfg.mode}${cfg.len}`;
+let WORDS = null;
+async function soloSetup() {
+  const len = cfg.len, abc = isAbc();
+  let secret = "";
+  if (abc) {
+    if (!WORDS) WORDS = await (await fetch("data/words.json")).json();
+    const pool = WORDS.filter(w => w.length === len && /^[A-Z]+$/.test(w));
+    secret = pool[(Math.random() * pool.length) | 0] || "";
+    if (!secret) for (let i = 0; i < len; i++) secret += String.fromCharCode(65 + ((Math.random() * 26) | 0));
+  } else {
+    secret = String(1 + ((Math.random() * 9) | 0));
+    while (secret.length < len) secret += (Math.random() * 10) | 0;
+  }
+  return { secret, mode: cfg.mode, len, max: abc ? 20 : 15 };
+}
+// server bilan bir xil: avval yashillar, keyin sariqlar
+function feedback(guess, secret) {
+  const n = secret.length, fb = Array(n).fill("X"), used = Array(n).fill(false);
+  for (let i = 0; i < n; i++) if (guess[i] === secret[i]) { fb[i] = "G"; used[i] = true; }
+  for (let i = 0; i < n; i++) if (fb[i] !== "G") for (let j = 0; j < n; j++) if (!used[j] && secret[j] === guess[i]) { fb[i] = "Y"; used[j] = true; break; }
+  return fb.join("");
 }
 async function startOnline(kind) {
   let room;
@@ -58,8 +86,9 @@ const tiles = (g, f, cls = "") => `<div class="kt-row ${cls}">${[...g].map((d, i
 const mmss = t => `${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}`;
 
 function kimGame(opt) {
-  let room = opt.room;
-  const meKey = isMe(room.p1) ? "p1" : "p2", themKey = meKey === "p1" ? "p2" : "p1";
+  const solo = !!opt.solo;
+  let room = opt.room || { id: "solo", status: "playing", version: 0, state: { phase: "play", turn: "p1", mode: opt.solo.mode, len: opt.solo.len, max: opt.solo.max, guesses: { p1: [], p2: [] } } };
+  const meKey = solo || isMe(room.p1) ? "p1" : "p2", themKey = meKey === "p1" ? "p2" : "p1";
   let input = "", pref = "first", poll = null, clk = null, alive = true, sending = false, deadline = 0;
   const secretKey = () => "kim-" + room.id;
   const mySecret = () => load(secretKey()) || "";
@@ -91,6 +120,14 @@ function kimGame(opt) {
   }
   async function guess() {
     if (input.length !== LEN() || !myTurn() || sending) return;
+    if (solo) {
+      const g = input, f = feedback(g, opt.solo.secret);
+      room.state.guesses.p1 = [...myGuesses(), { g, f }]; input = "";
+      haptic(f === "G".repeat(LEN()) ? "ok" : "light");
+      if (f === "G".repeat(LEN())) { room.status = "done"; room.result = { winner: "p1" }; }
+      else if (room.state.guesses.p1.length >= MAX()) { room.status = "done"; room.result = { winner: null }; }
+      return render();
+    }
     sending = true;
     try {
       const r = await api("kt_guess", { id: room.id, guess: input });
@@ -101,6 +138,7 @@ function kimGame(opt) {
     sending = false; render();
   }
   async function resign() {
+    if (solo) return;
     if (!confirm("Taslim bo'lasizmi? Reytingdan ochko yo'qotasiz.")) return;
     try { const r = await api("resign", { id: room.id }); if (r.id) room = r; } catch (e) { toast(e.message); }
     render();
@@ -118,7 +156,7 @@ function kimGame(opt) {
     if (done()) body = playView() + endOverlay();
     else if (s.phase === "setup") body = setupView();
     else body = playView();
-    app().innerHTML = header("Kim topadi?", !done() && s.phase === "play" ? `<button class="pill" data-resign>🏳️ Taslim</button>` : "") + body;
+    app().innerHTML = header("Kim topadi?", !solo && !done() && s.phase === "play" ? `<button class="pill" data-resign>🏳️ Taslim</button>` : "") + body;
     bindBack();
     app().querySelector("[data-resign]")?.addEventListener("click", resign);
     app().querySelectorAll("[data-k]").forEach(b => b.onclick = () => key(b.dataset.k));
@@ -150,6 +188,11 @@ function kimGame(opt) {
 
   function playView() {
     const s = st(), mine = myGuesses(), theirs = theirGuesses(), k = known();
+    if (solo) return `<div class="status mine">${done() ? "O'yin tugadi" : `Kompyuter ${ABC() ? "so'z" : "son"} o'yladi — toping`}</div>
+      <div class="card kt-panel"><div class="kt-h"><b>Urinishlar</b><span>${mine.length}/${MAX()}</span></div>
+        <div class="kt-known">${k.map(d => `<span class="kt-t ${d ? "G" : "in"}">${d || "?"}</span>`).join("")}</div>
+        <div class="kt-hist">${mine.map(x => tiles(x.g, x.f)).join("") || `<p class="small muted center" style="margin:6px 0">Hali taxmin yo'q</p>`}</div>
+        ${!done() ? `${inputRow()}${keypad(true, "Yuborish", input.length === LEN())}` : ""}</div>`;
     const turnTxt = done() ? "O'yin tugadi" : myTurn() ? "Sizning navbatingiz" : "Raqib o'ylayapti…";
     const coin = s.coin && mine.length + theirs.length === 0 ? `<p class="small muted center" style="margin:0">🪙 Qur'a: ${s.first === meKey ? "siz birinchi yurasiz" : "raqib birinchi yuradi"}</p>` : "";
     return `<div class="status ${myTurn() ? "mine" : ""}">${turnTxt} <span id="ktclk" class="tclk ${myTurn() ? "mine" : ""}"></span></div>${coin}
@@ -163,6 +206,14 @@ function kimGame(opt) {
   }
 
   function endOverlay() {
+    if (solo) {
+      const win = room.result?.winner === "p1", n = myGuesses().length, key = bestKey();
+      let best = +(load(key) || 0);
+      if (win && (!best || n < best)) { best = n; save(key, best); }
+      return `<div class="overlay"><div class="card stack center"><h2>${win ? "Topdingiz! 🎉" : "Urinishlar tugadi"}</h2>
+        <p class="muted" style="margin:0">${win ? `<b>${n}</b> ta urinishda topdingiz` : `Javob: <b>${opt.solo.secret}</b>`}${best ? ` · rekord ${best}` : ""}</p>
+        <button class="btn green" data-end="again">Yana o'ynash</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
+    }
     const res = room.result || {}, sec = room.secrets || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
     const offer = st().rematch && !isMe(st().rematch_by);
@@ -179,6 +230,7 @@ function kimGame(opt) {
   async function endAction(a) {
     if (a === "menu") return home();
     if (a === "lb") return show(nav.leaderboard("all"));
+    if (a === "again") { try { return show(kimGame({ solo: await soloSetup() }), false); } catch (e) { return toast("Yuklab bo'lmadi"); } }
     if (a === "rematch") {
       try {
         const r = await api("rematch", { id: room.id, game: "kim", mode: st().mode || "num", len: st().len || 5 });
@@ -195,11 +247,11 @@ function kimGame(opt) {
   }
 
   return {
-    busy: true, act: "kim:online",
+    busy: true, act: `kim:${solo ? "solo" : "online"}`,
     render() {
       alive = true; render();
       clk = setInterval(tickClock, 300);
-      poll = setInterval(async () => {
+      if (!solo) poll = setInterval(async () => {
         if (sending) return;
         try {
           const r = await read("g_room_get", { p_id: room.id });

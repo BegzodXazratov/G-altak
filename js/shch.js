@@ -1,6 +1,7 @@
 // SH-chyot: maydondagi sonlarni yo'l bo'ylab qo'shib, o'zingizga berilgan sonlarni birinchi bo'lib toping
 import { isMe, waitScreen, app, header, bindBack, show, home, api, read, toast, haptic, esc, load, save,
   scoreCard, ratingLine, refreshProfile, nav } from "./core.js";
+import { makeShch } from "./shch-engine.js";
 
 const N = 9;
 const COUNTS = [5, 7, 9];
@@ -23,8 +24,10 @@ export function shchMenu() {
         <div class="stack" style="margin-top:12px">
           <button class="bigbtn b-fast" data-act="match"><span class="ic">⚡</span><span><b>Tezkor o'yin</b><small>Tasodifiy raqib · reyting uchun</small></span></button>
           <button class="bigbtn b-friend" data-act="create"><span class="ic">👥</span><span><b>Do'stni chaqirish</b><small>Do'stlar yoki havola orqali</small></span></button>
+          <button class="bigbtn b-ai" data-act="solo"><span class="ic">🎯</span><span><b>Yolg'iz mashq</b><small>Vaqt bilan, rekord: ${load("shch-best-" + n) || 0}/${n}</small></span></button>
         </div>`;
       bindBack();
+      app().querySelector('[data-act="solo"]').onclick = () => { const st = makeShch(count()); show(shchGame({ room: null, state: { ...st, ends_at: Date.now() + 3000 + st.seconds * 1000 } })); };
       app().querySelectorAll("[data-n]").forEach(b => b.onclick = () => { save("shch-n", b.dataset.n); haptic("light"); this.render(); });
       app().querySelector('[data-act="create"]').onclick = () => startOnline("create");
       app().querySelector('[data-act="match"]').onclick = () => startOnline("match");
@@ -53,16 +56,17 @@ function shchWaiting(room, matching, invited = "") {
 }
 
 function shchGame(opt) {
-  let room = opt.room;
-  let st = room.state;
-  const meKey = isMe(room.p1) ? "p1" : "p2", themKey = meKey === "p1" ? "p2" : "p1";
+  const solo = !opt.room;
+  let room = opt.room || { id: null, status: "playing", version: 0, state: opt.state };
+  let st = room.state, soloDone = false;
+  const meKey = solo || isMe(room.p1) ? "p1" : "p2", themKey = meKey === "p1" ? "p2" : "p1";
   let path = [], dragging = false, poll = null, tick = null, finishing = false, alive = true, pending = 0;
 
   const mine = () => st.targets?.[meKey] || [];
   const foundBy = k => st.found?.[k] || [];
   const left = () => Math.max(0, Math.ceil(((st.ends_at || 0) - Date.now()) / 1000));
   const started = () => Date.now() >= (st.ends_at || 0) - (st.seconds || 240) * 1000;
-  const done = () => room.status === "done";
+  const done = () => solo ? soloDone : room.status === "done";
   const sumOf = cells => cells.reduce((s, i) => s + st.grid[i], 0);
 
   async function submit(cells) {
@@ -71,6 +75,11 @@ function shchGame(opt) {
     if (foundBy(meKey).includes(sum)) { toast(`${sum} ni allaqachon topgansiz`); flash("bad"); return; }
     if (!mine().includes(sum)) { haptic("error"); flash("bad"); showMsg(`${sum} — sizning sonlaringiz orasida yo'q`); return; }
     haptic("ok"); flash("good", `${sum} ✓`);
+    if (solo) {
+      st.found = { ...st.found, p1: [...foundBy("p1"), sum] };
+      if (foundBy("p1").length >= mine().length) soloDone = true;
+      return draw();
+    }
     pending++;
     st.found = { ...st.found, [meKey]: [...foundBy(meKey), sum] }; draw();
     try {
@@ -105,7 +114,10 @@ function shchGame(opt) {
     } else { pv.textContent = started() ? "Kataklar bo'ylab chizing" : "Tayyorlaning…"; pv.className = "preview"; }
     const t = left(), total = mine().length;
     const clock = started() ? `${(t / 60) | 0}:${String(t % 60).padStart(2, "0")}` : "…";
-    document.querySelector(".sbar").innerHTML = `
+    document.querySelector(".sbar").innerHTML = solo ? `
+      <div class="side mine"><b>${foundBy(meKey).length}/${total}</b><span>Topildi</span></div>
+      <div class="timer ${t <= 10 && started() ? "low" : ""}">${clock}</div>
+      <div class="side"><b>${load("shch-best-" + total) || 0}/${total}</b><span>rekord</span></div>` : `
       <div class="side mine"><b>${foundBy(meKey).length}/${total}</b><span>Siz</span></div>
       <div class="timer ${t <= 10 && started() ? "low" : ""}">${clock}</div>
       <div class="side theirs"><b>${foundBy(themKey).length}/${total}</b><span>${esc(meKey === "p1" ? room.p2_name || "Raqib" : room.p1_name || "Raqib")}</span></div>`;
@@ -119,6 +131,12 @@ function shchGame(opt) {
 
   function endOverlay() {
     const a = foundBy(meKey).length, b = foundBy(themKey).length, total = mine().length;
+    if (solo) {
+      const key = "shch-best-" + total, best = Math.max(a, +(load(key) || 0)); save(key, best);
+      return `<div class="overlay"><div class="card stack center"><h2>${a >= total ? "Hammasini topdingiz! 🎉" : "Vaqt tugadi ⏱"}</h2>
+        <p class="muted" style="margin:0"><b>${a}</b>/${total} ta son topildi · rekord ${best}/${total}</p>
+        <button class="btn green" data-end="again">Yana o'ynash</button><button class="btn alt" data-end="menu">Menyuga</button></div></div>`;
+    }
     const res = room.result || {};
     const title = res.winner === "draw" ? "Durang 🤝" : res.winner === meKey ? "Siz yutdingiz! 🏆" : res.winner ? "Raqib yutdi" : "Natija hisoblanmoqda…";
     const offer = room.state?.rematch && !isMe(room.state.rematch_by);
@@ -131,6 +149,7 @@ function shchGame(opt) {
   async function endAction(a) {
     if (a === "menu") return home();
     if (a === "lb") return show(nav.leaderboard("all"));
+    if (a === "again") { const ns = makeShch(st.count); return show(shchGame({ room: null, state: { ...ns, ends_at: Date.now() + 3000 + ns.seconds * 1000 } }), false); }
     if (a === "rematch") {
       try {
         const r = await api("rematch", { id: room.id, game: "shch", count: st.count });
@@ -177,10 +196,11 @@ function shchGame(opt) {
   }
 
   return {
-    busy: true, act: "shch:online",
+    busy: true, act: `shch:${solo ? "solo" : "online"}`,
     render() {
       alive = true; render();
       tick = setInterval(async () => {
+        if (solo) { if (!soloDone && started() && left() === 0) soloDone = true; draw(); return; }
         draw();
         if (room.status === "playing" && left() === 0 && !finishing && started()) {
           finishing = true;
@@ -189,7 +209,7 @@ function shchGame(opt) {
           draw();
         }
       }, 400);
-      poll = setInterval(async () => {
+      if (!solo) poll = setInterval(async () => {
         if (pending) return;
         try {
           const r = await read("g_room_get", { p_id: room.id });

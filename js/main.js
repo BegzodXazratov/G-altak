@@ -249,7 +249,7 @@ const menu = {
           <button class="qbtn" data-friends><span>👥</span><b>Do'stlar</b><i></i></button>
         </div>
         <button class="onbar" data-online>${onbarHtml()}</button>
-        <h2 class="sect">O'yinlar · hammasi 1 vs 1</h2>
+        <h2 class="sect">O'yinlar · 1 vs 1 yoki yolg'iz</h2>
         <div class="games">
           <button class="game g-shashka" data-go="shashka">
             <span class="tag">Strategiya</span>
