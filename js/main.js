@@ -250,43 +250,46 @@ const menu = {
         </div>
         <button class="onbar" data-online>${onbarHtml()}</button>
         <h2 class="sect">O'yinlar · 1 vs 1 yoki yolg'iz</h2>
+        <div class="cats" role="tablist">
+          ${[["all","🎮 Hammasi"],["strategy","♟ Strategiya"],["word","🔤 So'z"],["logic","🧩 Mantiq"],["math","🧮 Hisob"],["skill","🎯 Aniqlik"]].map(([k,t]) => `<button class="cat${(window.__cat||"all")===k?" on":""}" data-catb="${k}">${t}</button>`).join("")}
+        </div>
         <div class="games">
-          <button class="game g-shashka" data-go="shashka">
+          <button class="game g-shashka" data-go="shashka" data-cat="strategy">
             <span class="tag">Strategiya</span>
             <h2>Shashka</h2><p>Tasodifiy raqib, do'st yoki kompyuter bilan</p>
             <span class="art" aria-hidden="true">⚫</span>
           </button>
-          <button class="game g-chess" data-go="chess">
+          <button class="game g-chess" data-go="chess" data-cat="strategy">
             <span class="tag">Strategiya</span>
             <h2>Shaxmat</h2><p>Klassik shaxmat: do'st, tasodifiy raqib yoki kompyuter</p>
             <span class="art" aria-hidden="true">♞</span>
           </button>
-          <button class="game g-arch" data-go="arch">
+          <button class="game g-arch" data-go="arch" data-cat="skill">
             <span class="tag">Aniqlik · 1 vs 1</span>
             <h2>Kamonchi</h2><p>Burchak va kuchni topib, raqibning 5 jonini oling</p>
             <span class="art" aria-hidden="true">🏹</span>
           </button>
-          <button class="game g-soz" data-go="soz">
+          <button class="game g-soz" data-go="soz" data-cat="word">
             <span class="tag">So'z · 1–3 daqiqa</span>
             <h2>Topqir</h2><p>Harflardan o'zbekcha so'zlarni raqibdan tezroq toping</p>
             <span class="art" aria-hidden="true">🔤</span>
           </button>
-          <button class="game g-mol" data-go="mol">
+          <button class="game g-mol" data-go="mol" data-cat="word">
             <span class="tag">Yangi · so'z · 1–3 daqiqa</span>
             <h2>Molekula</h2><p>Atrofdagi 6 ta va o'rtadagi harfdan so'z yasang — kim ko'p topsa, yutadi</p>
             <span class="art" aria-hidden="true">⬡</span>
           </button>
-          <button class="game g-kim" data-go="kim">
+          <button class="game g-kim" data-go="kim" data-cat="logic">
             <span class="tag">Mantiq · 1 vs 1</span>
             <h2>Kim topadi?</h2><p>Raqibning 5 xonali yashirin sonini birinchi bo'lib toping</p>
             <span class="art" aria-hidden="true">🔢</span>
           </button>
-          <button class="game g-shch" data-go="shch">
+          <button class="game g-shch" data-go="shch" data-cat="math">
             <span class="tag">Hisob · 3–5 daqiqa</span>
             <h2>SH-chyot</h2><p>Kataklardagi sonlarni qo'shib, maqsad sonlarni toping</p>
             <span class="art" aria-hidden="true">🧮</span>
           </button>
-          <button class="game g-gug" data-go="gugurt">
+          <button class="game g-gug" data-go="gugurt" data-cat="logic">
             <span class="tag">Mantiq · 1–3 daqiqa</span>
             <h2>Gugurt</h2><p>Bitta cho'pni ko'chirib, tenglamani to'g'rilang</p>
             <span class="art" aria-hidden="true">🔥</span>
@@ -305,6 +308,13 @@ const menu = {
         if (g === "chess") show(chessMenu());
         if (g === "arch") show(archMenu());
       });
+      const applyCat = () => {
+        const c = window.__cat || "all";
+        app().querySelectorAll(".game[data-cat]").forEach(g => g.style.display = c === "all" || g.dataset.cat === c ? "" : "none");
+        app().querySelectorAll("[data-catb]").forEach(b => b.classList.toggle("on", b.dataset.catb === c));
+      };
+      app().querySelectorAll("[data-catb]").forEach(b => b.onclick = () => { window.__cat = b.dataset.catb; applyCat(); });
+      applyCat();
       app().querySelectorAll("[data-lb]").forEach(b => b.onclick = () => show(leaderboard()));
       app().querySelector("[data-invite]").onclick = shareApp;
       app().querySelector("[data-friends]").onclick = () => goTab("friends");
