@@ -282,7 +282,7 @@ function render() {
       <button class="ibtn" id="rf">↻ Yangilash</button><button class="ibtn" id="pm">✉️ Xabar yuborish</button><button class="ibtn" id="bc">📢 Yangilanish xabari</button><button class="ibtn" id="csv">⬇ CSV</button><button class="ibtn" id="lo">Chiqish</button>
     </div>
     <div class="tabs">
-      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["room", "🗨️ Guruh chati"], ["activity", "Faollik"], ["iq", "🧠 IQ va ⭐"], ["inbox", "💬 Javoblar", data.inbox_unseen ? "● " + data.inbox_unseen : ""]].map(([k, l, n]) =>
+      ${[["dash", "Umumiy"], ["players", "O'yinchilar", P.length], ["games", "O'yinlar", live.length ? "● " + live.length : ""], ["friends", "Do'stlar", SO.friends.length], ["chats", "Chatlar", SO.chats.length], ["room", "🗨️ Guruh chati"], ["activity", "Faollik"], ["rating", "🏅 Ballar va reyting"], ["iq", "🧠 IQ va ⭐"], ["inbox", "💬 Javoblar", data.inbox_unseen ? "● " + data.inbox_unseen : ""]].map(([k, l, n]) =>
         `<button data-tab="${k}" aria-pressed="${tab === k}">${l}${n !== undefined && n !== "" ? `<i>${n}</i>` : ""}</button>`).join("")}
     </div>
     <div class="kpis">
@@ -311,7 +311,7 @@ function render() {
     } catch (e) { alert("Internet bilan muammo"); }
     b.disabled = false; b.textContent = "📢 Yangilanish xabari";
   };
-  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "room") roomView(); else if (tab === "activity") activityView(); else if (tab === "iq") iqView(); else if (tab === "inbox") inboxView(); else dashView();
+  if (tab === "players") playersView(); else if (tab === "games") gamesView(); else if (tab === "friends") friendsView(); else if (tab === "chats") chatsView(); else if (tab === "room") roomView(); else if (tab === "activity") activityView(); else if (tab === "rating") ratingView(); else if (tab === "iq") iqView(); else if (tab === "inbox") inboxView(); else dashView();
 }
 // erkin xabar yuborish oynasi
 function postModal() {
@@ -580,6 +580,56 @@ function chatsView() {
     chatsView(); const i = $("#cq"); if (i && CS.q) { i.focus(); i.setSelectionRange(CS.q.length, CS.q.length); }
   });
   draw();
+}
+
+// ---------- Ballar va reyting: qo'lda ko'paytirish / kamaytirish ----------
+let RT = { q: "", log: [] };
+async function ratingView() {
+  $("#body").innerHTML = `<section class="panel"><div class="ph"><h2>🏅 Ballar va reyting</h2><span class="sp"></span><small class="muted">0 dan 1000 gacha · hamma o'yinchi</small></div>
+    <input class="inp" id="rq" placeholder="🔍 Ism, @username yoki ID" value="${esc(RT.q)}" style="margin-bottom:10px">
+    <div id="rl"></div></section>
+    <section class="panel"><div class="ph"><h2>🕘 So'nggi o'zgartirishlar</h2></div><div id="rlog"><p class="muted">Yuklanmoqda…</p></div></section>`;
+  $("#rq").oninput = e => { RT.q = e.target.value; ratingList(); };
+  ratingList();
+  try { RT.log = await roomApi("rating_log"); } catch (e) { RT.log = []; }
+  ratingLog();
+}
+function ratingList() {
+  const s = RT.q.toLowerCase().replace(/^@/, "").trim();
+  const L = data.players.filter(p => !s || [p.name, p.username, p.tg_id, p.old_names].some(v => String(v || "").toLowerCase().includes(s)))
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 80);
+  const el = $("#rl"); if (!el) return;
+  el.innerHTML = L.length ? L.map((p, i) => `<div class="pr" style="align-items:center;flex-wrap:wrap;gap:8px" data-id="${esc(p.tg_id)}">
+      <span class="muted" style="width:28px;text-align:right">${i + 1}</span>
+      <div class="who" style="flex:1;min-width:150px"><b>${esc(p.name || "Ismsiz")}</b> ${p.username ? `<a href="https://t.me/${esc(p.username)}" target="_blank" rel="noopener">@${esc(p.username)}</a>` : ""}<small class="muted"> · ID ${esc(p.tg_id)}</small>${p.renames > 0 ? `<div class="warn" style="font-size:12px">✎ ${p.renames} marta ism o'zgargan</div>` : ""}</div>
+      <b style="font-size:20px;min-width:52px;text-align:right" data-r>${p.rating ?? 0}</b>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">${[-50, -10, -1, 1, 10, 50].map(d => `<button class="ibtn" data-d="${d}" style="padding:4px 9px">${d > 0 ? "+" : ""}${d}</button>`).join("")}</div>
+      <div style="display:flex;gap:4px"><input class="inp" data-v inputmode="numeric" placeholder="ball" style="width:70px;padding:5px 8px"><button class="ibtn" data-set style="padding:4px 9px">Belgilash</button></div>
+    </div>`).join("") : `<div class="empty">Hech kim topilmadi</div>`;
+  el.querySelectorAll(".pr").forEach(row => {
+    const id = row.dataset.id, P = data.players.find(x => x.tg_id === id);
+    const apply = async body => {
+      try {
+        const r = await roomApi("rating", { tg_id: id, ...body });
+        if (!r.ok) return toast(r.error || "Xato");
+        P.rating = r.rating; row.querySelector("[data-r]").textContent = r.rating;
+        toast(`${P.name || id}: ${r.old} → ${r.rating}`);
+        RT.log = await roomApi("rating_log"); ratingLog();
+      } catch (e) { toast("Internet bilan muammo"); }
+    };
+    row.querySelectorAll("[data-d]").forEach(b => b.onclick = () => apply({ delta: Number(b.dataset.d) }));
+    row.querySelector("[data-set]").onclick = () => {
+      const v = row.querySelector("[data-v]").value.trim();
+      if (v === "" || !/^\d+$/.test(v) || Number(v) > 1000) return toast("0 dan 1000 gacha son yozing");
+      if (!confirm(`${P.name || id}: ballni ${P.rating ?? 0} dan ${v} ga o'zgartirasizmi?`)) return;
+      apply({ set: Number(v) });
+    };
+  });
+}
+function ratingLog() {
+  const el = $("#rlog"); if (!el) return;
+  const L = Array.isArray(RT.log) ? RT.log : [];
+  el.innerHTML = L.length ? L.map(l => `<div class="hb" style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:6px 0;border-top:1px solid var(--line)"><span><b>${esc(l.name || l.tg_id)}</b>${l.username ? ` <small class="muted">@${esc(l.username)}</small>` : ""} <small class="muted">ID ${esc(l.tg_id)}</small></span><span>${l.old_rating} → <b>${l.new_rating}</b> <small class="muted">· ${ago(l.at)}</small></span></div>`).join("") : `<p class="muted">Hali qo'lda o'zgartirilmagan.</p>`;
 }
 
 // ---------- ommaviy "O'yin chati": admin (Rahnamo) nomidan yozish, javob berish, o'chirish, bloklash ----------

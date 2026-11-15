@@ -44,6 +44,14 @@ export default async function handler(req, res) {
     }
     if (req.body?.action === "room_delete") return res.status(200).json(await rpc("g_room_delete", { p_msg: Number(req.body.id) || 0 }));
     if (req.body?.action === "room_block") return res.status(200).json(await rpc("g_room_block", { p_tg_id: String(req.body.tg_id || ""), p_on: !!req.body.on, p_wipe: !!req.body.wipe }));
+    if (req.body?.action === "rating") { // ballni qo'lda o'zgartirish: delta (+/-) yoki set (aniq qiymat)
+      const tg = String(req.body.tg_id || ""); if (!/^\d{3,20}$/.test(tg)) return res.status(400).json({ ok: false, error: "ID noto'g'ri" });
+      const hasSet = req.body.set !== undefined && req.body.set !== null && req.body.set !== "";
+      const n = Number(hasSet ? req.body.set : req.body.delta);
+      if (!Number.isFinite(n) || Math.abs(n) > 100000) return res.status(400).json({ ok: false, error: "Son noto'g'ri" });
+      return res.status(200).json(await rpc("g_admin_rating", hasSet ? { p_tg: tg, p_set: Math.round(n) } : { p_tg: tg, p_delta: Math.round(n) }));
+    }
+    if (req.body?.action === "rating_log") return res.status(200).json(await rpc("g_admin_rating_log", {}));
     if (req.body?.action === "inbox") return res.status(200).json(await rpc("g_inbox_list", { p_limit: 100 }));
     if (req.body?.action === "inbox_seen") { await rpc("g_inbox_seen", {}); return res.status(200).json({ ok: true }); }
     if (req.body?.action === "reach") return res.status(200).json(await reachCheck(Number(req.body.offset) || 0, req.headers.host));
