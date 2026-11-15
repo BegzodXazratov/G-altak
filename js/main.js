@@ -360,3 +360,5 @@ async function boot() {
   }
 }
 boot();
+
+nav.homeScreen = menu;

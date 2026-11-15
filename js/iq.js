@@ -42,9 +42,12 @@ const EX = []; for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) EX.push({
 
 /* ---------- asosiy tab ---------- */
 export function iqTab() {
+  let alive = true;
   return iqScreen({
     tab: "iq",
+    leave() { alive = false; },
     async render() {
+      alive = true;
       const draw = (st) => {
         const h = st?.history || [];
         const best = h.length ? Math.max(...h.map(x => x.iq)) : null;
@@ -120,7 +123,7 @@ export function iqTab() {
       const keep = iqBack ? iqScroll : 0; iqBack = false;
       const restore = () => { if (keep) { window.scrollTo(0, keep); requestAnimationFrame(() => window.scrollTo(0, keep)); setTimeout(() => window.scrollTo(0, keep), 120); } };
       draw(S.status || null); restore();
-      try { const st = await iqApi("status"); S.status = st; S.price = st.price || 30; S.bot = st.bot; if (st.today) S.today = st.today; const y = window.scrollY; draw(st); window.scrollTo(0, keep ? Math.max(y, keep) : y); } catch (e) { /* tashqarida yoki xato: asosiy ekran qoladi */ }
+      try { const st = await iqApi("status"); if (!alive) { S.status = st; return; } S.status = st; S.price = st.price || 30; S.bot = st.bot; if (st.today) S.today = st.today; const y = window.scrollY; draw(st); window.scrollTo(0, keep ? Math.max(y, keep) : y); } catch (e) { /* tashqarida yoki xato: asosiy ekran qoladi */ }
     },
   });
 }

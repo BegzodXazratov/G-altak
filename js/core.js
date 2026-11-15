@@ -150,7 +150,7 @@ export function paintTabs(screen = current) {
 }
 export function goTab(name) {
   if (current?.tab === name) return;
-  if (name === "home") { if (stack.length) home(); return; }
+  if (name === "home") { if (stack.length) home(); else if (nav.homeScreen) show(nav.homeScreen, false); return; }
   if (!stack.length && current?.tab === "home") stack.push(current);
   stack.length = Math.min(stack.length, 1);
   const make = nav.tabs?.[name]; if (make) show(make(), false);
