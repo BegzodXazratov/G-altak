@@ -420,7 +420,7 @@ input.inp{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(-
 .chess .sq.tgt::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(242,179,61,.95);animation:none}
 .chess .sq.cap{box-shadow:inset 0 0 0 4px rgba(217,72,59,.9)}
 .chess .sq.chk{box-shadow:inset 0 0 0 100px rgba(217,72,59,.55)}
-.promo{display:flex;gap:10px;justify-content:center}
+.cpromo{display:flex;gap:10px;justify-content:center}
 .cpb{width:62px;height:62px;border-radius:14px;border:1px solid var(--line);background:var(--card);display:grid;place-items:center}
 .cpb .cp{font-size:40px}
 .g-arch{background:linear-gradient(135deg,#C2762B,#7A3E12)}

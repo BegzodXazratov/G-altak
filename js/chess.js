@@ -141,7 +141,7 @@ function gameScreen(opt) {
     else status = (color === 1 ? "Oq" : "Qora") + " yuradi";
     if (chk >= 0) status += " · SHOH!";
     const right = opt.mode === "online" ? (room.status === "playing" ? `<button class="pill" data-resign>🏳️ Taslim</button>` : "") : `<button class="pill" data-restart>↻ Qaytadan</button>`;
-    const pp = promo ? `<div class="overlay"><div class="card stack center"><h2>Piyoda — kim bo'lsin?</h2><div class="promo">${[Q, R, B, N].map(p => `<button class="cpb" data-pr="${p}"><span class="cp ${color === 1 ? "w" : "b"}">${GL[p]}</span></button>`).join("")}</div></div></div>` : "";
+    const pp = promo ? `<div class="overlay"><div class="card stack center"><h2>Piyoda — kim bo'lsin?</h2><div class="cpromo">${[Q, R, B, N].map(p => `<button class="cpb" data-pr="${p}"><span class="cp ${color === 1 ? "w" : "b"}">${GL[p]}</span></button>`).join("")}</div></div></div>` : "";
     app().innerHTML = header("Shaxmat", right) + `
       <div class="status">${st.winner ? "O'yin tugadi" : status}${opt.mode === "online" && room?.status === "playing" && !st.winner ? ` <span id="tclk" class="tclk"></span>` : ""}</div>
       ${pl(flip)}<div class="board chess"><div class="squares">${sq}</div></div>${pl(!flip)}

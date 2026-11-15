@@ -132,3 +132,7 @@ body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none
 .promo .pt small{opacity:.7;font-size:12px;margin-top:2px}
 .promo .pgo{border:0;border-radius:12px;padding:8px 14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4db8e8,#3a86e0)}
 .promo .px{border:0;background:transparent;color:inherit;opacity:.55;font-size:15px;padding:4px 6px}
+
+/* Topqir/Molekula: sudralganda sekinlashmasligi uchun xira (blur) o'chiriladi */
+.wgrid,.lw,.wchip,.sbar .side{-webkit-backdrop-filter:none;backdrop-filter:none}
+.lt{transition:background .08s,transform .08s}

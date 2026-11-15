@@ -188,6 +188,21 @@ function sozGame(opt) {
     }
   }
 
+  // sudralayotganda faqat harflar va ko'rinish yangilanadi (yengil) — qolgan hammasi draw() da
+  function drawPath() {
+    if (!alive) return;
+    const sel = new Set(path), head = path[path.length - 1];
+    document.querySelectorAll(".lt").forEach(el => {
+      const i = +el.dataset.i, on = sel.has(i), h = head === i;
+      if (el.classList.contains("sel") !== on) el.classList.toggle("sel", on);
+      if (el.classList.contains("head") !== h) el.classList.toggle("head", h);
+    });
+    const cur = path.map(i => st.grid[i]).join(""), pv = document.querySelector(".preview");
+    if (!pv) return;
+    pv.textContent = cur || (started() ? "Harfdan harfga chizing" : "Tayyorlaning…");
+    pv.className = `preview ${cur ? (cur.length > 1 && isWord(cur) ? "ok" : "typing") : ""}`;
+  }
+
   function draw() {
     if (!alive || !document.querySelector(".wgrid")) return;
     const sel = new Set(path);
@@ -310,19 +325,19 @@ function sozGame(opt) {
     grid.addEventListener("pointerdown", e => {
       if (done() || !started()) return;
       const el = document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".lt"); if (!el) return;
-      dragging = true; path = [+el.dataset.i]; grid.setPointerCapture(e.pointerId); haptic("light"); draw();
+      dragging = true; path = [+el.dataset.i]; grid.setPointerCapture(e.pointerId); haptic("light"); drawPath();
     });
     grid.addEventListener("pointermove", e => {
       if (!dragging) return;
       const i = cellAt(e.clientX, e.clientY);
       if (i === null || i === path[path.length - 1]) return;
-      if (path.length > 1 && i === path[path.length - 2]) { path.pop(); draw(); return; } // orqaga qaytish
+      if (path.length > 1 && i === path[path.length - 2]) { path.pop(); drawPath(); return; } // orqaga qaytish
       if (path.includes(i) || !adj(i, path[path.length - 1])) return;
-      path.push(i); haptic("light"); draw();
+      path.push(i); haptic("light"); drawPath();
     });
-    const end = () => { if (!dragging) return; dragging = false; const cells = path; path = []; draw(); submit(cells); };
+    const end = () => { if (!dragging) return; dragging = false; const cells = path; path = []; drawPath(); submit(cells); };
     grid.addEventListener("pointerup", end);
-    grid.addEventListener("pointercancel", () => { dragging = false; path = []; draw(); });
+    grid.addEventListener("pointercancel", () => { dragging = false; path = []; drawPath(); });
     grid.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
     draw();
   }
