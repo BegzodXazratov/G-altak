@@ -23,6 +23,19 @@ async function tell(host, chat_id, text, btn = "▶️ Ochish") {
   if (r) await noteReach(chat_id, r);
 }
 
+// O'yin chatiga kimdir yozsa — faqat adminga (Begzodga) Telegram'da: kim va nima yozgani
+async function notifyAdminChat(id, name, username, text) {
+  try {
+    const admin = String(process.env.ADMIN_TG_ID || (process.env.IQ_ADMINS || "").split(",")[0] || "").trim();
+    if (!admin || admin === id || !process.env.BOT_TOKEN) return;
+    const t = text.trim().slice(0, 300);
+    await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: admin, text: `💬 O'yin chati\n👤 ${name || "?"}${username ? " · @" + username : ""} · ID ${id}\n\n${t}`, disable_web_page_preview: true }),
+    });
+  } catch (e) { console.error("notifyAdminChat", e.message); }
+}
+
 // Botdagi taklif xabaridan "Qabul qilish" tugmasini olib tashlaymiz
 async function closeInvites(room, status, text) {
   try {
@@ -103,6 +116,7 @@ export default async function handler(req, res) {
         break;
       case "room_send":
         out = await rpc("g_room_send", { p_id: id, p_body: String(b.text || ""), p_reply: Number(b.reply) || null });
+        if (out?.ok) await notifyAdminChat(id, name, user.username, String(b.text || ""));
         break;
       case "chat_list":
         out = await rpc("g_chat_list", { p_id: id });
