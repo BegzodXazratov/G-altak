@@ -121,3 +121,14 @@ body::before{content:"";position:fixed;inset:-10%;z-index:-1;pointer-events:none
 .turnpill{background:var(--accent);color:var(--accent-ink)}
 .hint{background:rgba(30,142,106,.14)}
 .champ{background:linear-gradient(135deg,#7BD6F0,#6A5BD0)}
+
+/* kirganda tepadan chiqadigan taklif bildirishnomasi */
+.promo{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));z-index:60;max-width:460px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:18px;
+ background:color-mix(in srgb,var(--card,#fff) 82%,transparent);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
+ border:1px solid color-mix(in srgb,var(--accent,#3aa) 35%,transparent);box-shadow:0 14px 40px #0003;transform:translateY(-130%);opacity:0;transition:transform .45s cubic-bezier(.2,1.2,.4,1),opacity .3s;color:var(--ink,inherit)}
+.promo.on{transform:none;opacity:1}
+.promo .pi{font-size:24px}
+.promo .pt{flex:1;display:flex;flex-direction:column;line-height:1.25;font-size:13.5px}
+.promo .pt small{opacity:.7;font-size:12px;margin-top:2px}
+.promo .pgo{border:0;border-radius:12px;padding:8px 14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4db8e8,#3a86e0)}
+.promo .px{border:0;background:transparent;color:inherit;opacity:.55;font-size:15px;padding:4px 6px}

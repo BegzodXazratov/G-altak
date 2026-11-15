@@ -70,8 +70,23 @@ function registerScreen() {
   }
 }
 
+let promoShown = false;
+function showPromo() {
+  if (promoShown) return; promoShown = true; // har kirganda faqat bir marta
+  const el = document.createElement("div");
+  el.id = "promo"; el.className = "promo";
+  el.innerHTML = `<span class="pi">💌</span><span class="pt"><b>O'yinni tarqatishda o'z hissangizni qo'shing</b><small>Do'stlaringizga taklif yuboring — birga o'ynash qiziqroq</small></span><button class="pgo" data-go>Taklif</button><button class="px" aria-label="Yopish">✕</button>`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("on"));
+  const close = () => { el.classList.remove("on"); setTimeout(() => el.remove(), 400); };
+  const t = setTimeout(close, 9000);
+  el.querySelector(".px").onclick = e => { e.stopPropagation(); clearTimeout(t); close(); };
+  el.querySelector(".pgo").onclick = e => { e.stopPropagation(); clearTimeout(t); close(); shareApp(); };
+  haptic("light");
+}
 function enter() {
   show(menu, false);
+  setTimeout(showPromo, 1200);
   startPresence();
   const room = startParam();
   if (room) joinRoom(room);
