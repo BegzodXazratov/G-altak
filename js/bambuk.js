@@ -6,15 +6,21 @@ const SEG = 58, VIS = 8;
 const best = () => +load("bambuk-best") || 0;
 
 const HERO = `<svg viewBox="0 0 72 92" class="bb-svg" aria-hidden="true">
-  <defs><linearGradient id="bbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfeaff"/><stop offset="1" stop-color="#3f8fe6"/></linearGradient></defs>
-  <ellipse cx="36" cy="88" rx="20" ry="3.5" fill="#0003"/>
-  <path d="M36 6C36 6 12 36 12 58a24 24 0 0 0 48 0C60 36 36 6 36 6Z" fill="url(#bbg)"/>
-  <ellipse cx="26" cy="52" rx="5" ry="9" fill="#fff" opacity=".35" transform="rotate(18 26 52)"/>
-  <path d="M13 42h46v8H13z" fill="#e5483f"/><path d="M58 44l10-5-2 10zM58 47l9 6-11 1z" fill="#c9372f"/>
-  <circle cx="45" cy="58" r="3.2" fill="#10233f"/><circle cx="29" cy="58" r="3.2" fill="#10233f"/>
-  <path d="M33 68q4 3 8 0" stroke="#10233f" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-  <circle class="bb-fist" cx="58" cy="70" r="7.5" fill="#f6c9a0" stroke="#d99a6c" stroke-width="1.5"/>
-  <ellipse cx="26" cy="86" rx="8" ry="4" fill="#243a5e"/><ellipse cx="46" cy="86" rx="8" ry="4" fill="#243a5e"/>
+  <ellipse cx="36" cy="88.5" rx="21" ry="3.5" fill="#0003"/>
+  <ellipse cx="26" cy="84" rx="9" ry="5.5" fill="#20232b"/><ellipse cx="46" cy="84" rx="9" ry="5.5" fill="#20232b"/>
+  <ellipse cx="36" cy="64" rx="21" ry="20" fill="#fbfbfd"/>
+  <path d="M16 70h40v7a20 12 0 0 1-40 0z" fill="#fbfbfd"/>
+  <rect x="15" y="66" width="42" height="7" rx="3.5" fill="#e5483f"/><path d="M33 72l-5 11 6-3zM39 72l5 11-6-3z" fill="#c9372f"/>
+  <ellipse cx="15" cy="60" rx="6.5" ry="11" fill="#20232b" transform="rotate(14 15 60)"/>
+  <rect x="48" y="56" width="13" height="11" rx="5.5" fill="#20232b"/>
+  <circle class="bb-fist" cx="62" cy="62" r="8" fill="#20232b"/><circle cx="60" cy="59" r="2.2" fill="#fff" opacity=".25"/>
+  <circle cx="17" cy="16" r="8.5" fill="#20232b"/><circle cx="55" cy="16" r="8.5" fill="#20232b"/>
+  <circle cx="36" cy="33" r="22.5" fill="#fbfbfd"/>
+  <ellipse cx="26.5" cy="34" rx="6" ry="7.6" fill="#20232b" transform="rotate(20 26.5 34)"/><ellipse cx="45.5" cy="34" rx="6" ry="7.6" fill="#20232b" transform="rotate(-20 45.5 34)"/>
+  <circle cx="27.5" cy="34" r="2.3" fill="#fff"/><circle cx="44.5" cy="34" r="2.3" fill="#fff"/><circle cx="28" cy="33.4" r=".9" fill="#20232b"/><circle cx="44" cy="33.4" r=".9" fill="#20232b"/>
+  <ellipse cx="36" cy="42.5" rx="3.6" ry="2.6" fill="#20232b"/>
+  <path d="M32 47q4 3.2 8 0" stroke="#20232b" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M14 22q22-9 44 0l1 6q-23-8-46 0z" fill="#e5483f"/><path d="M58 22l11-3-2 8zM58 26l10 6-12-1z" fill="#c9372f"/>
 </svg>`;
 
 export function bambukMenu() {
