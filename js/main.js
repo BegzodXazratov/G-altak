@@ -8,6 +8,7 @@ import { shchMenu, createPrivate as newShch } from "./shch.js";
 import { molMenu, createPrivate as newMol } from "./mol.js";
 import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
+import { bambukMenu } from "./bambuk.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
 import { roomSeen } from "./room.js";
 
@@ -285,6 +286,11 @@ const menu = {
             <h2>Kamonchi</h2><p>Burchak va kuchni topib, raqibning 5 jonini oling</p>
             <span class="art" aria-hidden="true">🏹</span>
           </button>
+          <button class="game g-bam" data-go="bambuk" data-cat="skill">
+            <span class="tag">Yangi · aniqlik · yolg'iz</span>
+            <h2>Bambuk</h2><p>Chap yoki o'ngni bosib bambukni kesing — qoziqqa urilmang!</p>
+            <span class="art" aria-hidden="true">🎋</span>
+          </button>
           <button class="game g-soz" data-go="soz" data-cat="word">
             <span class="tag">So'z · 1–3 daqiqa</span>
             <h2>Topqir</h2><p>Harflardan o'zbekcha so'zlarni raqibdan tezroq toping</p>
@@ -321,6 +327,7 @@ const menu = {
         if (g === "mol") show(molMenu());
         if (g === "kim") show(kimMenu());
         if (g === "shch") show(shchMenu());
+        else if (g === "bambuk") show(bambukMenu());
         if (g === "chess") show(chessMenu());
         if (g === "arch") show(archMenu());
       });
