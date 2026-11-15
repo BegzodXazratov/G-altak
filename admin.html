@@ -394,13 +394,19 @@ function chart() {
     <div class="axis">${H.map((h, i) => `<span>${i % 4 === 3 || i === H.length - 1 ? clock(h.h).slice(0, 2) : ""}</span>`).join("")}</div>`;
 }
 
+function who(cur, room, u, id) {
+  const nm = cur || room || "?", old = room && cur && room !== cur ? ` <small class="muted">(o'yinda: ${esc(room)})</small>` : "";
+  const tag = `${u ? `<a href="https://t.me/${esc(u)}" target="_blank" rel="noopener">@${esc(u)}</a> · ` : ""}<a href="tg://user?id=${esc(id)}" title="Telegram'da ochish" class="muted">ID ${esc(id || "?")}</a>`;
+  return `<b>${esc(nm)}</b>${old} <small class="muted">${tag}</small>`;
+}
 function feed(limit) {
   const R = (data.recent || []).slice(0, limit || 99);
   if (!R.length) return `<div class="empty">Hali yakunlangan o'yin yo'q</div>`;
   return `<div class="feed">${R.map(g => {
-    const w = g.winner === "p1" ? g.p1_name : g.winner === "p2" ? g.p2_name : null, l = g.winner === "p1" ? g.p2_name : g.p1_name;
+    const W = g.winner === "p1" ? 1 : g.winner === "p2" ? 2 : 0;
+    const P = n => who(g["p" + n + "_cur"], g["p" + n + "_name"], g["p" + n + "_u"], g["p" + n]);
     return `<div class="fi"><div class="gi ${g.game}">${GAME[g.game]?.[1] || "🎮"}</div>
-      <div class="t">${w ? `🏆 <b>${esc(w)}</b> yutdi — ${esc(l || "?")}${g.resigned ? " <span class='muted'>(taslim)</span>" : ""}` : `🤝 <b>${esc(g.p1_name)}</b> va <b>${esc(g.p2_name)}</b> — durang`}
+      <div class="t">${W ? `🏆 ${P(W)} yutdi — ${P(W === 1 ? 2 : 1)}${g.resigned ? " <span class='muted'>(taslim)</span>" : ""}` : `🤝 ${P(1)} va ${P(2)} — durang`}
         <span class="muted"> · ${GAME[g.game]?.[0]}</span></div><time title="${date(g.updated_at)}">${ago(g.updated_at)}</time></div>`;
   }).join("")}</div>`;
 }
@@ -696,13 +702,13 @@ const FILTERS = [["all", "Hammasi", () => true], ["on", "Onlayn", isOn], ["play"
 const SORTS = [["seen_at", "Oxirgi kirgan"], ["created_at", "Yangi qo'shilgan"], ["rating", "Ball"], ["games", "O'yinlar soni"], ["name", "Ism (A–Z)"]];
 function rows() {
   const s = q.toLowerCase().replace(/\s/g, ""), f = FILTERS.find(x => x[0] === filt)[2];
-  return data.players.filter(f).filter(p => !s || [p.name, p.username, p.phone].some(v => String(v || "").toLowerCase().replace(/\s/g, "").includes(s)))
+  return data.players.filter(f).filter(p => !s || [p.name, p.username, p.phone, p.tg_id, p.old_names].some(v => String(v || "").toLowerCase().replace(/\s/g, "").includes(s)))
     .sort((a, b) => sortK === "name" ? String(a.name).localeCompare(String(b.name))
       : sortK === "seen_at" || sortK === "created_at" ? new Date(b[sortK]) - new Date(a[sortK]) : (b[sortK] || 0) - (a[sortK] || 0));
 }
 function playersView() {
   $("#body").innerHTML = `
-    <div class="tools"><input class="inp" id="q" placeholder="🔍  Ism, @username yoki telefon raqam" value="${esc(q)}">
+    <div class="tools"><input class="inp" id="q" placeholder="🔍  Ism, @username, ID yoki telefon raqam" value="${esc(q)}">
       <select class="inp" id="sort">${SORTS.map(([k, l]) => `<option value="${k}" ${k === sortK ? "selected" : ""}>Saralash: ${l}</option>`).join("")}</select></div>
     <div class="seg" style="margin-bottom:14px">${FILTERS.map(([k, l, f]) => `<button data-f="${k}" aria-pressed="${filt === k}">${l}<i>${data.players.filter(f).length}</i></button>`).join("")}</div>
     <div class="plist" id="pl"></div><p class="foot" id="cnt"></p>`;
@@ -729,6 +735,7 @@ function list() {
       <div class="av" style="background:${avc(p.tg_id)}">${esc((nm || p.username || "?")[0].toUpperCase())}<span class="st ${st}" title="${st === "play" ? "o'ynamoqda" : st ? "onlayn" : "oflayn"}"></span></div>
       <div class="who"><b>${nm ? esc(nm) : `<span class="warn">Ism kiritilmagan</span>`}</b>
         ${p.username ? `<a href="https://t.me/${esc(p.username)}" target="_blank" rel="noopener">@${esc(p.username)}</a>` : `<span class="muted" style="font-size:13.5px">username yo'q</span>`}
+        <small class="muted"> · ID ${esc(p.tg_id)}</small>${p.renames > 0 ? `<div class="warn" style="font-size:12.5px" title="Ism ${p.renames} marta o'zgargan">✎ ${p.renames} marta o'zgargan, oldin: ${esc(p.old_names || "")}</div>` : ""}
         <div class="tags">${tagsOf(p)}</div></div>
       <div class="ph2">${p.phone ? `<a class="phone" href="tel:${fphone(p.phone).replace(/\s/g, "")}">${fphone(p.phone)}</a>
         <button class="cp" data-cp="${fphone(p.phone).replace(/\s/g, "")}" title="Nusxalash">⧉</button>` : `<span class="warn bad">Raqam yuborilmagan</span>`}</div>
