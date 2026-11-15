@@ -27,7 +27,7 @@ export function makeTrack(seed, n = 600) {
 export const ENERGY_START = 60, ENERGY_ADD = 6.5, ENERGY_MAX = 100;
 export const drainRate = chops => 14 + Math.min(22, chops / 6); // sekundiga
 
-export const newGame = seed => ({ track: makeTrack(seed), i: 0, side: LEFT, energy: ENERGY_START, score: 0, combo: 0, mult: 1, last: 0, dead: null });
+export const newGame = seed => ({ track: makeTrack(seed), i: 0, side: LEFT, energy: ENERGY_START, score: 0, combo: 0, mult: 1, last: -1e9, dead: null });
 
 // urish: side — LEFT yoki RIGHT. Natija: o'yin holati yangilanadi, o'lsa st.dead = "qoziq" | "charchadi"
 export function chop(st, side, now) {
@@ -48,4 +48,25 @@ export function drain(st, dt) {
   st.energy -= drainRate(st.i) * dt;
   if (st.energy <= 0) { st.energy = 0; st.dead = "charchadi"; }
   return st;
+}
+
+// Serverda tekshirish: o'yinchi yuborgan urishlar [[tomon, ms], ...] seed bo'yicha qayta o'ynaladi.
+// Ball shu yerdan chiqadi — mijozning o'zi yozgan ballga ishonilmaydi.
+export const MIN_GAP = 55; // millisekund: odam sekundiga ~18 martadan tez bosa olmaydi
+export function replay(seed, taps, seconds) {
+  if (!Array.isArray(taps) || taps.length > 1200) return null;
+  const st = newGame(seed), limit = seconds * 1000;
+  let prev = 0, lastT = -1e9;
+  for (const tp of taps) {
+    if (!Array.isArray(tp)) return null;
+    const side = tp[0], t = tp[1];
+    if ((side !== LEFT && side !== RIGHT) || !Number.isFinite(t) || t < 0 || t > limit + 300 || t - lastT < MIN_GAP) return null;
+    if (t > limit) break;
+    drain(st, (t - prev) / 1000);
+    if (st.dead) break;
+    chop(st, side, t);
+    prev = lastT = t;
+    if (st.dead) break;
+  }
+  return { score: st.score, chops: st.i, dead: st.dead || "vaqt" };
 }

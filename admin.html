@@ -69,7 +69,7 @@ button{font:inherit;cursor:pointer;border:0;color:inherit;background:none}
 .games{display:grid;gap:10px}
 .game{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--panel2);border:1px solid var(--line)}
 .gi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:#fff}
-.gi.shashka{background:var(--shashka)}.gi.soz{background:var(--soz)}.gi.gugurt{background:var(--gugurt)}.gi.kim{background:var(--kim)}.gi.shch{background:var(--shch)}.gi.chess{background:var(--chess)}.gi.arch{background:var(--arch)}.gi.ww4{background:var(--ww4)}.gi.mol{background:var(--mol)}
+.gi.shashka{background:var(--shashka)}.gi.soz{background:var(--soz)}.gi.gugurt{background:var(--gugurt)}.gi.kim{background:var(--kim)}.gi.shch{background:var(--shch)}.gi.chess{background:var(--chess)}.gi.arch{background:var(--arch)}.gi.ww4{background:var(--ww4)}.gi.mol{background:var(--mol)}.gi.bambuk{background:#2f9e6b}
 .vs{font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .vs em{font-style:normal;color:var(--muted);font-weight:500;font-size:13px}
 .game small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
@@ -188,7 +188,7 @@ details.dd{border:1px solid var(--line);border-radius:14px;background:var(--pane
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const GAME = { shashka: ["Shashka", "⚫"], soz: ["Topqir", "🔤"], gugurt: ["Gugurt", "🔥"], kim: ["Kim topadi?", "🔢"], shch: ["SH-chyot", "🧮"], chess: ["Shaxmat", "♞"], arch: ["Kamonchi", "🏹"], ww4: ["World War 4", "⚔️"], mol: ["Molekula", "⬡"] };
+const GAME = { shashka: ["Shashka", "⚫"], soz: ["Topqir", "🔤"], gugurt: ["Gugurt", "🔥"], kim: ["Kim topadi?", "🔢"], shch: ["SH-chyot", "🧮"], chess: ["Shaxmat", "♞"], arch: ["Kamonchi", "🏹"], ww4: ["World War 4", "⚔️"], mol: ["Molekula", "⬡"], bambuk: ["Bambuk", "🐼"] };
 const AVC = ["#E8572A", "#1F6F4E", "#5B3DB8", "#C98410", "#2A7FB8", "#B8456E", "#4E8A2A"];
 let pass = "", data = null, tab = "dash", q = "", filt = "all", sortK = "seen_at", timer = null, lastAt = 0, skew = 0;
 try { pass = sessionStorage.getItem("galtak-admin") || ""; tab = sessionStorage.getItem("galtak-admin-tab") || "dash"; } catch (e) {}

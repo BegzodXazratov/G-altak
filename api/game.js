@@ -6,11 +6,12 @@ import { checkSolution } from "../js/gugurt-engine.js";
 import { makeShch, makeKim } from "./_shch.js";
 import { initArch, applyShot } from "../js/arch-engine.js";
 import { initState as chessInit, findMove, applyMove as chessApply } from "../js/chess-engine.js";
+import { replay as bamReplay } from "../js/bambuk-engine.js";
 import { APP_VERSION } from "../js/version.js";
 
-const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch", "ww4", "mol"];
+const GAMES = ["shashka", "soz", "gugurt", "kim", "shch", "chess", "arch", "ww4", "mol", "bambuk"];
 // yangi o'yinlarda boshlang'ich holatni server o'zi yaratadi (mijoz maxfiy ma'lumot yoki maqsadlarni o'zgartira olmaydi)
-const initState = b => b.game === "arch" ? initArch() : b.game === "chess" ? chessInit() : b.game === "kim" ? makeKim(b) : b.game === "shch" ? makeShch(b.count) : (b.state || {});
+const initState = b => b.game === "bambuk" ? { seed: (Math.random() * 2 ** 31) | 0, seconds: 45 } : b.game === "arch" ? initArch() : b.game === "chess" ? chessInit() : b.game === "kim" ? makeKim(b) : b.game === "shch" ? makeShch(b.count) : (b.state || {});
 
 export const AVATARS = ["😎", "🦁", "🐯", "🦊", "🐼", "🐸", "🦄", "🐲", "🦅", "🐺", "🤖", "👽", "🥷", "🧙", "👑", "🔥", "⚡", "🚀", "🎯", "🏆", "🦉", "🐻", "🐧", "🦈"];
 
@@ -78,7 +79,7 @@ export default async function handler(req, res) {
         if (!GAMES.includes(b.game)) return res.status(400).json({ error: "game" });
         out = await rpc("g_invite", { p_from: id, p_to_h: String(b.h || ""), p_game: b.game, p_room: String(b.room || "") });
         if (out?.ok) {
-          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4", mol: "Molekula" };
+          const GN = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4", mol: "Molekula", bambuk: "Bambuk" };
           const url = `https://${req.headers.host}/?room=${encodeURIComponent(b.room)}`;
           const sent = await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -223,8 +224,20 @@ export default async function handler(req, res) {
       case "finish":
         out = await rpc("g_soz_finish", { p_id: b.id });
         break;
+      case "bam_submit": { // o'yinchining urishlari serverda qayta o'ynaladi, ball shu yerda hisoblanadi
+        const room = await rpc("g_room_get", { p_id: String(b.id || "") }, false);
+        if (!room || room.error || room.game !== "bambuk") return res.status(200).json({ error: "not_found" });
+        if (room.status !== "playing") return res.status(200).json(room);
+        const r = bamReplay(Number(room.state?.seed), b.taps, Number(room.state?.seconds) || 45);
+        if (!r) return res.status(200).json({ error: "bad_taps" });
+        out = await rpc("g_bam_submit", { p_id: room.id, p_player: id, p_score: r.score, p_chops: r.chops, p_dead: r.dead });
+        break;
+      }
+      case "bam_finish":
+        out = await rpc("g_bam_finish", { p_id: String(b.id || "") });
+        break;
       case "rematch": {
-        const old = ["kim", "shch", "chess", "arch"].includes(b.game) ? { ...b } : null;
+        const old = ["kim", "shch", "chess", "arch", "bambuk"].includes(b.game) ? { ...b } : null;
         out = await rpc("g_room_rematch", { p_id: b.id, p_player: id, p_name: name, p_state: old ? initState(old) : (b.state || {}) });
         break;
       }

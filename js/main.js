@@ -8,7 +8,7 @@ import { shchMenu, createPrivate as newShch } from "./shch.js";
 import { molMenu, createPrivate as newMol } from "./mol.js";
 import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
-import { bambukMenu } from "./bambuk.js";
+import { bambukMenu, createPrivate as newBam } from "./bambuk.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
 import { roomSeen } from "./room.js";
 
@@ -95,8 +95,8 @@ function enter() {
 nav.askName = () => show(registerScreen(), false);
 
 // ---------- onlayn holat va takliflar ----------
-const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4", mol: "Molekula" };
-const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "🧮", chess: "♞", arch: "🏹", ww4: "⚔️", mol: "⬡" };
+const GNAME = { shashka: "Shashka", soz: "Topqir", gugurt: "Gugurt", kim: "Kim topadi?", shch: "SH-chyot", chess: "Shaxmat", arch: "Kamonchi", ww4: "World War 4", mol: "Molekula", bambuk: "Bambuk" };
+const GICON = { shashka: "⚫", soz: "🔤", gugurt: "🔥", kim: "🔢", shch: "🧮", chess: "♞", arch: "🏹", ww4: "⚔️", mol: "⬡", bambuk: "🐼" };
 let presence = null;
 const seenInv = new Set();
 function startPresence() {
@@ -177,7 +177,7 @@ function onlineScreen() {
 async function startInvite(h, name, game) {
   const timed = game === "soz" || game === "gugurt" || game === "mol", secs = timed ? gameSeconds(game) : 0;
   try {
-    const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch, mol: newMol })[game](name);
+    const room = await ({ shashka: newShashka, soz: newSoz, gugurt: newGug, kim: newKim, shch: newShch, chess: newChess, arch: newArch, mol: newMol, bambuk: newBam })[game](name);
     const r = await api("invite", { h, game, room: room.id, seconds: secs });
     if (r.ok) { haptic("ok"); return; }
     toast(r.error === "offline" ? `${name} hozir onlayn emas` : r.error === "busy" ? `${name} hozir boshqa o'yinda — keyinroq chaqiring` : r.error === "blocked_by_me" ? `${name} bloklangan — avval «Do'stlar» bo'limidan blokdan chiqaring`
