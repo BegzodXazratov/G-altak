@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rahmat sizga — 50-obunachi</title>
+<meta name="description" content="@tarqatologg kanalining 50-obunachisiga qizil gilam">
+<meta property="og:title" content="Rahmat sizga! Siz 50-obunachisiz">
+<meta property="og:description" content="@tarqatologg kanalining 50-obunachisi uchun qizil gilam to'shaldi">
+<meta name="theme-color" content="#07060a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #07060a;
+    --red: #c3122f;
+    --red-d: #6d0716;
+    --gold: #f3c76b;
+    --gold-d: #a8742a;
+    --cream: #fff4e2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--night);
+    color: var(--cream);
+    font-family: Inter, system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .scene { position: fixed; inset: 0; overflow: hidden; }
+
+  /* osmon va yorug'lik */
+  .sky {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(120% 70% at 50% 110%, rgba(195,18,47,.35), transparent 60%),
+      radial-gradient(90% 60% at 50% -10%, rgba(243,199,107,.12), transparent 60%),
+      var(--night);
+  }
+  .beam {
+    position: absolute; top: -20vh; width: 70vmax; height: 140vh;
+    background: conic-gradient(from 180deg at 50% 0%, transparent 0deg, rgba(255,236,190,.0) 160deg, rgba(255,236,190,.22) 176deg, rgba(255,236,190,.32) 180deg, rgba(255,236,190,.22) 184deg, rgba(255,236,190,0) 200deg, transparent 360deg);
+    mix-blend-mode: screen; filter: blur(6px); opacity: 0;
+    transform-origin: 50% 0%;
+    animation: beamIn 1.2s .2s forwards, sweep 7s ease-in-out infinite alternate;
+  }
+  .beam.l { left: -30vmax; --a: 18deg; --b: -6deg; }
+  .beam.r { right: -30vmax; --a: -18deg; --b: 6deg; animation-delay: .35s, .2s; }
+  @keyframes beamIn { to { opacity: 1; } }
+  @keyframes sweep { from { transform: rotate(var(--a)); } to { transform: rotate(var(--b)); } }
+
+  /* qizil gilam */
+  .stage { position: absolute; left: 0; right: 0; bottom: 0; height: 58vh; perspective: 520px; perspective-origin: 50% 0%; }
+  .carpet {
+    position: absolute; left: 50%; bottom: -6vh; width: min(72vw, 420px); height: 120vh;
+    margin-left: calc(min(72vw, 420px) / -2);
+    transform-origin: 50% 100%;
+    transform: rotateX(68deg) scaleY(0);
+    animation: roll 1.8s cubic-bezier(.2,.8,.2,1) .4s forwards;
+    background:
+      linear-gradient(90deg, var(--gold) 0 6px, transparent 6px calc(100% - 6px), var(--gold) calc(100% - 6px)),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.10) 0 2px, transparent 2px 6px),
+      linear-gradient(90deg, var(--red-d), var(--red) 22%, #e01a3a 50%, var(--red) 78%, var(--red-d));
+    box-shadow: 0 0 80px rgba(195,18,47,.55);
+  }
+  .carpet::after { /* gilam ustidagi yaltirash */
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(0deg, transparent 0%, rgba(255,255,255,.18) 48%, transparent 52%, transparent 100%);
+    background-size: 100% 300%; animation: sheen 3.5s linear 2.2s infinite;
+  }
+  @keyframes roll { to { transform: rotateX(68deg) scaleY(1); } }
+  @keyframes sheen { from { background-position: 0 0%; } to { background-position: 0 100%; } }
+
+  /* to'siqlar (oltin ustun + qizil arqon) */
+  .posts { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+  .post { position: absolute; bottom: 0; opacity: 0; animation: up .6s ease-out forwards; }
+  @keyframes up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+
+  /* fotoapparat chaqnashlari */
+  .flash { position: absolute; width: 140px; height: 140px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,.35) 18%, transparent 60%);
+    transform: scale(.2); opacity: 0; animation: flash .45s ease-out forwards; mix-blend-mode: screen; }
+  @keyframes flash { 30% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.3); } }
+
+  /* matn */
+  .copy { position: absolute; left: 0; right: 0; top: max(7vh, env(safe-area-inset-top)); display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 22px; z-index: 5; }
+  .kicker { font-weight: 800; letter-spacing: .42em; font-size: 12px; color: var(--gold); opacity: 0; animation: fade .8s 1.6s forwards; }
+  .num-wrap { position: relative; margin: 6px 0 2px; opacity: 0; animation: pop 1s cubic-bezier(.2,1.4,.3,1) 1.9s forwards; }
+  .halo { position: absolute; left: 50%; top: 50%; width: 360px; height: 360px; margin: -180px 0 0 -180px;
+    background: repeating-conic-gradient(from 0deg, rgba(243,199,107,.22) 0 6deg, transparent 6deg 18deg);
+    border-radius: 50%; -webkit-mask: radial-gradient(circle, #000 20%, transparent 68%); mask: radial-gradient(circle, #000 20%, transparent 68%);
+    animation: spin 18s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .num { position: relative; font-family: "Playfair Display", serif; font-weight: 900; font-size: clamp(130px, 38vw, 230px); line-height: .95;
+    background: linear-gradient(100deg, #8a5a1c 0%, #f3c76b 22%, #fff3c9 34%, #f3c76b 46%, #a8742a 62%, #f7d98d 78%, #8a5a1c 100%);
+    background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 6px 24px rgba(243,199,107,.35)); animation: shine 4s linear infinite; }
+  .num sup { font-size: .28em; vertical-align: top; position: relative; top: .55em; margin-left: .04em; }
+  @keyframes shine { from { background-position: 0% 0; } to { background-position: 220% 0; } }
+  @keyframes pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+  h1 { font-family: "Playfair Display", serif; font-style: italic; font-weight: 700; font-size: clamp(30px, 8.6vw, 46px); line-height: 1.05; margin-top: 4px; opacity: 0; animation: fade .9s 2.5s forwards; }
+  h1 em { color: #ff5470; font-style: italic; }
+  .sub { max-width: 420px; margin-top: 12px; font-size: 15px; line-height: 1.55; color: rgba(255,244,226,.82); opacity: 0; animation: fade .9s 2.9s forwards; }
+  .sub b { color: var(--gold); font-weight: 600; }
+  @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* VIP taklifnoma */
+  .ticket { position: absolute; left: 50%; bottom: max(22px, env(safe-area-inset-bottom)); width: min(92vw, 380px); transform: translateX(-50%) translateY(30px); opacity: 0;
+    animation: ticket .9s cubic-bezier(.2,1.2,.3,1) 3.4s forwards; z-index: 6;
+    display: flex; border-radius: 16px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,.6), 0 0 0 1px rgba(243,199,107,.5) inset; }
+  @keyframes ticket { to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  .t-main { flex: 1; padding: 14px 16px; background: linear-gradient(135deg, #1a0c10, #2a0d15); }
+  .t-label { font-size: 10px; letter-spacing: .3em; color: var(--gold); font-weight: 800; }
+  .t-title { font-family: "Playfair Display", serif; font-weight: 900; font-size: 20px; margin: 4px 0 6px; }
+  .t-row { display: flex; gap: 14px; font-size: 11px; color: rgba(255,244,226,.7); }
+  .t-row b { display: block; color: var(--cream); font-size: 13px; margin-top: 2px; }
+  .t-stub { width: 92px; background: linear-gradient(160deg, var(--gold), var(--gold-d)); color: #2a1206; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border-left: 2px dashed rgba(42,18,6,.45); }
+  .t-stub::before, .t-stub::after { content: ""; position: absolute; left: -9px; width: 16px; height: 16px; border-radius: 50%; background: var(--night); }
+  .t-stub::before { top: -8px; } .t-stub::after { bottom: -8px; }
+  .t-no { font-family: "Playfair Display", serif; font-weight: 900; font-size: 30px; line-height: 1; }
+  .t-adm { font-size: 9px; letter-spacing: .25em; font-weight: 800; margin-top: 4px; }
+
+  .actions { position: absolute; left: 0; right: 0; bottom: calc(max(22px, env(safe-area-inset-bottom)) + 118px); display: flex; justify-content: center; gap: 10px; z-index: 6; opacity: 0; animation: fade .8s 3.9s forwards; }
+  .btn { appearance: none; border: 0; cursor: pointer; font: 600 14px Inter, sans-serif; padding: 12px 18px; border-radius: 999px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+  .btn.gold { background: linear-gradient(135deg, #f7d98d, #c8902f); color: #2a1206; box-shadow: 0 8px 24px rgba(243,199,107,.3); }
+  .btn.ghost { background: rgba(255,255,255,.08); color: var(--cream); box-shadow: 0 0 0 1px rgba(255,244,226,.25) inset; }
+  .btn:active { transform: scale(.96); }
+
+  canvas#fx { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+  .hint { position: absolute; top: 12px; right: 14px; font-size: 11px; color: rgba(255,244,226,.45); z-index: 7; }
+
+  @media (max-height: 700px) {
+    .sub { font-size: 13.5px; }
+    .actions { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 108px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+  }
+</style>
+</head>
+<body>
+<div class="scene" id="scene">
+  <div class="sky"></div>
+  <div class="beam l"></div>
+  <div class="beam r"></div>
+
+  <div class="stage"><div class="carpet"></div></div>
+  <svg class="posts" id="posts" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+
+  <canvas id="fx"></canvas>
+
+  <div class="copy">
+    <div class="kicker">@TARQATOLOGG · VIP</div>
+    <div class="num-wrap"><div class="halo"></div><div class="num"><span id="count">1</span></div></div>
+    <h1>Rahmat sizga, <em>yaxshi qiz!</em></h1>
+    <p class="sub">Siz kanalimizning <b>50-obunachisi</b> bo'ldingiz. Shu sabab qizil gilam bugun faqat siz uchun to'shaldi.</p>
+  </div>
+
+  <div class="actions">
+    <a class="btn gold" href="https://t.me/tarqatologg">Kanalga qaytish</a>
+    <button class="btn ghost" id="again" type="button">Yana konfetti</button>
+  </div>
+
+  <div class="ticket" role="img" aria-label="VIP taklifnoma, 50-mehmon">
+    <div class="t-main">
+      <div class="t-label">VIP TAKLIFNOMA</div>
+      <div class="t-title">Qizil gilam mehmoni</div>
+      <div class="t-row"><div>Kanal<b>@tarqatologg</b></div><div>Joy<b>1-qator</b></div><div>Sana<b id="date">—</b></div></div>
+    </div>
+    <div class="t-stub"><div class="t-no">050</div><div class="t-adm">ADMIT ONE</div></div>
+  </div>
+  <div class="hint">ekranga bosing ✦</div>
+</div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // sana
+  try { document.getElementById('date').textContent = new Date().toLocaleDateString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch { document.getElementById('date').textContent = new Date().toISOString().slice(0, 10); }
+
+  // gilam bo'ylab oltin ustunlar va qizil arqonlar (soxta perspektiva)
+  const svg = document.getElementById('posts'), NS = 'http://www.w3.org/2000/svg';
+  const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const defs = el('defs', {}); defs.innerHTML = '<linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#8a5a1c"/><stop offset=".45" stop-color="#fff0bf"/><stop offset="1" stop-color="#a8742a"/></linearGradient>';
+  svg.appendChild(defs);
+  const carpet = document.querySelector('.carpet');
+  let topY = 48.6, animated = false;
+  function drawPosts() {
+    [...svg.querySelectorAll('g.p')].forEach(n => n.remove());
+    const bh = Math.min(innerWidth * .72, 420) / innerWidth * 50; // gilam pastki yarim kengligi (%)
+    const th = bh * .38;                                          // tepadagi yarim kenglik
+    const ar = innerWidth / innerHeight;                          // SVG cho'zilgani uchun dumaloqlarni to'g'rilash
+    const ys = [97, 80, 67, 57].map(f => topY + (f - 48.6) * (100 - topY) / 51.4);
+    const pt = (y, side) => { const k = (y - topY) / (100 - topY); const half = th + (bh - th) * k; return { x: 50 + side * (half + 1.5 + 3 * k), s: .35 + .65 * k }; };
+    ys.forEach((y, i) => {
+      [-1, 1].forEach(side => {
+        const { x, s } = pt(y, side), h = 13 * s, w = 1.6 * s / ar;
+        const g = el('g', { class: 'p' });
+        if (i < ys.length - 1) { // keyingi ustungacha qizil arqon
+          const n = pt(ys[i + 1], side), nh = 13 * n.s, y1 = y - h * .82, y2 = ys[i + 1] - nh * .82;
+          g.appendChild(el('path', { d: `M${x} ${y1} Q ${(x + n.x) / 2} ${Math.max(y1, y2) + 3.5 * s} ${n.x} ${y2}`, stroke: '#c3122f', fill: 'none', 'stroke-linecap': 'round', 'vector-effect': 'non-scaling-stroke', style: `stroke-width:${3 + 6 * s}px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))` }));
+        }
+        g.appendChild(el('ellipse', { cx: x, cy: y, rx: w * 2, ry: .5 * s, fill: '#a8742a' }));
+        g.appendChild(el('rect', { x: x - w / 2, y: y - h, width: w, height: h, fill: 'url(#g)' }));
+        g.appendChild(el('ellipse', { cx: x, cy: y - h, rx: w * 1.1, ry: .7 * s, fill: '#f7d98d' }));
+        if (!animated) { g.style.animation = `up .6s ease-out ${1.6 + (ys.length - i) * .12}s forwards`; g.style.opacity = 0; }
+        svg.appendChild(g);
+      });
+    });
+  }
+  // gilam to'liq yoyilgach uning yuqori chetini o'lchab, ustunlarni aniq joylashtiramiz
+  setTimeout(() => { animated = true; topY = Math.max(30, Math.min(70, carpet.getBoundingClientRect().top / innerHeight * 100)); drawPosts(); }, 2400);
+  drawPosts(); addEventListener('resize', drawPosts);
+
+  // 1 → 50 sanash
+  const cnt = document.getElementById('count');
+  setTimeout(() => {
+    if (reduce) { cnt.textContent = 50; return; }
+    const t0 = performance.now(), D = 1600;
+    const tick = (t) => { const p = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - p, 3); cnt.textContent = Math.max(1, Math.round(e * 50)); if (p < 1) requestAnimationFrame(tick); else burst(innerWidth / 2, innerHeight * .28, 160); };
+    requestAnimationFrame(tick);
+  }, 1900);
+
+  // paparatsi chaqnashlari
+  const scene = document.getElementById('scene');
+  function flash() {
+    const f = document.createElement('div'); f.className = 'flash';
+    const left = Math.random() < .5;
+    f.style.left = (left ? Math.random() * 18 : 82 + Math.random() * 18) + 'vw';
+    f.style.top = (45 + Math.random() * 45) + 'vh';
+    f.style.marginLeft = '-70px'; f.style.marginTop = '-70px';
+    scene.appendChild(f); setTimeout(() => f.remove(), 500);
+  }
+  if (!reduce) setTimeout(function loop() { flash(); if (Math.random() < .35) setTimeout(flash, 90); setTimeout(loop, 280 + Math.random() * 900); }, 2200);
+
+  // konfetti + atirgul yaproqlari
+  const cv = document.getElementById('fx'), cx = cv.getContext('2d');
+  let DPR = 1, parts = [];
+  function size() { DPR = Math.min(2, devicePixelRatio || 1); cv.width = innerWidth * DPR; cv.height = innerHeight * DPR; cx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+  size(); addEventListener('resize', size);
+  const COLORS = ['#f3c76b', '#fff0bf', '#c3122f', '#ff5470', '#ffffff', '#a8742a'];
+  function burst(x, y, n) {
+    if (reduce) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 9;
+      parts.push({ k: 'c', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 5, g: .22, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, w: 5 + Math.random() * 6, h: 3 + Math.random() * 5, c: COLORS[i % COLORS.length], life: 220 });
+    }
+  }
+  function petal() { parts.push({ k: 'p', x: Math.random() * innerWidth, y: -20, vx: (Math.random() - .5) * .6, vy: .8 + Math.random() * 1.2, g: 0, r: Math.random() * 6.28, vr: (Math.random() - .5) * .05, w: 9 + Math.random() * 7, sway: Math.random() * 6.28, life: 900 }); }
+  let last = 0;
+  function frame(t) {
+    cx.clearRect(0, 0, innerWidth, innerHeight);
+    if (!reduce && t - last > 260 && parts.length < 260) { petal(); last = t; }
+    parts = parts.filter(p => p.life-- > 0 && p.y < innerHeight + 40);
+    for (const p of parts) {
+      if (p.k === 'c') { p.vx *= .985; p.vy += p.g; } else { p.sway += .03; p.x += Math.sin(p.sway) * .6; }
+      p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r);
+      if (p.k === 'c') { cx.fillStyle = p.c; cx.globalAlpha = Math.min(1, p.life / 60); cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2))); }
+      else { // atirgul yaprog'i
+        const w = p.w; const g = cx.createLinearGradient(-w, 0, w, 0); g.addColorStop(0, '#7a0a1c'); g.addColorStop(.5, '#e01a3a'); g.addColorStop(1, '#8e0c20');
+        cx.fillStyle = g; cx.globalAlpha = .9; cx.beginPath(); cx.moveTo(0, -w * .7); cx.bezierCurveTo(w, -w * .6, w * .7, w * .6, 0, w * .7); cx.bezierCurveTo(-w * .7, w * .6, -w, -w * .6, 0, -w * .7); cx.fill();
+      }
+      cx.restore();
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  scene.addEventListener('pointerdown', (e) => { if (e.target.closest('a,button')) return; burst(e.clientX, e.clientY, 60); flash(); });
+  document.getElementById('again').addEventListener('click', () => { burst(innerWidth * .25, innerHeight * .45, 90); burst(innerWidth * .75, innerHeight * .45, 90); });
+
+  // Telegram ichida ochilsa — to'liq ekran
+  try { const tg = window.Telegram && Telegram.WebApp; if (tg) { tg.ready(); tg.expand(); } } catch {}
+})();
+</script>
+</body>
+</html>
