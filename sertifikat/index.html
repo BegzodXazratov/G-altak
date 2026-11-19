@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sertifikat yasash — G'altak</title>
+<meta name="description" content="Do'stlaringizga hazil sertifikat yasang: ism, sabab, o'rin, 5 xil dizayn">
+<meta property="og:title" content="Hazil sertifikat yasash — G'altak">
+<meta property="og:description" content="Do'stingizga 1 daqiqada sertifikat yasang va yuboring">
+<meta name="theme-color" content="#121016">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Caveat:wght@600;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@400;600;800&family=Anton&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #121016; --card: #1c1922; --line: rgba(255,255,255,.1); --txt: #f4efe6; --mut: rgba(244,239,230,.6); --acc: #f3c76b; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--txt); font-family: Inter, system-ui, sans-serif; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) 16px 40px; display: grid; grid-template-columns: 360px 1fr; gap: 22px; align-items: start; }
+  header { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 { font-family: "Playfair Display", serif; font-weight: 900; font-size: clamp(24px, 5vw, 34px); }
+  h1 span { color: var(--acc); font-style: italic; }
+  .home { color: var(--mut); font-size: 13px; text-decoration: none; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  label { font-size: 12px; font-weight: 600; color: var(--mut); display: flex; flex-direction: column; gap: 6px; }
+  input, textarea, select { font: 500 15px Inter, sans-serif; color: var(--txt); background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; outline: none; width: 100%; }
+  textarea { resize: vertical; min-height: 64px; }
+  input:focus, textarea:focus, select:focus { border-color: var(--acc); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: 600 12px Inter; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--mut); cursor: pointer; }
+  .chip:hover { color: var(--txt); border-color: var(--acc); }
+  .designs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .d { aspect-ratio: 1.414; border-radius: 8px; border: 2px solid transparent; cursor: pointer; overflow: hidden; position: relative; padding: 0; background: #000; }
+  .d canvas { width: 100%; height: 100%; display: block; }
+  .d.on { border-color: var(--acc); box-shadow: 0 0 0 3px rgba(243,199,107,.25); }
+  .d span { position: absolute; left: 0; right: 0; bottom: 0; font: 700 9px Inter; color: #fff; background: rgba(0,0,0,.55); padding: 2px 0; text-align: center; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { flex: 1; appearance: none; border: 0; cursor: pointer; font: 700 14px Inter; padding: 13px 14px; border-radius: 12px; }
+  .btn.p { background: linear-gradient(135deg, #f7d98d, #c8902f); color: #2a1206; }
+  .btn.s { background: rgba(255,255,255,.08); color: var(--txt); }
+  .btn:active { transform: scale(.97); }
+  .stage { position: sticky; top: 16px; }
+  .preview { width: 100%; border-radius: 10px; box-shadow: 0 30px 80px rgba(0,0,0,.55); display: block; background: #222; }
+  .note { font-size: 12px; color: var(--mut); margin-top: 10px; line-height: 1.5; }
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: 1fr; }
+    .stage { position: static; order: -1; }
+    header { order: -2; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Hazil <span>sertifikat</span></h1><a class="home" href="/">← G'altak</a></header>
+
+  <div class="panel">
+    <label>Kimga (ism familiya)
+      <input id="name" maxlength="40" value="Aziza Karimova" autocomplete="off">
+    </label>
+    <label>Nima uchun
+      <textarea id="reason" maxlength="140">Choyni hammadan tez ichib tugatgani uchun</textarea>
+    </label>
+    <div class="chips" id="ideas"></div>
+    <div class="row">
+      <label>O'rin
+        <select id="place">
+          <option value="1">1-o'rin</option><option value="2">2-o'rin</option><option value="3">3-o'rin</option>
+          <option value="0">O'rinsiz (faxriy)</option><option value="last">Oxirgi o'rin</option>
+        </select>
+      </label>
+      <label>Sana
+        <input id="date" type="date">
+      </label>
+    </div>
+    <label>Kim tomonidan beriladi
+      <input id="issuer" maxlength="50" value="Do'stlar kengashi" autocomplete="off">
+    </label>
+    <label>Imzo qo'yuvchi (lavozimi bilan)
+      <input id="signer" maxlength="40" value="Bosh hakam Jasur" autocomplete="off">
+    </label>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--mut);margin-bottom:8px">Dizayn</div>
+      <div class="designs" id="designs"></div>
+    </div>
+    <div class="btns">
+      <button class="btn p" id="dl" type="button">Yuklab olish (PNG)</button>
+      <button class="btn s" id="share" type="button">Ulashish</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv" class="preview" width="2000" height="1414"></canvas>
+    <p class="note">Bu hazil sertifikat, do'stlar orasida o'yin uchun. Tamg'a va imzolar soxta, har sertifikatda "G'altak · hazil sertifikati" belgisi bor.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d');
+  const W = 2000, H = 1414;
+  $('date').value = new Date(Date.now() + 5 * 36e5).toISOString().slice(0, 10);
+
+  const IDEAS = ['Choyni hammadan tez ichgani uchun', 'Eng ko\'p kechikkani uchun', 'Guruhdagi eng zo\'r hazilkash', 'Uyqu bo\'yicha chempion', 'Eng ko\'p "hozir chiqaman" degani uchun', 'Shashkada hech kimga yutqazmagani uchun', 'Eng mazali osh pishirgani uchun', 'Telefonni hammadan kam qo\'yib turgani uchun'];
+  IDEAS.forEach((t) => { const b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = t; b.onclick = () => { $('reason').value = t; draw(); }; $('ideas').appendChild(b); });
+
+  // ---------- yordamchilar ----------
+  function seedRnd(str) { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; }; }
+  function wrap(text, x, y, maxW, lh, align = 'center') {
+    const words = String(text).split(/\s+/); let line = '', lines = [];
+    for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+    if (line) lines.push(line);
+    ctx.textAlign = align; lines.forEach((l, i) => ctx.fillText(l, x, y + i * lh)); return lines.length;
+  }
+  function fitFont(text, family, weight, maxSize, maxW, style = '') {
+    let s = maxSize; do { ctx.font = `${style} ${weight} ${s}px ${family}`; s -= 4; } while (ctx.measureText(text).width > maxW && s > 20); return s + 4;
+  }
+  const placeText = () => { const p = $('place').value; return p === '0' ? 'Faxriy unvon' : p === 'last' ? 'Oxirgi o\'rin' : `${p}-o'rin`; };
+  const dateText = () => { const d = $('date').value; if (!d) return ''; const [y, m, dd] = d.split('-'); return `${dd}.${m}.${y}`; };
+
+  // soxta imzo (ismdan kelib chiqadigan chiziq)
+  function signature(x, y, w, color, seed) {
+    const r = seedRnd(seed || 'imzo'); ctx.save(); ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const loops = 4 + Math.floor(r() * 3), amp = 26 + r() * 18, k = w / (loops * 6.283), lean = .35;
+    ctx.lineWidth = 4.2; ctx.beginPath();
+    for (let t = 0; t <= loops * 6.283; t += .08) {
+      const big = Math.floor(t / 6.283) === 0 ? 1.9 : 1;           // birinchi harf kattaroq
+      const yy = -amp * big * Math.cos(t) * (0.8 + .2 * Math.sin(t * .5 + r()));
+      const xx = t * k - 16 * Math.sin(t) + yy * lean * -1;
+      t === 0 ? ctx.moveTo(x + xx, y + yy) : ctx.lineTo(x + xx, y + yy);
+    }
+    ctx.stroke();
+    ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 20, y + 42); ctx.bezierCurveTo(x + w * .35, y + 62, x + w * .75, y + 18, x + w + 30, y + 30); ctx.stroke();
+    ctx.restore();
+  }
+  // dumaloq soxta muhr (doim "G'ALTAK · HAZIL SERTIFIKATI")
+  function roundStamp(x, y, rad, color, rot, center) {
+    const lay = document.createElement('canvas'); lay.width = lay.height = rad * 2 + 20; const c = lay.getContext('2d'), o = rad + 10;
+    c.strokeStyle = c.fillStyle = color; c.lineWidth = 7; c.beginPath(); c.arc(o, o, rad, 0, 6.283); c.stroke();
+    c.lineWidth = 3; c.beginPath(); c.arc(o, o, rad - 14, 0, 6.283); c.stroke(); c.beginPath(); c.arc(o, o, rad * .56, 0, 6.283); c.stroke();
+    const txt = "G'ALTAK ✦ HAZIL SERTIFIKATI ✦ ", fs = rad * .17; c.font = `800 ${fs}px Inter`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const R = rad * .78, chars = [...txt], step = 6.283 / chars.length;
+    chars.forEach((ch, i) => { c.save(); c.translate(o, o); c.rotate(i * step - Math.PI / 2); c.fillText(ch, 0, -R); c.restore(); });
+    c.font = `900 ${rad * .3}px Inter`; c.fillText('★', o, o - rad * .17); c.font = `800 ${rad * .15}px Inter`; c.fillText(center, o, o + rad * .2);
+    // siyoh bo'shliqlari
+    const r = seedRnd(center + rad); c.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 320; i++) { const a = r() * 6.283, d = r() * rad; c.globalAlpha = .2 + r() * .6; c.beginPath(); c.arc(o + Math.cos(a) * d, o + Math.sin(a) * d, 1 + r() * 4.5, 0, 6.283); c.fill(); }
+    ctx.save(); ctx.globalAlpha = .82; ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(lay, -o, -o); ctx.restore();
+  }
+  // to'rtburchak muhr "TASDIQLANDI"
+  function rectStamp(x, y, text, color, rot) {
+    const lay = document.createElement('canvas'), c = lay.getContext('2d');
+    c.font = '900 54px Inter'; const w = c.measureText(text).width + 60; lay.width = w + 20; lay.height = 116;
+    c.strokeStyle = c.fillStyle = color; c.lineWidth = 7; c.strokeRect(10, 10, w, 96); c.lineWidth = 2.5; c.strokeRect(20, 20, w - 20, 76);
+    c.font = '900 54px Inter'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, lay.width / 2, 60);
+    const r = seedRnd(text); c.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 380; i++) { c.globalAlpha = .2 + r() * .6; c.beginPath(); c.arc(r() * lay.width, r() * lay.height, 1 + r() * 4, 0, 6.283); c.fill(); }
+    ctx.save(); ctx.globalAlpha = .8; ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(lay, -lay.width / 2, -lay.height / 2); ctx.restore();
+  }
+  function guilloche(cx0, cy0, R, color, alpha) { ctx.save(); ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.lineWidth = 1.2; for (let k = 0; k < 36; k++) { ctx.beginPath(); for (let t = 0; t <= 6.3; t += .02) { const r = R + 18 * Math.sin(7 * t + k * .35); const x = cx0 + r * Math.cos(t), y = cy0 + r * Math.sin(t) * .62; t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke(); } ctx.restore(); }
+  function medal(x, y, r, c1, c2, label) {
+    ctx.save(); // lentalar
+    ctx.fillStyle = c2; [[-1, -0.25], [1, 0.25]].forEach(([s, a]) => { ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(s * r * .25, 0); ctx.lineTo(s * r * .75, r * 2.1); ctx.lineTo(s * r * .45, r * 1.8); ctx.lineTo(s * r * .2, r * 2.15); ctx.lineTo(s * -r * .1, 0); ctx.fill(); ctx.restore(); });
+    for (let i = 0; i < 24; i++) { ctx.beginPath(); const a = i / 24 * 6.283; ctx.moveTo(x, y); ctx.arc(x, y, r * (i % 2 ? 1.08 : 1.16), a, a + 6.283 / 24); ctx.fillStyle = c1; ctx.fill(); }
+    const g = ctx.createRadialGradient(x - r * .3, y - r * .3, r * .1, x, y, r); g.addColorStop(0, '#fff6d0'); g.addColorStop(.5, c1); g.addColorStop(1, '#8a5a1c');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * .92, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#5a3a10'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `900 ${r * .62}px "Playfair Display"`; ctx.fillText(label, x, y + 4); ctx.restore();
+  }
+  const medalLabel = () => { const p = $('place').value; return p === '0' ? '★' : p === 'last' ? '∞' : p; };
+
+  // ---------- 5 dizayn ----------
+  const DESIGNS = [
+    { id: 'klassik', name: 'Klassik', draw: dClassic },
+    { id: 'luks', name: 'Luks', draw: dLux },
+    { id: 'faxriy', name: 'Faxriy', draw: dHonor },
+    { id: 'minimal', name: 'Minimal', draw: dMinimal },
+    { id: 'kulgili', name: 'Kulgili', draw: dFun },
+  ];
+  let cur = 0;
+
+  function common(o) { // umumiy matnlar: o — ranglar va joylashuv
+    const name = $('name').value.trim() || 'Ism Familiya', reason = $('reason').value.trim(), issuer = $('issuer').value.trim(), signer = $('signer').value.trim();
+    ctx.textBaseline = 'alphabetic';
+    // sarlavha
+    ctx.fillStyle = o.title; ctx.textAlign = 'center';
+    ctx.font = o.titleFont; ctx.fillText(o.titleText || 'SERTIFIKAT', W / 2, o.ty);
+    if (o.sub) { ctx.font = o.subFont || '600 34px Inter'; ctx.fillStyle = o.subColor || o.title; ctx.fillText(o.sub, W / 2, o.ty + (o.subGap || 70)); }
+    // "Ushbu sertifikat ... ga beriladi"
+    ctx.fillStyle = o.text; ctx.font = o.smallFont || 'italic 700 40px "Playfair Display"'; ctx.fillText(o.giveText || 'Ushbu sertifikat', W / 2, o.ny - 150);
+    // ism — qo'lyozma
+    ctx.fillStyle = o.name; const ns = fitFont(name, o.nameFamily || '"Great Vibes"', o.nameWeight || 400, o.nameSize || 170, W * .7);
+    ctx.font = `${o.nameWeight || 400} ${ns}px ${o.nameFamily || '"Great Vibes"'}`; ctx.fillText(name, W / 2, o.ny);
+    ctx.strokeStyle = o.line; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(W * .25, o.ny + 34); ctx.lineTo(W * .75, o.ny + 34); ctx.stroke();
+    // sabab
+    ctx.fillStyle = o.text; ctx.font = o.reasonFont || '500 44px Inter'; wrap(reason, W / 2, o.ny + 110, W * .64, 58);
+    // o'rin
+    ctx.fillStyle = o.place; ctx.font = o.placeFont || '900 64px "Playfair Display"'; ctx.textAlign = 'center'; ctx.fillText(placeText().toUpperCase(), W / 2, o.ny + 260);
+    // pastki qism: sana, beruvchi, imzo
+    const by = o.by || H - 190;
+    ctx.fillStyle = o.text; ctx.font = '600 30px Inter'; ctx.textAlign = 'center';
+    ctx.fillText(dateText(), W * .2, by); ctx.fillStyle = o.muted; ctx.font = '500 24px Inter'; ctx.fillText('Sana', W * .2, by + 40);
+    ctx.strokeStyle = o.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(W * .12, by - 46); ctx.lineTo(W * .28, by - 46); ctx.stroke();
+    signature(W * .69, by - 118, W * .15, o.ink, signer || issuer);
+    ctx.strokeStyle = o.line; ctx.beginPath(); ctx.moveTo(W * .66, by - 46); ctx.lineTo(W * .88, by - 46); ctx.stroke();
+    ctx.fillStyle = o.text; ctx.font = '600 30px Inter'; ctx.fillText(signer, W * .77, by); ctx.fillStyle = o.muted; ctx.font = '500 24px Inter'; ctx.fillText(issuer, W * .77, by + 40);
+    // muhrlar
+    roundStamp(W * .6, by - 70, 118, o.stamp, -0.25, 'TASDIQ');
+    if (o.rect !== false) rectStamp(o.rx || W * .25, o.ry || by - 135, o.rectText || 'TASDIQLANDI', o.stamp2 || o.stamp, o.rr || 0.12);
+    // hazil belgisi
+    ctx.fillStyle = o.muted; ctx.globalAlpha = .7; ctx.font = '600 20px Inter'; ctx.textAlign = 'center'; ctx.fillText("G'altak · hazil sertifikati · g-altak.vercel.app/sertifikat", W / 2, H - 46); ctx.globalAlpha = 1;
+  }
+
+  function dClassic() {
+    ctx.fillStyle = '#f7efdc'; ctx.fillRect(0, 0, W, H);
+    const g = ctx.createRadialGradient(W / 2, H / 2, 200, W / 2, H / 2, 1200); g.addColorStop(0, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(160,120,60,.25)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    guilloche(W / 2, H / 2 + 40, 520, '#b48a3c', .12);
+    ctx.strokeStyle = '#a8742a'; ctx.lineWidth = 16; ctx.strokeRect(50, 50, W - 100, H - 100); ctx.lineWidth = 3; ctx.strokeRect(84, 84, W - 168, H - 168);
+    [[84, 84], [W - 84, 84], [84, H - 84], [W - 84, H - 84]].forEach(([x, y]) => { ctx.fillStyle = '#a8742a'; ctx.beginPath(); ctx.arc(x, y, 18, 0, 6.283); ctx.fill(); });
+    medal(W / 2, 250, 78, '#e9b94f', '#8b1a1a', medalLabel());
+    common({ ty: 470, titleFont: '900 120px "Playfair Display"', title: '#5a3a10', sub: 'FAXRIY YORLIQ', subFont: '700 30px Inter', subColor: '#a8742a', ny: 800, text: '#3d2a12', name: '#1d2f6b', line: '#c9a86a', place: '#8b1a1a', muted: '#7a6648', ink: '#1d3a9e', stamp: '#1d3a9e', stamp2: '#9e1d1d', by: H - 200 });
+  }
+  function dLux() {
+    ctx.fillStyle = '#0d0c10'; ctx.fillRect(0, 0, W, H);
+    for (let i = 0; i < 14; i++) { ctx.fillStyle = `rgba(243,199,107,${.025})`; ctx.beginPath(); ctx.moveTo(0, i * 120); ctx.lineTo(W, i * 120 - 500); ctx.lineTo(W, i * 120 - 470); ctx.lineTo(0, i * 120 + 30); ctx.fill(); }
+    const gd = ctx.createLinearGradient(0, 0, W, H); gd.addColorStop(0, '#8a5a1c'); gd.addColorStop(.3, '#f7d98d'); gd.addColorStop(.5, '#a8742a'); gd.addColorStop(.75, '#fff0bf'); gd.addColorStop(1, '#8a5a1c');
+    ctx.strokeStyle = gd; ctx.lineWidth = 6; ctx.strokeRect(60, 60, W - 120, H - 120); ctx.lineWidth = 2; ctx.strokeRect(90, 90, W - 180, H - 180);
+    // burchak bezaklari
+    [[90, 90, 1, 1], [W - 90, 90, -1, 1], [90, H - 90, 1, -1], [W - 90, H - 90, -1, -1]].forEach(([x, y, sx, sy]) => { ctx.strokeStyle = gd; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x, y + sy * 140); ctx.lineTo(x, y); ctx.lineTo(x + sx * 140, y); ctx.stroke(); ctx.beginPath(); ctx.arc(x + sx * 30, y + sy * 30, 12, 0, 6.283); ctx.stroke(); });
+    medal(W / 2, 240, 74, '#f3c76b', '#2a2a2a', medalLabel());
+    ctx.save(); common({ ty: 460, titleFont: '900 116px "Playfair Display"', title: '#f3c76b', sub: '— ENG ZO\'RLAR ORASIDA ENG ZO\'RI —', subFont: '600 28px Inter', subColor: 'rgba(243,199,107,.7)', ny: 790, text: '#efe6d4', name: '#f7d98d', line: 'rgba(243,199,107,.45)', place: '#f3c76b', muted: 'rgba(239,230,212,.55)', ink: '#e8e2d6', stamp: '#d4434f', stamp2: '#d4434f', by: H - 200, smallFont: 'italic 700 40px "Playfair Display"' }); ctx.restore();
+  }
+  function dHonor() {
+    ctx.fillStyle = '#8f0f1c'; ctx.fillRect(0, 0, W, H);
+    const g = ctx.createRadialGradient(W / 2, H / 2, 100, W / 2, H / 2, 1300); g.addColorStop(0, '#c3122f'); g.addColorStop(1, '#4d050d'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fbf3e3'; ctx.fillRect(140, 120, W - 280, H - 240);
+    ctx.strokeStyle = '#c9952f'; ctx.lineWidth = 10; ctx.strokeRect(160, 140, W - 320, H - 280);
+    // bug'doy boshoqlariga o'xshash bezak (chap/o'ng)
+    [[-1, 260], [1, W - 260]].forEach(([s, x]) => { for (let i = 0; i < 9; i++) { ctx.fillStyle = '#c9952f'; ctx.save(); ctx.translate(x, 520 + i * 60); ctx.rotate(s * (.5 + i * .02)); ctx.beginPath(); ctx.ellipse(0, 0, 14, 34, 0, 0, 6.283); ctx.fill(); ctx.restore(); } });
+    // yuqorida lenta
+    ctx.fillStyle = '#c3122f'; ctx.beginPath(); ctx.moveTo(W / 2 - 420, 210); ctx.lineTo(W / 2 + 420, 210); ctx.lineTo(W / 2 + 380, 250); ctx.lineTo(W / 2 + 420, 290); ctx.lineTo(W / 2 - 420, 290); ctx.lineTo(W / 2 - 380, 250); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#f7d98d'; ctx.font = '900 46px Inter'; ctx.textAlign = 'center'; ctx.fillText('★  ★  ★', W / 2, 266);
+    common({ ty: 450, titleFont: '900 128px "Playfair Display"', titleText: 'FAXRIY YORLIQ', title: '#8f0f1c', ny: 790, text: '#3a1a12', name: '#8f0f1c', line: '#d9b98a', place: '#c9952f', muted: '#7a5a48', ink: '#1d3a9e', stamp: '#1d3a9e', stamp2: '#8f0f1c', by: H - 220, giveText: 'Ushbu faxriy yorliq bilan taqdirlanadi' });
+  }
+  function dMinimal() {
+    ctx.fillStyle = '#f4f3ee'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#0d0d0d'; ctx.fillRect(0, 0, 36, H);
+    ctx.fillStyle = '#c8f135'; ctx.beginPath(); ctx.arc(W - 160, 180, 300, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = 2; for (let x = 120; x < W; x += 120) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    ctx.fillStyle = '#0d0d0d'; ctx.font = '400 300px Anton'; ctx.textAlign = 'left'; const pl = $('place').value; ctx.fillText(pl === '0' ? '★' : pl === 'last' ? '∞' : '#' + pl, 130, 400);
+    ctx.font = '800 26px Inter'; ctx.fillText('SERTIFIKAT № ' + String(Math.abs(seedRnd($('name').value)() * 9000 | 0) + 1000), 140, 470);
+    common({ ty: 300, titleFont: '400 120px Anton', titleText: ' ', title: '#0d0d0d', ny: 820, text: '#1a1a1a', name: '#0d0d0d', line: '#0d0d0d', place: '#0d0d0d', muted: '#6b6b6b', ink: '#0d0d0d', stamp: '#2d57d6', stamp2: '#e2401c', by: H - 190, nameFamily: 'Caveat', nameWeight: 700, nameSize: 180, smallFont: '800 30px Inter', giveText: 'USHBU SERTIFIKAT BERILADI:', placeFont: '400 70px Anton' });
+  }
+  function dFun() {
+    ctx.fillStyle = '#ffd43b'; ctx.fillRect(0, 0, W, H);
+    // komiks nurlari
+    ctx.save(); ctx.translate(W / 2, H / 2); for (let i = 0; i < 36; i++) { ctx.fillStyle = i % 2 ? '#ffc41a' : '#ffe066'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 1800, i / 36 * 6.283, (i + 1) / 36 * 6.283); ctx.fill(); } ctx.restore();
+    // nuqtalar
+    ctx.fillStyle = 'rgba(0,0,0,.07)'; for (let y = 20; y < H; y += 34) for (let x = 20; x < W; x += 34) { ctx.beginPath(); ctx.arc(x, y, 5, 0, 6.283); ctx.fill(); }
+    ctx.fillStyle = '#fffdf5'; ctx.strokeStyle = '#111'; ctx.lineWidth = 10;
+    const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+    ctx.save(); ctx.translate(0, 0); ctx.fillStyle = '#111'; rr(130, 130, W - 240, H - 240, 60); ctx.fill(); ctx.fillStyle = '#fffdf5'; rr(110, 110, W - 240, H - 240, 60); ctx.fill(); ctx.stroke(); ctx.restore();
+    // kubok
+    ctx.font = '180px serif'; ctx.textAlign = 'center'; ctx.fillText($('place').value === 'last' ? '🥔' : '🏆', W / 2, 330);
+    ctx.font = '120px serif'; ctx.fillText('🎉', 300, 330); ctx.fillText('🎊', W - 300, 330);
+    common({ ty: 470, titleFont: '400 130px Anton', titleText: 'SUPER SERTIFIKAT!', title: '#111', ny: 790, text: '#222', name: '#e2401c', line: '#111', place: '#2d57d6', muted: '#555', ink: '#2d57d6', stamp: '#e2401c', stamp2: '#2d57d6', by: H - 210, nameFamily: 'Caveat', nameWeight: 700, nameSize: 190, giveText: 'Tantanali ravishda topshiriladi:', smallFont: '700 40px Caveat', rectText: 'ZO\'R!' });
+  }
+
+  function draw() { ctx.save(); ctx.clearRect(0, 0, W, H); DESIGNS[cur].draw(); ctx.restore(); }
+
+  // dizayn tanlash kichik ko'rinishlari
+  const thumbs = [];
+  DESIGNS.forEach((d, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'd' + (i === cur ? ' on' : '');
+    const t = document.createElement('canvas'); t.width = 200; t.height = 141; b.appendChild(t);
+    const s = document.createElement('span'); s.textContent = d.name; b.appendChild(s);
+    b.onclick = () => { cur = i; document.querySelectorAll('.d').forEach((x, j) => x.classList.toggle('on', j === i)); draw(); };
+    $('designs').appendChild(b); thumbs.push(t);
+  });
+  function drawThumbs() { const keep = cur; thumbs.forEach((t, i) => { cur = i; draw(); t.getContext('2d').drawImage(cv, 0, 0, 200, 141); }); cur = keep; draw(); }
+
+  ['name', 'reason', 'place', 'date', 'issuer', 'signer'].forEach((id) => $(id).addEventListener('input', draw));
+  const fname = () => 'sertifikat-' + ($('name').value.trim() || 'galtak').replace(/[^\p{L}\p{N}]+/gu, '-').toLowerCase() + '.png';
+  $('dl').onclick = () => cv.toBlob((b) => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = fname(); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 3000); }, 'image/png');
+  $('share').onclick = () => cv.toBlob(async (b) => {
+    const file = new File([b], fname(), { type: 'image/png' });
+    try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Sertifikat', text: "G'altak'da yasalgan hazil sertifikat" }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    $('dl').click();
+  }, 'image/png');
+
+  // shriftlar yuklangach chizamiz
+  const fonts = ['400 60px "Great Vibes"', '700 60px Caveat', '900 60px "Playfair Display"', 'italic 700 60px "Playfair Display"', '400 60px Anton', '800 30px Inter', '600 30px Inter'];
+  draw();
+  Promise.all(fonts.map((f) => document.fonts.load(f).catch(() => null))).then(() => drawThumbs()).catch(() => drawThumbs());
+  try { const tg = window.Telegram && Telegram.WebApp; if (tg) { tg.ready(); tg.expand(); } } catch {}
+})();
+</script>
+</body>
+</html>
