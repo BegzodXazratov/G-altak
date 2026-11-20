@@ -10,6 +10,7 @@ import { chessMenu, createPrivate as newChess } from "./chess.js";
 import { archMenu, createPrivate as newArch } from "./arch.js";
 import { bambukMenu, createPrivate as newBam } from "./bambuk.js";
 import { avatar, applyPing, addFriend, social, paintBadge, profileScreen, friendsScreen, chatsScreen } from "./social.js";
+import { xoMenu } from "./xo.js";
 import { roomSeen } from "./room.js";
 
 setupTelegram();
@@ -286,6 +287,11 @@ const menu = {
             <h2>Kamonchi</h2><p>Burchak va kuchni topib, raqibning 5 jonini oling</p>
             <span class="art" aria-hidden="true">🏹</span>
           </button>
+          <button class="game g-shch" data-go="xo" data-cat="logic">
+            <span class="tag">Yangi · mantiq · 3×3, 4×4, 5×5</span>
+            <h2>X | O</h2><p>Krestik-nolik: 1, 3 yoki 5 raund, kompyuter yoki do'st bilan</p>
+            <span class="art" aria-hidden="true">❌</span>
+          </button>
           <button class="game g-bam" data-go="bambuk" data-cat="skill">
             <span class="tag">Yangi · aniqlik · yolg'iz</span>
             <h2>Bambuk</h2><p>Chap yoki o'ngni bosib bambukni kesing — qoziqqa urilmang!</p>
@@ -328,6 +334,7 @@ const menu = {
         if (g === "kim") show(kimMenu());
         if (g === "shch") show(shchMenu());
         else if (g === "bambuk") show(bambukMenu());
+        if (g === "xo") show(xoMenu());
         if (g === "chess") show(chessMenu());
         if (g === "arch") show(archMenu());
       });
