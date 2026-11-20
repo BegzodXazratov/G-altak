@@ -98,3 +98,26 @@ export function aiMove(b, n, turn, level) {
   }
   return bestI.length ? bestI[(Math.random() * bestI.length) | 0] : rnd();
 }
+
+// ---------- onlayn (serverda saqlanadigan holat) ----------
+// side: "w" = X (1-o'yinchi), "b" = O (2-o'yinchi). Raund tugasa, taxta o'zi yangilanadi (last — oxirgi raund natijasi).
+export const SIZES = [3, 4, 5], ROUNDS = [1, 3, 5];
+export function xoInit(size, rounds) {
+  const n = SIZES.includes(+size) ? +size : 3, r = ROUNDS.includes(+rounds) ? +rounds : 3;
+  return { n, rounds: r, len: `${n}-${r}`, board: Array(n * n).fill(0), turn: "w", starter: "w", round: 1, score: { w: 0, b: 0, d: 0 }, last: null, winner: null, line: [] };
+}
+export function xoApply(st, i, side) {
+  if (st.winner || st.turn !== side || !Number.isInteger(i) || i < 0 || i >= st.board.length || st.board[i]) return null;
+  const n = st.n, board = st.board.slice(), score = { ...st.score };
+  board[i] = side === "w" ? 1 : -1;
+  const r = result(board, n);
+  if (!r) return { ...st, board, turn: side === "w" ? "b" : "w", last: null };
+  const rw = r.w === 0 ? "draw" : r.w === 1 ? "w" : "b";
+  if (rw === "draw") score.d++; else score[rw]++;
+  const left = st.rounds - st.round, need = Math.floor(st.rounds / 2) + 1;
+  const over = score.w >= need || score.b >= need || left === 0 || Math.abs(score.w - score.b) > left;
+  const last = { round: st.round, w: rw, board, line: r.line };
+  if (over) return { ...st, board, score, last, line: r.line, winner: score.w === score.b ? "draw" : score.w > score.b ? "w" : "b" };
+  const starter = st.starter === "w" ? "b" : "w";
+  return { ...st, board: Array(n * n).fill(0), score, last, line: [], round: st.round + 1, starter, turn: starter };
+}

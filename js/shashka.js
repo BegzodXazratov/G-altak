@@ -76,6 +76,7 @@ export async function joinRoom(code) {
   if (r.game === "kim") { const m = await import("./kim.js"); return m.openKimRoom(r); }
   if (r.game === "arch") { const m = await import("./arch.js"); return m.openArchRoom(r); }
   if (r.game === "chess") { const m = await import("./chess.js"); return m.openChessRoom(r); }
+  if (r.game === "xo") { const m = await import("./xo.js"); return m.openXoRoom(r); }
   if (r.game === "mol") { const m = await import("./mol.js"); return m.openMolRoom(r); }
   if (r.game === "bambuk") { const m = await import("./bambuk.js"); return m.openBambukRoom(r); }
   if (r.game === "shch") { const m = await import("./shch.js"); return m.openShchRoom(r); }
